@@ -1,0 +1,7 @@
+dist
+coverage
+node_modules
+pnpm-lock.yaml
+apps/api/openapi.json
+packages/contracts/src/openapi.ts
+packages/contracts/openapi.json
