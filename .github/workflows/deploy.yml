@@ -40,7 +40,7 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT }}:role/tournoi-connect-deploy-${{ env.TARGET }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
