@@ -1,0 +1,29 @@
+{
+  "name": "tournoi-connect-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tournoi Connect — API, worker, moteur de tournoi et contrats",
+  "license": "UNLICENSED",
+  "type": "module",
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @tournoi-connect/api start:dev",
+    "dev:worker": "pnpm --filter @tournoi-connect/api start:worker:dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:e2e": "pnpm --filter @tournoi-connect/api test:e2e",
+    "openapi": "pnpm --filter @tournoi-connect/api openapi && pnpm --filter @dmoh/tournoi-connect-contracts generate",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2"
+  }
+}

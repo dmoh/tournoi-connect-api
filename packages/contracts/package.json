@@ -1,0 +1,38 @@
+{
+  "name": "@dmoh/tournoi-connect-contracts",
+  "version": "0.1.0",
+  "description": "Types générés depuis le contrat OpenAPI de l'API Tournoi Connect",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./openapi.json": "./openapi.json"
+  },
+  "files": [
+    "dist",
+    "openapi.json"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dmoh/tournoi-connect-api.git",
+    "directory": "packages/contracts"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint src/index.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0",
+    "oxlint": "^1.58.0",
+    "typescript": "^6.0.2"
+  }
+}

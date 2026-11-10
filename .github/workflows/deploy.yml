@@ -1,0 +1,52 @@
+name: Deploy
+
+# Copie l'image de GHCR vers ECR puis déclenche App Runner (API et worker).
+# Variables attendues (Settings → Secrets and variables → Actions → Variables),
+# au niveau du dépôt ou de l'environnement :
+#   AWS_ROLE_ARN            rôle IAM assumé par OIDC (aucune clé longue durée)
+#   AWS_REGION              ex. eu-west-3
+#   ECR_REPOSITORY          URI du dépôt ECR, ex. 123456789012.dkr.ecr.eu-west-3.amazonaws.com/tournoi-connect-api
+#   APP_RUNNER_API_ARN      ARN du service App Runner de l'API
+#   APP_RUNNER_WORKER_ARN   ARN du service App Runner du worker (facultatif)
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      image-tag:
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ inputs.environment }}
+    permissions:
+      id-token: write
+      contents: read
+      packages: read
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - name: Copier l'image vers ECR
+        run: |
+          docker buildx imagetools create \
+            --tag "${{ vars.ECR_REPOSITORY }}:${{ inputs.image-tag }}" \
+            --tag "${{ vars.ECR_REPOSITORY }}:${{ inputs.environment }}" \
+            "ghcr.io/${{ github.repository }}:${{ inputs.image-tag }}"
+      - name: Déployer l'API
+        run: aws apprunner start-deployment --service-arn "${{ vars.APP_RUNNER_API_ARN }}"
+      - name: Déployer le worker
+        if: vars.APP_RUNNER_WORKER_ARN != ''
+        run: aws apprunner start-deployment --service-arn "${{ vars.APP_RUNNER_WORKER_ARN }}"

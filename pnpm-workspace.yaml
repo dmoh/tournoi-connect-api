@@ -1,0 +1,12 @@
+packages:
+  - apps/*
+  - packages/*
+minimumReleaseAgeExclude:
+  - '@nestjs/common@12.4.2'
+  - '@nestjs/core@12.4.2'
+  - '@nestjs/platform-fastify@12.4.2'
+  - '@nestjs/testing@12.4.2'
+
+# Scripts d'installation refusés par défaut ; @scarf/scarf n'est que de la télémétrie.
+allowBuilds:
+  '@scarf/scarf': false
