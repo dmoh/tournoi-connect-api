@@ -96,7 +96,12 @@ model Organization {
   venues      Venue[]
   tournaments Tournament[]
   sponsors    Sponsor[]
+  members     Membership[]
+  /// Club importé d'un service externe (connecteur EcoClubSport, plus tard).
+  externalSource ExternalSource? @map("external_source")
+  externalId     String?         @map("external_id")
 
+  @@unique([externalSource, externalId])
   @@map("organization")
 }
 
@@ -300,6 +305,8 @@ model Sponsor {
   website        String?
   source         SponsorSource       @default(TOURNAMENT)
   tournaments    TournamentSponsor[]
+  /// Comptes ayant l'accès exclusif du sponsor (ses statistiques).
+  accesses       SponsorAccess[]
 
   @@index([organizationId])
   @@map("sponsor")
@@ -350,4 +357,116 @@ model AudienceHourly {
 
   @@unique([tournamentSponsorId, placement, hourBucket])
   @@map("audience_hourly")
+}
+
+// ---------------------------------------------------------------------------
+// Comptes et rôles (lot 1)
+// ---------------------------------------------------------------------------
+
+/// Moyens de connexion d'un compte ; ECOCLUBSPORT est réservé au connecteur à venir.
+enum IdentityProvider {
+  EMAIL
+  GOOGLE
+  APPLE
+  FACEBOOK
+  ECOCLUBSPORT
+}
+
+enum ExternalSource {
+  ECOCLUBSPORT
+}
+
+/// Rôle dans un club : propriétaire, administrateur, bénévole (saisie des scores).
+enum MemberRole {
+  OWNER
+  ADMIN
+  STAFF
+}
+
+model User {
+  id            String          @id @default(cuid(2))
+  /// Toujours en minuscules.
+  email         String          @unique
+  firstName     String?         @map("first_name")
+  lastName      String?         @map("last_name")
+  locale        String          @default("fr")
+  /// Admin de la plateforme (support, modération).
+  platformAdmin Boolean         @default(false) @map("platform_admin")
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  identities    Identity[]
+  sessions      Session[]
+  memberships   Membership[]
+  sponsorAccess SponsorAccess[]
+
+  @@map("app_user")
+}
+
+/// Moyen de connexion rattaché à un compte (une adresse, un compte Google…).
+model Identity {
+  id        String           @id @default(cuid(2))
+  userId    String           @map("user_id")
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider  IdentityProvider
+  /// Identifiant chez le fournisseur (sub OIDC, id Facebook, adresse email).
+  subject   String
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([provider, subject])
+  @@index([userId])
+  @@map("identity")
+}
+
+/// Code à 6 chiffres envoyé par email, haché, valable 10 minutes, 5 essais.
+model LoginCode {
+  id         String    @id @default(cuid(2))
+  email      String
+  codeHash   String    @map("code_hash")
+  attempts   Int       @default(0)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([email, createdAt])
+  @@map("login_code")
+}
+
+/// Session d'un appareil : jeton de rafraîchissement haché, renouvelé à chaque usage.
+model Session {
+  id          String    @id @default(cuid(2))
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshHash String    @unique @map("refresh_hash")
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz
+  userAgent   String?   @map("user_agent")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  lastUsedAt  DateTime  @default(now()) @map("last_used_at") @db.Timestamptz
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Membership {
+  userId         String       @map("user_id")
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role           MemberRole
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([userId, organizationId])
+  @@index([organizationId])
+  @@map("membership")
+}
+
+/// Accès exclusif d'un compte aux statistiques d'un sponsor.
+model SponsorAccess {
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sponsorId String   @map("sponsor_id")
+  sponsor   Sponsor  @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([userId, sponsorId])
+  @@map("sponsor_access")
 }

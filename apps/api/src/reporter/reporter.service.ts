@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { AuthKeys } from '../auth/auth-keys.js';
+import { AUTH_KEYS } from '../auth/auth.tokens.js';
 import { ConfigService } from '@nestjs/config';
 import { Clock } from '../common/clock.js';
 import type { Env } from '../config/env.js';
@@ -33,9 +35,9 @@ export class ReporterService {
     private readonly prisma: PrismaService,
     private readonly clock: Clock,
     private readonly config: ConfigService<Env, true>,
+    @Inject(AUTH_KEYS) keys: AuthKeys | null,
   ) {
-    const secret = config.get('ORGANIZER_DEMO_TOKEN', { infer: true });
-    this.signer = secret ? new ReporterLinkSigner(secret) : null;
+    this.signer = keys ? new ReporterLinkSigner(keys.reporter) : null;
   }
 
   /** Lien d'un match de l'organisation (404 sinon, jamais 403). */

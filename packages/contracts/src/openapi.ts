@@ -1,6 +1,109 @@
 // Fichier généré par `pnpm openapi` — ne pas modifier à la main.
 
 export interface paths {
+    "/api/v1/auth/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fournisseurs de connexion en un clic configurés */
+        get: operations["AuthController_providers_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Envoyer un code de connexion à 6 chiffres par email */
+        post: operations["AuthController_requestCode_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ouvrir une session avec le code reçu (crée le compte au besoin) */
+        post: operations["AuthController_verify_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Nouveau jeton d’accès depuis le cookie de session */
+        post: operations["AuthController_refresh_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fermer la session de cet appareil */
+        post: operations["AuthController_logout_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mon compte : profil, moyens de connexion, clubs et sponsors */
+        get: operations["AuthController_me_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Compléter son prénom et son nom */
+        patch: operations["AuthController_updateMe_v1"];
+        trace?: never;
+    };
     "/health/live": {
         parameters: {
             query?: never;
@@ -304,6 +407,264 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    AuthController_providers_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        providers: ("GOOGLE" | "APPLE" | "FACEBOOK")[];
+                    };
+                };
+            };
+        };
+    };
+    AuthController_requestCode_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    email: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Code envoyé (même pour une adresse inconnue) */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Plus de 5 codes en une heure */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_verify_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    email: string;
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        accessToken: string;
+                        expiresIn: number;
+                        user: {
+                            id: string;
+                            email: string;
+                            firstName: string | null;
+                            lastName: string | null;
+                            needsProfile: boolean;
+                            providers: ("EMAIL" | "GOOGLE" | "APPLE" | "FACEBOOK" | "ECOCLUBSPORT")[];
+                            memberships: {
+                                organization: {
+                                    slug: string;
+                                    name: string;
+                                };
+                                /** @enum {string} */
+                                role: "OWNER" | "ADMIN" | "STAFF";
+                            }[];
+                            sponsors: {
+                                id: string;
+                                name: string;
+                                organization: string;
+                            }[];
+                            platformAdmin: boolean;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    AuthController_refresh_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        accessToken: string;
+                        expiresIn: number;
+                        user: {
+                            id: string;
+                            email: string;
+                            firstName: string | null;
+                            lastName: string | null;
+                            needsProfile: boolean;
+                            providers: ("EMAIL" | "GOOGLE" | "APPLE" | "FACEBOOK" | "ECOCLUBSPORT")[];
+                            memberships: {
+                                organization: {
+                                    slug: string;
+                                    name: string;
+                                };
+                                /** @enum {string} */
+                                role: "OWNER" | "ADMIN" | "STAFF";
+                            }[];
+                            sponsors: {
+                                id: string;
+                                name: string;
+                                organization: string;
+                            }[];
+                            platformAdmin: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Pas de session ou session expirée */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_logout_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_me_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        email: string;
+                        firstName: string | null;
+                        lastName: string | null;
+                        needsProfile: boolean;
+                        providers: ("EMAIL" | "GOOGLE" | "APPLE" | "FACEBOOK" | "ECOCLUBSPORT")[];
+                        memberships: {
+                            organization: {
+                                slug: string;
+                                name: string;
+                            };
+                            /** @enum {string} */
+                            role: "OWNER" | "ADMIN" | "STAFF";
+                        }[];
+                        sponsors: {
+                            id: string;
+                            name: string;
+                            organization: string;
+                        }[];
+                        platformAdmin: boolean;
+                    };
+                };
+            };
+        };
+    };
+    AuthController_updateMe_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    firstName: string;
+                    lastName: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        email: string;
+                        firstName: string | null;
+                        lastName: string | null;
+                        needsProfile: boolean;
+                        providers: ("EMAIL" | "GOOGLE" | "APPLE" | "FACEBOOK" | "ECOCLUBSPORT")[];
+                        memberships: {
+                            organization: {
+                                slug: string;
+                                name: string;
+                            };
+                            /** @enum {string} */
+                            role: "OWNER" | "ADMIN" | "STAFF";
+                        }[];
+                        sponsors: {
+                            id: string;
+                            name: string;
+                            organization: string;
+                        }[];
+                        platformAdmin: boolean;
+                    };
+                };
+            };
+        };
+    };
     HealthController_live: {
         parameters: {
             query?: never;
@@ -862,7 +1223,10 @@ export interface operations {
     OrganizerController_reporterLink_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
             path: {
                 slug: string;
                 matchId: string;
@@ -885,7 +1249,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Jeton absent ou invalide */
+            /** @description Connexion requise */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -904,7 +1268,10 @@ export interface operations {
     OrganizerController_tournaments_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -933,7 +1300,7 @@ export interface operations {
                     }[];
                 };
             };
-            /** @description Jeton absent ou invalide */
+            /** @description Connexion requise */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -945,7 +1312,10 @@ export interface operations {
     OrganizerController_createTournament_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1001,7 +1371,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Jeton absent ou invalide */
+            /** @description Connexion requise */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -1013,7 +1383,10 @@ export interface operations {
     OrganizerController_sponsors_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
             path: {
                 slug: string;
             };
@@ -1057,7 +1430,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Jeton absent ou invalide */
+            /** @description Connexion requise */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -1076,7 +1449,10 @@ export interface operations {
     OrganizerController_invite_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
             path: {
                 slug: string;
             };
@@ -1117,7 +1493,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Jeton absent ou invalide */
+            /** @description Connexion requise */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -1136,7 +1512,10 @@ export interface operations {
     OrganizerController_update_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
             path: {
                 id: string;
             };
@@ -1157,7 +1536,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Jeton absent ou invalide */
+            /** @description Connexion requise */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -1169,7 +1548,10 @@ export interface operations {
     OrganizerController_createPost_v1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
             path: {
                 slug: string;
             };
@@ -1200,7 +1582,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Jeton absent ou invalide */
+            /** @description Connexion requise */
             401: {
                 headers: {
                     [name: string]: unknown;

@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
 import {
+  DEMO_ACCOUNTS,
   DEMO_MATCH_EVENTS,
   DEMO_MATCHES,
   DEMO_ORGANIZATIONS,
@@ -22,6 +23,12 @@ import {
  */
 export async function seedDemo(prisma: PrismaClient): Promise<void> {
   await prisma.organization.deleteMany();
+  await prisma.user.deleteMany({
+    where: { email: { endsWith: '@example.org' } },
+  });
+  await prisma.loginCode.deleteMany({
+    where: { email: { endsWith: '@example.org' } },
+  });
 
   const organizations = new Map<string, string>();
   for (const org of DEMO_ORGANIZATIONS) {
@@ -175,6 +182,34 @@ export async function seedDemo(prisma: PrismaClient): Promise<void> {
                 },
               }
             : undefined,
+      },
+    });
+  }
+
+  for (const { membership, sponsor, ...account } of DEMO_ACCOUNTS) {
+    const sponsorId = sponsor
+      ? (
+          await prisma.sponsor.findFirst({
+            where: { name: sponsor },
+            select: { id: true },
+          })
+        )?.id
+      : undefined;
+    await prisma.user.create({
+      data: {
+        ...account,
+        identities: { create: { provider: 'EMAIL', subject: account.email } },
+        ...(membership
+          ? {
+              memberships: {
+                create: {
+                  role: membership.role,
+                  organizationId: organizations.get(membership.organization)!,
+                },
+              },
+            }
+          : {}),
+        ...(sponsorId ? { sponsorAccess: { create: { sponsorId } } } : {}),
       },
     });
   }

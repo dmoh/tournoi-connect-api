@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+const empty = (value: unknown) => (value === '' ? undefined : value);
+const optional = () => z.preprocess(empty, z.string().min(1).optional());
+const optionalSecret = (min: number) =>
+  z.preprocess(empty, z.string().min(min).optional());
+
 /**
  * Variables d'environnement validées au démarrage : l'application refuse de
  * démarrer si l'une d'elles manque ou est mal formée.
@@ -13,15 +18,28 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1).optional(),
   /**
-   * Accès organisateur provisoire, en attendant l'authentification JWT (P1) :
-   * jeton à présenter en Bearer et organisation qu'il ouvre. Sans jeton, les
-   * routes organisateur répondent 401.
+   * Secret des comptes (64 caractères aléatoires) : signature des jetons
+   * d'accès, empreinte des codes de connexion, liens du rapporteur. Sans lui,
+   * la connexion est fermée (routes /auth et organisateur en 401).
    */
-  ORGANIZER_DEMO_TOKEN: z.preprocess(
-    (value) => (value === '' ? undefined : value),
-    z.string().min(24).optional(),
-  ),
-  ORGANIZER_DEMO_ORG: z.string().min(1).default('etoile-de-l-arve'),
+  AUTH_SECRET: optionalSecret(32),
+  /** Envoi des emails : SES en préprod et en prod, journal sinon. */
+  MAIL_TRANSPORT: z.enum(['ses', 'log']).default('log'),
+  MAIL_FROM: z
+    .string()
+    .min(3)
+    .default('Tournoi Connect <noreply@tournoi-connect.com>'),
+  AWS_REGION: z.string().min(1).default('eu-west-3'),
+  /** Connexion en un clic : chaque fournisseur ne s'affiche que s'il est configuré. */
+  GOOGLE_CLIENT_ID: optional(),
+  GOOGLE_CLIENT_SECRET: optional(),
+  /** Apple : Services ID, équipe, clé « Sign in with Apple » (PEM, \n échappés). */
+  APPLE_CLIENT_ID: optional(),
+  APPLE_TEAM_ID: optional(),
+  APPLE_KEY_ID: optional(),
+  APPLE_PRIVATE_KEY: optional(),
+  FACEBOOK_APP_ID: optional(),
+  FACEBOOK_APP_SECRET: optional(),
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
     .default('info'),

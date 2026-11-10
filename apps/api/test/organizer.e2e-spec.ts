@@ -1,16 +1,20 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { ORGANIZER_TOKEN, createTestApp } from './setup-app.js';
+import { createTestApp, login } from './setup-app.js';
 
 describe('Espace organisateur (e2e)', () => {
   let app: NestFastifyApplication;
   let reset: () => Promise<void>;
+  let ORGANIZER_TOKEN = '';
 
   beforeAll(async () => {
     const ctx = await createTestApp();
     app = ctx.app;
     reset = ctx.reset;
   });
-  beforeEach(() => reset());
+  beforeEach(async () => {
+    await reset();
+    ORGANIZER_TOKEN = await login(app);
+  });
   afterAll(() => app.close());
 
   const call = (
