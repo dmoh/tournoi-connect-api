@@ -43,7 +43,7 @@ jobs:
             type=semver,pattern={{version}}
             type=raw,value=production,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
       - id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: infra/Dockerfile
