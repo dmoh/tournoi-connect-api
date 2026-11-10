@@ -93,6 +93,11 @@ data "aws_iam_policy_document" "host" {
     ]
   }
   statement {
+    sid       = "EnvoyerLesEmails"
+    actions   = ["ses:SendEmail", "ses:SendRawEmail"]
+    resources = [var.ses_identity_arn]
+  }
+  statement {
     sid       = "DechiffrerSesSecrets"
     actions   = ["kms:Decrypt"]
     resources = ["*"]
@@ -134,8 +139,9 @@ resource "aws_instance" "host" {
   }
 
   metadata_options {
-    http_tokens                 = "required"
-    http_put_response_hop_limit = 1
+    http_tokens = "required"
+    # 2 : les conteneurs (API, worker) obtiennent les identifiants du rôle pour SES.
+    http_put_response_hop_limit = 2
   }
 
   root_block_device {
