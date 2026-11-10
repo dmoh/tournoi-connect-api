@@ -1,0 +1,119 @@
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiBody,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { openApi } from '../common/openapi-schema.js';
+import {
+  audienceEventSchema,
+  newsSchema,
+  pollResultSchema,
+  publicSponsorsSchema,
+  voteSchema,
+  type AudienceEvent,
+  type NewsItem,
+  type PollResult,
+  type PublicSponsors,
+} from './public-l5.schemas.js';
+import {
+  nearbyTournamentSchema,
+  searchQuerySchema,
+  tournamentDetailSchema,
+  type NearbyTournament,
+  type SearchQuery,
+  type TournamentDetail,
+} from './public.schemas.js';
+import { PublicService } from './public.service.js';
+
+/**
+ * Lectures publiques (pages rendues côté serveur par la PWA) et mesure
+ * d'audience. Aucune authentification ; seuls les tournois publiés sont lus.
+ */
+@ApiTags('public')
+@Controller('public')
+export class PublicController {
+  constructor(private readonly service: PublicService) {}
+
+  @Get('tournaments')
+  @ApiOperation({ summary: 'Tournois en cours ou à venir autour d’un point' })
+  @ApiQuery({ name: 'lat', type: Number })
+  @ApiQuery({ name: 'lng', type: Number })
+  @ApiQuery({ name: 'radiusKm', type: Number, required: false })
+  @ApiQuery({
+    name: 'sport',
+    enum: ['football', 'handball', 'basketball', 'volleyball', 'rugby'],
+    required: false,
+  })
+  @ApiOkResponse({ schema: openApi(nearbyTournamentSchema.array()) })
+  search(
+    @Query({ schema: searchQuerySchema }) query: SearchQuery,
+  ): Promise<NearbyTournament[]> {
+    return this.service.search(query);
+  }
+
+  @Get('tournaments/:slug')
+  @ApiOperation({
+    summary: 'Page publique d’un tournoi : équipes, matchs, classements',
+  })
+  @ApiOkResponse({ schema: openApi(tournamentDetailSchema) })
+  @ApiNotFoundResponse({ description: 'Tournoi inconnu ou non publié' })
+  detail(@Param('slug') slug: string): Promise<TournamentDetail> {
+    return this.service.detail(slug);
+  }
+
+  @Get('tournaments/:slug/news')
+  @ApiOperation({
+    summary: 'Fil News, une carte sponsorisée au plus pour quatre éléments',
+  })
+  @ApiOkResponse({ schema: openApi(newsSchema) })
+  news(@Param('slug') slug: string): Promise<NewsItem[]> {
+    return this.service.news(slug);
+  }
+
+  @Get('tournaments/:slug/sponsors')
+  @ApiOperation({
+    summary: 'Sponsors affichés : bannière Or, bandeau partagé, terrains',
+  })
+  @ApiOkResponse({ schema: openApi(publicSponsorsSchema) })
+  sponsors(@Param('slug') slug: string): Promise<PublicSponsors> {
+    return this.service.sponsors(slug);
+  }
+
+  @Post('posts/:postId/votes')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Vote anonyme à un sondage du fil News' })
+  @ApiBody({ schema: openApi(voteSchema) })
+  @ApiOkResponse({ schema: openApi(pollResultSchema) })
+  vote(
+    @Param('postId') postId: string,
+    @Body({ schema: voteSchema }) body: { optionId: string },
+  ): Promise<PollResult> {
+    return this.service.vote(postId, body.optionId);
+  }
+
+  @Post('audience')
+  @HttpCode(204)
+  @ApiOperation({
+    summary: 'Impression ou clic d’un sponsor, cumulé par heure',
+  })
+  @ApiBody({ schema: openApi(audienceEventSchema) })
+  @ApiNoContentResponse()
+  audience(
+    @Body({ schema: audienceEventSchema }) event: AudienceEvent,
+  ): Promise<void> {
+    return this.service.recordAudience(event);
+  }
+}

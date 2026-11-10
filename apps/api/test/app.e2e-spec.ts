@@ -1,22 +1,11 @@
-import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { Test } from '@nestjs/testing';
-import { configureApp } from '../src/app.factory.js';
-import { AppModule } from '../src/app.module.js';
+import { createTestApp } from './setup-app.js';
 
 describe('API (e2e)', () => {
   let app: NestFastifyApplication;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-    app = moduleRef.createNestApplication<NestFastifyApplication>(
-      new FastifyAdapter(),
-    );
-    await configureApp(app);
-    await app.init();
-    await app.getHttpAdapter().getInstance().ready();
+    ({ app } = await createTestApp());
   });
 
   afterAll(async () => {
@@ -29,10 +18,10 @@ describe('API (e2e)', () => {
     expect(res.json()).toEqual({ status: 'ok' });
   });
 
-  it('GET /health/ready répond ok', async () => {
+  it('GET /health/ready vérifie Postgres', async () => {
     const res = await app.inject({ method: 'GET', url: '/health/ready' });
     expect(res.statusCode).toBe(200);
-    expect(res.json().status).toBe('ok');
+    expect(res.json().info.postgres.status).toBe('up');
   });
 
   it("pose les en-têtes de sécurité d'Helmet", async () => {
@@ -40,8 +29,10 @@ describe('API (e2e)', () => {
     expect(res.headers['x-content-type-options']).toBe('nosniff');
   });
 
-  it('renvoie 404 sur une route inconnue', async () => {
+  it('renvoie 404 en problem+json sur une route inconnue', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/inconnu' });
     expect(res.statusCode).toBe(404);
+    expect(res.headers['content-type']).toContain('application/problem+json');
+    expect(res.json()).toMatchObject({ status: 404 });
   });
 });

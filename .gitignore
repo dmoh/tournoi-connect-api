@@ -6,3 +6,6 @@ coverage
 .env.*
 !.env.example
 .DS_Store
+
+# Client Prisma généré par prisma generate (build, typecheck, lint, tests)
+apps/api/src/generated/

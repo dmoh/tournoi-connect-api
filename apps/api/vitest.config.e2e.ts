@@ -6,5 +6,7 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.e2e-spec.ts'],
+    // Une seule base de test : les fichiers s'exécutent l'un après l'autre.
+    fileParallelism: false,
   },
 });

@@ -16,7 +16,7 @@ COPY packages/contracts/package.json packages/contracts/
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 COPY . .
-RUN pnpm --filter @tournoi-connect/api build \
+RUN pnpm --filter "@tournoi-connect/api..." build \
  && pnpm --filter @tournoi-connect/api deploy --prod --legacy /out
 
 FROM node:26-alpine AS runtime
