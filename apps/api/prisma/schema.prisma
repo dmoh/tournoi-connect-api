@@ -89,14 +89,17 @@ enum Placement {
 }
 
 model Organization {
-  id          String       @id @default(cuid(2))
-  slug        String       @unique
-  name        String
-  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  venues      Venue[]
-  tournaments Tournament[]
-  sponsors    Sponsor[]
-  members     Membership[]
+  id             String          @id @default(cuid(2))
+  slug           String          @unique
+  name           String
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  venues         Venue[]
+  tournaments    Tournament[]
+  sponsors       Sponsor[]
+  members        Membership[]
+  invitations    Invitation[]
+  /// Ville du club (affichée avec son nom).
+  city           String?
   /// Club importé d'un service externe (connecteur EcoClubSport, plus tard).
   externalSource ExternalSource? @map("external_source")
   externalId     String?         @map("external_id")
@@ -183,25 +186,25 @@ model Player {
 }
 
 model Match {
-  id              String      @id @default(cuid(2))
-  tournamentId    String      @map("tournament_id")
-  tournament      Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  id              String          @id @default(cuid(2))
+  tournamentId    String          @map("tournament_id")
+  tournament      Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   /// Identifiant court stable dans le tournoi (ex. « a5 », « df1 »).
   code            String
   phase           Phase
   group           String?
   field           String
-  startsAt        DateTime    @map("starts_at") @db.Timestamptz
-  homeTeamCode    String?     @map("home_team_code")
-  awayTeamCode    String?     @map("away_team_code")
-  homePlaceholder String?     @map("home_placeholder")
-  awayPlaceholder String?     @map("away_placeholder")
-  scoreHome       Int         @default(0) @map("score_home")
-  scoreAway       Int         @default(0) @map("score_away")
-  status          MatchStatus @default(SCHEDULED)
+  startsAt        DateTime        @map("starts_at") @db.Timestamptz
+  homeTeamCode    String?         @map("home_team_code")
+  awayTeamCode    String?         @map("away_team_code")
+  homePlaceholder String?         @map("home_placeholder")
+  awayPlaceholder String?         @map("away_placeholder")
+  scoreHome       Int             @default(0) @map("score_home")
+  scoreAway       Int             @default(0) @map("score_away")
+  status          MatchStatus     @default(SCHEDULED)
   minute          Int?
   /// Verrou optimiste du direct (ADR-009).
-  version         Int         @default(0)
+  version         Int             @default(0)
   events          MatchEvent[]
   reactions       MatchReaction[]
 
@@ -384,19 +387,20 @@ enum MemberRole {
 }
 
 model User {
-  id            String          @id @default(cuid(2))
+  id              String          @id @default(cuid(2))
   /// Toujours en minuscules.
-  email         String          @unique
-  firstName     String?         @map("first_name")
-  lastName      String?         @map("last_name")
-  locale        String          @default("fr")
+  email           String          @unique
+  firstName       String?         @map("first_name")
+  lastName        String?         @map("last_name")
+  locale          String          @default("fr")
   /// Admin de la plateforme (support, modération).
-  platformAdmin Boolean         @default(false) @map("platform_admin")
-  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz
-  identities    Identity[]
-  sessions      Session[]
-  memberships   Membership[]
-  sponsorAccess SponsorAccess[]
+  platformAdmin   Boolean         @default(false) @map("platform_admin")
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  identities      Identity[]
+  sessions        Session[]
+  memberships     Membership[]
+  sponsorAccess   SponsorAccess[]
+  invitationsSent Invitation[]    @relation("InvitedBy")
 
   @@map("app_user")
 }
@@ -469,4 +473,26 @@ model SponsorAccess {
 
   @@id([userId, sponsorId])
   @@map("sponsor_access")
+}
+
+/// Invitation à rejoindre un club, envoyée par email : lien à usage unique
+/// valable 7 jours, réservé à l'adresse invitée. Le jeton n'est gardé qu'haché.
+model Invitation {
+  id             String       @id @default(cuid(2))
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Toujours en minuscules.
+  email          String
+  role           MemberRole
+  tokenHash      String       @unique @map("token_hash")
+  invitedById    String?      @map("invited_by_id")
+  invitedBy      User?        @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+  expiresAt      DateTime     @map("expires_at") @db.Timestamptz
+  acceptedAt     DateTime?    @map("accepted_at") @db.Timestamptz
+  revokedAt      DateTime?    @map("revoked_at") @db.Timestamptz
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("invitation")
 }

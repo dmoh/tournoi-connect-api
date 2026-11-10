@@ -3394,6 +3394,1058 @@
           "reporter"
         ]
       }
+    },
+    "/api/v1/clubs": {
+      "post": {
+        "operationId": "ClubsController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 80
+                  },
+                  "city": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Compte à jour, avec le nouveau club",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "firstName": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "lastName": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "needsProfile": {
+                      "type": "boolean"
+                    },
+                    "providers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "EMAIL",
+                          "GOOGLE",
+                          "APPLE",
+                          "FACEBOOK",
+                          "ECOCLUBSPORT"
+                        ]
+                      }
+                    },
+                    "memberships": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "organization": {
+                            "type": "object",
+                            "properties": {
+                              "slug": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "slug",
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "OWNER",
+                              "ADMIN",
+                              "STAFF"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "organization",
+                          "role"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "sponsors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "organization": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "organization"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "platformAdmin": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "email",
+                    "firstName",
+                    "lastName",
+                    "needsProfile",
+                    "providers",
+                    "memberships",
+                    "sponsors",
+                    "platformAdmin"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "409": {
+            "description": "Nombre maximal de clubs atteint"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Créer un club (on en devient propriétaire)",
+        "tags": [
+          "clubs"
+        ]
+      }
+    },
+    "/api/v1/organizer/members": {
+      "get": {
+        "operationId": "MembersController_members_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "organization": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name",
+                        "city"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "yourRole": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER",
+                        "ADMIN",
+                        "STAFF"
+                      ]
+                    },
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "userId": {
+                            "type": "string"
+                          },
+                          "firstName": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "lastName": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "OWNER",
+                              "ADMIN",
+                              "STAFF"
+                            ]
+                          },
+                          "joinedAt": {
+                            "type": "string"
+                          },
+                          "you": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "userId",
+                          "firstName",
+                          "lastName",
+                          "email",
+                          "role",
+                          "joinedAt",
+                          "you"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "invitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "OWNER",
+                              "ADMIN",
+                              "STAFF"
+                            ]
+                          },
+                          "expiresAt": {
+                            "type": "string"
+                          },
+                          "invitedBy": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "email",
+                          "role",
+                          "expiresAt",
+                          "invitedBy"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "organization",
+                    "yourRole",
+                    "members",
+                    "invitations"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Membres du club et invitations en attente",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/organizer/invitations": {
+      "post": {
+        "operationId": "MembersController_invite_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "OWNER",
+                      "ADMIN",
+                      "STAFF"
+                    ]
+                  }
+                },
+                "required": [
+                  "email",
+                  "role"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "organization": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name",
+                        "city"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "yourRole": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER",
+                        "ADMIN",
+                        "STAFF"
+                      ]
+                    },
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "userId": {
+                            "type": "string"
+                          },
+                          "firstName": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "lastName": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "OWNER",
+                              "ADMIN",
+                              "STAFF"
+                            ]
+                          },
+                          "joinedAt": {
+                            "type": "string"
+                          },
+                          "you": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "userId",
+                          "firstName",
+                          "lastName",
+                          "email",
+                          "role",
+                          "joinedAt",
+                          "you"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "invitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "OWNER",
+                              "ADMIN",
+                              "STAFF"
+                            ]
+                          },
+                          "expiresAt": {
+                            "type": "string"
+                          },
+                          "invitedBy": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "email",
+                          "role",
+                          "expiresAt",
+                          "invitedBy"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "organization",
+                    "yourRole",
+                    "members",
+                    "invitations"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "409": {
+            "description": "Déjà membre du club"
+          },
+          "429": {
+            "description": "Plus de 30 invitations par heure"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Inviter par email (admin ; propriétaire pour inviter un propriétaire)",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/organizer/invitations/{id}": {
+      "delete": {
+        "operationId": "MembersController_revoke_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Invitation introuvable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Annuler une invitation en attente",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/organizer/members/{userId}": {
+      "patch": {
+        "operationId": "MembersController_updateRole_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "OWNER",
+                      "ADMIN",
+                      "STAFF"
+                    ]
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "organization": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name",
+                        "city"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "yourRole": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER",
+                        "ADMIN",
+                        "STAFF"
+                      ]
+                    },
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "userId": {
+                            "type": "string"
+                          },
+                          "firstName": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "lastName": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "OWNER",
+                              "ADMIN",
+                              "STAFF"
+                            ]
+                          },
+                          "joinedAt": {
+                            "type": "string"
+                          },
+                          "you": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "userId",
+                          "firstName",
+                          "lastName",
+                          "email",
+                          "role",
+                          "joinedAt",
+                          "you"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "invitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "OWNER",
+                              "ADMIN",
+                              "STAFF"
+                            ]
+                          },
+                          "expiresAt": {
+                            "type": "string"
+                          },
+                          "invitedBy": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "email",
+                          "role",
+                          "expiresAt",
+                          "invitedBy"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "organization",
+                    "yourRole",
+                    "members",
+                    "invitations"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dernier propriétaire du club"
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Membre introuvable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Changer le rôle d’un membre (propriétaire)",
+        "tags": [
+          "organizer"
+        ]
+      },
+      "delete": {
+        "operationId": "MembersController_remove_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "Dernier propriétaire du club"
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Membre introuvable ou rôle insuffisant"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Retirer un membre, ou quitter le club (son propre identifiant)",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/invitations/{token}": {
+      "get": {
+        "operationId": "InvitationsController_invitation_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "organization": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name",
+                        "city"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER",
+                        "ADMIN",
+                        "STAFF"
+                      ]
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "invitedBy": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "ACCEPTED",
+                        "EXPIRED",
+                        "REVOKED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "organization",
+                    "role",
+                    "email",
+                    "invitedBy",
+                    "expiresAt",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lien inconnu"
+          }
+        },
+        "summary": "Invitation lue par son lien (sans connexion)",
+        "tags": [
+          "clubs"
+        ]
+      }
+    },
+    "/api/v1/invitations/{token}/accept": {
+      "post": {
+        "operationId": "InvitationsController_accept_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Compte à jour, avec le club rejoint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "firstName": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "lastName": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "needsProfile": {
+                      "type": "boolean"
+                    },
+                    "providers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "EMAIL",
+                          "GOOGLE",
+                          "APPLE",
+                          "FACEBOOK",
+                          "ECOCLUBSPORT"
+                        ]
+                      }
+                    },
+                    "memberships": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "organization": {
+                            "type": "object",
+                            "properties": {
+                              "slug": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "slug",
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "OWNER",
+                              "ADMIN",
+                              "STAFF"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "organization",
+                          "role"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "sponsors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "organization": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "organization"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "platformAdmin": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "email",
+                    "firstName",
+                    "lastName",
+                    "needsProfile",
+                    "providers",
+                    "memberships",
+                    "sponsors",
+                    "platformAdmin"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Invitation expirée, annulée ou utilisée"
+          },
+          "409": {
+            "description": "Compte d’une autre adresse"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rejoindre le club avec le compte de l’adresse invitée",
+        "tags": [
+          "clubs"
+        ]
+      }
     }
   },
   "info": {

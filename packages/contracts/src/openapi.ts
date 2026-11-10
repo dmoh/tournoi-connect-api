@@ -395,6 +395,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/clubs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Créer un club (on en devient propriétaire) */
+        post: operations["ClubsController_create_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Membres du club et invitations en attente */
+        get: operations["MembersController_members_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inviter par email (admin ; propriétaire pour inviter un propriétaire) */
+        post: operations["MembersController_invite_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/invitations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Annuler une invitation en attente */
+        delete: operations["MembersController_revoke_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retirer un membre, ou quitter le club (son propre identifiant) */
+        delete: operations["MembersController_remove_v1"];
+        options?: never;
+        head?: never;
+        /** Changer le rôle d’un membre (propriétaire) */
+        patch: operations["MembersController_updateRole_v1"];
+        trace?: never;
+    };
+    "/api/v1/invitations/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invitation lue par son lien (sans connexion) */
+        get: operations["InvitationsController_invitation_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invitations/{token}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rejoindre le club avec le compte de l’adresse invitée */
+        post: operations["InvitationsController_accept_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1691,6 +1811,462 @@ export interface operations {
             };
             /** @description Lien invalide ou expiré */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClubsController_create_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    city?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Compte à jour, avec le nouveau club */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        email: string;
+                        firstName: string | null;
+                        lastName: string | null;
+                        needsProfile: boolean;
+                        providers: ("EMAIL" | "GOOGLE" | "APPLE" | "FACEBOOK" | "ECOCLUBSPORT")[];
+                        memberships: {
+                            organization: {
+                                slug: string;
+                                name: string;
+                            };
+                            /** @enum {string} */
+                            role: "OWNER" | "ADMIN" | "STAFF";
+                        }[];
+                        sponsors: {
+                            id: string;
+                            name: string;
+                            organization: string;
+                        }[];
+                        platformAdmin: boolean;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Nombre maximal de clubs atteint */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MembersController_members_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        organization: {
+                            slug: string;
+                            name: string;
+                            city: string | null;
+                        };
+                        /** @enum {string} */
+                        yourRole: "OWNER" | "ADMIN" | "STAFF";
+                        members: {
+                            userId: string;
+                            firstName: string | null;
+                            lastName: string | null;
+                            email: string;
+                            /** @enum {string} */
+                            role: "OWNER" | "ADMIN" | "STAFF";
+                            joinedAt: string;
+                            you: boolean;
+                        }[];
+                        invitations: {
+                            id: string;
+                            email: string;
+                            /** @enum {string} */
+                            role: "OWNER" | "ADMIN" | "STAFF";
+                            expiresAt: string;
+                            invitedBy: string | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MembersController_invite_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    email: string;
+                    /** @enum {string} */
+                    role: "OWNER" | "ADMIN" | "STAFF";
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        organization: {
+                            slug: string;
+                            name: string;
+                            city: string | null;
+                        };
+                        /** @enum {string} */
+                        yourRole: "OWNER" | "ADMIN" | "STAFF";
+                        members: {
+                            userId: string;
+                            firstName: string | null;
+                            lastName: string | null;
+                            email: string;
+                            /** @enum {string} */
+                            role: "OWNER" | "ADMIN" | "STAFF";
+                            joinedAt: string;
+                            you: boolean;
+                        }[];
+                        invitations: {
+                            id: string;
+                            email: string;
+                            /** @enum {string} */
+                            role: "OWNER" | "ADMIN" | "STAFF";
+                            expiresAt: string;
+                            invitedBy: string | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Déjà membre du club */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Plus de 30 invitations par heure */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MembersController_revoke_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invitation introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MembersController_remove_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Dernier propriétaire du club */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Membre introuvable ou rôle insuffisant */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MembersController_updateRole_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    role: "OWNER" | "ADMIN" | "STAFF";
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        organization: {
+                            slug: string;
+                            name: string;
+                            city: string | null;
+                        };
+                        /** @enum {string} */
+                        yourRole: "OWNER" | "ADMIN" | "STAFF";
+                        members: {
+                            userId: string;
+                            firstName: string | null;
+                            lastName: string | null;
+                            email: string;
+                            /** @enum {string} */
+                            role: "OWNER" | "ADMIN" | "STAFF";
+                            joinedAt: string;
+                            you: boolean;
+                        }[];
+                        invitations: {
+                            id: string;
+                            email: string;
+                            /** @enum {string} */
+                            role: "OWNER" | "ADMIN" | "STAFF";
+                            expiresAt: string;
+                            invitedBy: string | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description Dernier propriétaire du club */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Membre introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    InvitationsController_invitation_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        organization: {
+                            slug: string;
+                            name: string;
+                            city: string | null;
+                        };
+                        /** @enum {string} */
+                        role: "OWNER" | "ADMIN" | "STAFF";
+                        email: string;
+                        invitedBy: string | null;
+                        expiresAt: string;
+                        /** @enum {string} */
+                        status: "PENDING" | "ACCEPTED" | "EXPIRED" | "REVOKED";
+                    };
+                };
+            };
+            /** @description Lien inconnu */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    InvitationsController_accept_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Compte à jour, avec le club rejoint */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        email: string;
+                        firstName: string | null;
+                        lastName: string | null;
+                        needsProfile: boolean;
+                        providers: ("EMAIL" | "GOOGLE" | "APPLE" | "FACEBOOK" | "ECOCLUBSPORT")[];
+                        memberships: {
+                            organization: {
+                                slug: string;
+                                name: string;
+                            };
+                            /** @enum {string} */
+                            role: "OWNER" | "ADMIN" | "STAFF";
+                        }[];
+                        sponsors: {
+                            id: string;
+                            name: string;
+                            organization: string;
+                        }[];
+                        platformAdmin: boolean;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invitation expirée, annulée ou utilisée */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Compte d’une autre adresse */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
