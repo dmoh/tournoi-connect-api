@@ -1,17 +1,15 @@
 name: Deploy
 
-# Copie l'image de GHCR vers ECR puis déclenche App Runner (API et worker).
-# Variables attendues (Settings → Secrets and variables → Actions → Variables),
-# au niveau du dépôt ou de l'environnement :
-#   AWS_ROLE_ARN            rôle IAM assumé par OIDC (aucune clé longue durée)
-#   AWS_REGION              ex. eu-west-3
-#   ECR_REPOSITORY          URI du dépôt ECR, ex. 123456789012.dkr.ecr.eu-west-3.amazonaws.com/tournoi-connect-api
-#   APP_RUNNER_API_ARN      ARN du service App Runner de l'API
-#   APP_RUNNER_WORKER_ARN   ARN du service App Runner du worker (facultatif)
+# Déploie une image publiée sur GHCR sur le serveur d'un environnement AWS :
+#   1. rôle IAM assumé par OIDC (aucune clé AWS dans GitHub) ;
+#   2. archive de l'image déposée dans S3 (images/<service>/<env>.tar.gz) ;
+#   3. deploy.sh lancé sur le serveur par SSM (aucun port SSH ouvert).
+# Infrastructure : dépôt tournoi-connect-api, dossier infra/aws.
 on:
   workflow_call:
     inputs:
       environment:
+        description: preprod ou production (environnement GitHub)
         required: true
         type: string
       image-tag:
@@ -20,33 +18,56 @@ on:
 
 jobs:
   deploy:
+    name: Déploiement ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment: ${{ inputs.environment }}
+    timeout-minutes: 20
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ inputs.environment == 'production' && 'https://api.tournoi-connect.com' || 'https://api.preprod.tournoi-connect.com' }}
     permissions:
       id-token: write
       contents: read
       packages: read
+    env:
+      SERVICE: api
+      TARGET: ${{ inputs.environment == 'production' && 'prod' || 'preprod' }}
+      TAG: ${{ inputs.image-tag }}
+      AWS_ACCOUNT: '677142166254'
+      AWS_REGION: eu-west-3
     steps:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-      - uses: aws-actions/amazon-ecr-login@v2
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT }}:role/tournoi-connect-deploy-${{ env.TARGET }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/setup-buildx-action@v3
-      - name: Copier l'image vers ECR
+
+      - name: Déposer l'image dans S3
         run: |
-          docker buildx imagetools create \
-            --tag "${{ vars.ECR_REPOSITORY }}:${{ inputs.image-tag }}" \
-            --tag "${{ vars.ECR_REPOSITORY }}:${{ inputs.environment }}" \
-            "ghcr.io/${{ github.repository }}:${{ inputs.image-tag }}"
-      - name: Déployer l'API
-        run: aws apprunner start-deployment --service-arn "${{ vars.APP_RUNNER_API_ARN }}"
-      - name: Déployer le worker
-        if: vars.APP_RUNNER_WORKER_ARN != ''
-        run: aws apprunner start-deployment --service-arn "${{ vars.APP_RUNNER_WORKER_ARN }}"
+          short="${TAG:0:12}"
+          docker pull --quiet "ghcr.io/${GITHUB_REPOSITORY}:${TAG}"
+          docker tag "ghcr.io/${GITHUB_REPOSITORY}:${TAG}" "tournoi-connect-${SERVICE}:${short}"
+          docker save "tournoi-connect-${SERVICE}:${short}" | gzip -1 |
+            aws s3 cp - "s3://tournoi-connect-artifacts-${AWS_ACCOUNT}/images/${SERVICE}/${TARGET}.tar.gz" --only-show-errors
+
+      - name: Lancer deploy.sh sur le serveur
+        run: |
+          instance=$(aws ec2 describe-instances \
+            --filters "Name=tag:Projet,Values=tournoi-connect" "Name=tag:Environnement,Values=${TARGET}" "Name=instance-state-name,Values=running" \
+            --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          [ "$instance" != None ] || { echo "::error::aucun serveur ${TARGET} en marche"; exit 1; }
+          command=$(aws ssm send-command --instance-ids "$instance" --document-name AWS-RunShellScript \
+            --comment "${GITHUB_REPOSITORY} ${TAG:0:12}" --timeout-seconds 900 \
+            --parameters "commands=[\"/opt/tournoi-connect/deploy.sh ${SERVICE}\"]" \
+            --query Command.CommandId --output text)
+          for _ in $(seq 1 120); do
+            status=$(aws ssm get-command-invocation --command-id "$command" --instance-id "$instance" --query Status --output text 2>/dev/null || echo Pending)
+            case "$status" in Pending|InProgress|Delayed) sleep 5 ;; *) break ;; esac
+          done
+          aws ssm get-command-invocation --command-id "$command" --instance-id "$instance" \
+            --query '[StandardOutputContent,StandardErrorContent]' --output text
+          [ "$status" = Success ] || { echo "::error::déploiement ${status}"; exit 1; }

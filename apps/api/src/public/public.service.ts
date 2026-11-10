@@ -1,9 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import type { Queue } from 'bullmq';
 import { computeStandings } from '@dmoh/tournoi-connect-engine';
+import {
+  AudienceWriter,
+  type AudienceJob,
+} from '../audience/audience-writer.js';
 import { Clock } from '../common/clock.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { Placement } from '../generated/prisma/enums.js';
+import { AUDIENCE_QUEUE } from '../queue/queue.module.js';
 import { composeFeed } from './feed.js';
 import {
   DISCOVERABLE_STATUSES,
@@ -34,6 +41,10 @@ export class PublicService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly clock: Clock,
+    private readonly audienceWriter: AudienceWriter,
+    @Optional()
+    @InjectQueue(AUDIENCE_QUEUE)
+    private readonly audienceQueue?: Queue<AudienceJob>,
   ) {}
 
   /**
@@ -235,9 +246,11 @@ export class PublicService {
   }
 
   /**
-   * Impression ou clic d'un sponsor payé, ajouté au cumul de l'heure. Le
+   * Impression ou clic d'un sponsor payé, ajouté au cumul de l'heure. La
+   * requête vérifie le sponsor puis dépose l'événement dans la file BullMQ,
+   * traitée par le worker ; sans Redis, l'écriture se fait directement. Le
    * dédoublonnage par session se fait côté PWA (une impression par
-   * emplacement et par session) ; Redis le prendra en charge côté API.
+   * emplacement et par session).
    */
   async recordAudience(event: AudienceEvent): Promise<void> {
     const sponsor = await this.prisma.tournamentSponsor.findFirst({
@@ -249,27 +262,17 @@ export class PublicService {
     }
     const hourBucket = new Date(this.clock.now());
     hourBucket.setUTCMinutes(0, 0, 0);
-    const placement = event.placement as Placement;
-    await this.prisma.audienceHourly.upsert({
-      where: {
-        tournamentSponsorId_placement_hourBucket: {
-          tournamentSponsorId: sponsor.id,
-          placement,
-          hourBucket,
-        },
-      },
-      create: {
-        tournamentSponsorId: sponsor.id,
-        placement,
-        hourBucket,
-        impressions: event.kind === 'impression' ? 1 : 0,
-        clicks: event.kind === 'click' ? 1 : 0,
-      },
-      update:
-        event.kind === 'click'
-          ? { clicks: { increment: 1 } }
-          : { impressions: { increment: 1 } },
-    });
+    const job: AudienceJob = {
+      tournamentSponsorId: sponsor.id,
+      placement: event.placement as Placement,
+      kind: event.kind,
+      hourBucket: hourBucket.toISOString(),
+    };
+    if (this.audienceQueue) {
+      await this.audienceQueue.add('record', job);
+    } else {
+      await this.audienceWriter.apply(job);
+    }
   }
 
   private async publicTournamentId(slug: string): Promise<string> {

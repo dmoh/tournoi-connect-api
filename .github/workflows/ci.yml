@@ -104,3 +104,22 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  terraform:
+    name: Terraform (format et validation)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: infra/aws
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.17.1
+      - run: terraform fmt -check -recursive
+      # Sans backend : la CI ne lit ni n'écrit l'état.
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+      - name: Script de déploiement de l'hôte
+        run: shellcheck host/deploy.sh

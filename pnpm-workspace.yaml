@@ -13,3 +13,5 @@ allowBuilds:
   # Prisma télécharge son moteur de migration à l'installation (ADR-003).
   '@prisma/engines': true
   prisma: true
+  # Accélérateur natif facultatif de BullMQ : la version JS suffit.
+  msgpackr-extract: false

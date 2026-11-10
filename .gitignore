@@ -9,3 +9,7 @@ coverage
 
 # Client Prisma généré par prisma generate (build, typecheck, lint, tests)
 apps/api/src/generated/
+
+# Terraform : fournisseurs téléchargés et plans locaux (l'état vit dans S3)
+infra/aws/.terraform/
+*.tfplan

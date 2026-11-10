@@ -1,0 +1,29 @@
+# Généré par Terraform (modules/environment/Caddyfile.tftpl) : ne pas éditer sur le serveur.
+# Certificats Let's Encrypt automatiques, renouvelés par Caddy.
+
+(commun) {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+%{ if !indexable ~}
+		X-Robots-Tag "noindex, nofollow"
+%{ endif ~}
+	}
+	log {
+		output stdout
+		format json
+	}
+}
+
+${app_host} {
+	import commun
+	reverse_proxy front:4000
+}
+
+${api_host} {
+	import commun
+	reverse_proxy api:3000
+}

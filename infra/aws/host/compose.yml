@@ -1,0 +1,122 @@
+# Services d'un environnement (préprod ou prod) sur son serveur.
+# Déposé par Terraform dans S3, lancé par deploy.sh ; les variables viennent de
+# .env (SSM Parameter Store) et versions.env (images déployées).
+name: tournoi-connect
+
+x-api: &api
+  image: tournoi-connect-api:${API_TAG:-absent}
+  restart: unless-stopped
+  environment:
+    NODE_ENV: production
+    PORT: '3000'
+    DATABASE_URL: ${DATABASE_URL}
+    REDIS_URL: ${REDIS_URL}
+    PUBLIC_APP_URL: ${PUBLIC_APP_URL}
+    ORGANIZER_DEMO_TOKEN: ${ORGANIZER_DEMO_TOKEN}
+    ORGANIZER_DEMO_ORG: ${ORGANIZER_DEMO_ORG}
+    LOG_LEVEL: ${LOG_LEVEL}
+  depends_on:
+    redis:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
+      required: false
+
+services:
+  caddy:
+    image: public.ecr.aws/docker/library/caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    mem_limit: 128m
+
+  front:
+    image: tournoi-connect-front:${FRONT_TAG:-absent}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: '4000'
+      NG_ALLOWED_HOSTS: ${NG_ALLOWED_HOSTS}
+    mem_limit: 384m
+
+  api:
+    <<: *api
+    mem_limit: 384m
+
+  worker:
+    <<: *api
+    command: ['node', 'dist/worker.js']
+    healthcheck:
+      disable: true
+    mem_limit: 320m
+
+  # Outils lancés par deploy.sh, jamais en continu.
+  migrate:
+    <<: *api
+    restart: 'no'
+    command: ['node_modules/.bin/prisma', 'migrate', 'deploy']
+    healthcheck:
+      disable: true
+    profiles: [outils]
+
+  seed:
+    <<: *api
+    restart: 'no'
+    # Le jeu de démonstration refuse NODE_ENV=production (garde-fou du seed).
+    command: ['sh', '-c', 'NODE_ENV=demo exec node dist/database/seed.js']
+    healthcheck:
+      disable: true
+    profiles: [outils]
+
+  redis:
+    image: public.ecr.aws/docker/library/redis:7-alpine
+    restart: unless-stopped
+    # BullMQ exige noeviction ; l'AOF garde les files au redémarrage.
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--maxmemory',
+        '128mb',
+        '--maxmemory-policy',
+        'noeviction',
+      ]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    mem_limit: 192m
+
+  # Préprod seulement (COMPOSE_PROFILES=local-db) ; la prod utilise RDS.
+  postgres:
+    image: public.ecr.aws/docker/library/postgres:17-alpine
+    restart: unless-stopped
+    profiles: [local-db]
+    environment:
+      POSTGRES_USER: tournoi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_DB: tournoi_connect
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U tournoi -d tournoi_connect']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 256m
+
+volumes:
+  caddy-data:
+  caddy-config:
+  redis-data:
+  postgres-data:

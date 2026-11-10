@@ -55,9 +55,10 @@ pnpm dev:worker         # worker
 
 - **CI** (`ci.yml`, chaque pull request et chaque push sur `main`) : format, lint, types, tests unitaires et e2e, build, contrat OpenAPI à jour, gitleaks, audit des dépendances, build de l'image.
 - **CD** (`cd.yml`) :
-  - push sur `main` → image `ghcr.io/dmoh/tournoi-connect-api:staging`, puis déploiement en homologation ;
-  - tag `vX.Y.Z` → image versionnée, publication de `@dmoh/tournoi-connect-engine` et `@dmoh/tournoi-connect-contracts` sur GitHub Packages, puis déploiement en production.
-- Le déploiement AWS (`deploy.yml`, App Runner via ECR et OIDC) est **ignoré tant que la variable de dépôt `AWS_ROLE_ARN` n'existe pas**. Les variables à créer sont listées en tête de `deploy.yml`.
+  - push sur `main` → image `ghcr.io/dmoh/tournoi-connect-api:preprod`, puis déploiement en préprod (https://api.preprod.tournoi-connect.com) ;
+  - tag `vX.Y.Z` → image versionnée, publication de `@dmoh/tournoi-connect-engine` et `@dmoh/tournoi-connect-contracts` sur GitHub Packages, puis déploiement en production (https://api.tournoi-connect.com).
+- **Déploiement** (`deploy.yml`) : rôle IAM assumé par OIDC (aucune clé AWS dans GitHub), archive de l'image déposée dans S3, puis `deploy.sh` lancé sur le serveur par SSM : migrations Prisma, puis API et worker relancés.
+- **Infrastructure** : Terraform dans [`infra/aws`](infra/aws/README.md) (réseau, serveurs, RDS, DNS, vitrine, rôles OIDC, coûts).
 - Pour exiger une validation manuelle avant la production : Settings → Environments → `production` → Required reviewers.
 
 ## Routes disponibles
@@ -84,5 +85,6 @@ Préfixe `/api/v1` ; détail et schémas dans Swagger (`/api/docs`) et `apps/api
 | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------- |
 | Accès organisateur par un jeton de configuration (`ORGANIZER_DEMO_TOKEN`) ouvrant une organisation | Pas encore d'authentification ; aucune route d'écriture sans protection | JWT, refresh en cookie et matrice CASL (P1)              |
 | Distance haversine en SQL, préfiltrée par une boîte lat/lng indexée                                | Démarrer sans PostGIS ; résultats identiques à l'échelle d'une région   | `ST_DWithin` et index GiST (plan, section 4)             |
-| Dédoublonnage des impressions par session côté PWA                                                 | Pas encore de Redis branché                                             | Clé Redis par session et emplacement                     |
+| Dédoublonnage des impressions par session côté PWA                                                 | Redis ne sert encore qu'aux files BullMQ                                | Clé Redis par session et emplacement                     |
+| Sans `REDIS_URL`, les événements d'audience s'écrivent directement en base                         | Tests et poste local sans Redis                                         | Redis obligatoire hors tests                             |
 | Classements calculés à la lecture avec `computeStandings` du moteur                                | Volume de démonstration                                                 | Classements matérialisés à la validation d'un score (P4) |

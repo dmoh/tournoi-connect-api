@@ -1,0 +1,36 @@
+#!/bin/bash
+# Premier démarrage du serveur ${env} : Docker, Compose, échange disque, puis
+# premier déploiement avec les archives déjà présentes dans S3.
+set -euxo pipefail
+
+dnf install -y docker dnf-automatic
+# Mises à jour de sécurité automatiques, sans redémarrage forcé.
+sed -i 's/^upgrade_type.*/upgrade_type = security/; s/^apply_updates.*/apply_updates = yes/' /etc/dnf/automatic.conf
+systemctl enable --now dnf-automatic.timer
+
+mkdir -p /etc/docker
+cat > /etc/docker/daemon.json <<'JSON'
+{ "log-driver": "json-file", "log-opts": { "max-size": "10m", "max-file": "3" } }
+JSON
+systemctl enable --now docker
+
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-compose \
+  "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64"
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+docker compose version
+
+# 2 Go de mémoire : 1 Go d'échange évite qu'un pic de build ou de Node tue un conteneur.
+if [ ! -f /swapfile ]; then
+  fallocate -l 1G /swapfile && chmod 600 /swapfile && mkswap /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+swapon -a
+
+install -d -m 750 /opt/tournoi-connect
+echo "TC_ENV=${env}" > /opt/tournoi-connect/host.env
+echo "TC_BUCKET=${bucket}" >> /opt/tournoi-connect/host.env
+echo "AWS_DEFAULT_REGION=${region}" >> /opt/tournoi-connect/host.env
+aws s3 cp "s3://${bucket}/host/${env}/deploy.sh" /opt/tournoi-connect/deploy.sh --region ${region}
+chmod 750 /opt/tournoi-connect/deploy.sh
+/opt/tournoi-connect/deploy.sh all

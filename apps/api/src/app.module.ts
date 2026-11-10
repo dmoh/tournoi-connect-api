@@ -6,12 +6,14 @@ import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
 import { OrganizerModule } from './organizer/organizer.module.js';
 import { PublicModule } from './public/public.module.js';
+import { QueueModule } from './queue/queue.module.js';
 
 @Global()
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     DatabaseModule,
+    QueueModule.forRoot(),
     HealthModule,
     PublicModule,
     OrganizerModule,
