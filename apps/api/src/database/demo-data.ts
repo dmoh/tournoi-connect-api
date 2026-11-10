@@ -603,24 +603,48 @@ export const DEMO_PLAYERS: { team: string; number: number; name: string }[] =
  * Comptes de démonstration, sur le domaine réservé example.org : aucun code
  * de connexion n'y part réellement (tests e2e, poste local).
  */
+export type DemoRole = 'OWNER' | 'ADMIN' | 'STAFF';
+
+/**
+ * Comptes de test, un par rôle (README, « Comptes de test »). Adresses
+ * @example.org : aucune boîte ne les reçoit, la préprod accepte pour elles
+ * le code fixe TEST_ACCOUNTS_CODE ; en local, le code s'affiche dans le
+ * journal.
+ */
 export const DEMO_ACCOUNTS: {
   email: string;
   firstName: string;
   lastName: string;
-  membership?: { organization: string; role: 'OWNER' | 'ADMIN' | 'STAFF' };
+  memberships?: { organization: string; role: DemoRole }[];
   sponsor?: string;
+  platformAdmin?: boolean;
 }[] = [
   {
     email: 'orga@example.org',
     firstName: 'Camille',
     lastName: 'Perrin',
-    membership: { organization: 'etoile-de-l-arve', role: 'OWNER' },
+    memberships: [{ organization: 'etoile-de-l-arve', role: 'OWNER' }],
+  },
+  {
+    email: 'admin@example.org',
+    firstName: 'Nadia',
+    lastName: 'Lambert',
+    memberships: [{ organization: 'etoile-de-l-arve', role: 'ADMIN' }],
   },
   {
     email: 'benevole@example.org',
     firstName: 'Hugo',
     lastName: 'Garcia',
-    membership: { organization: 'etoile-de-l-arve', role: 'STAFF' },
+    memberships: [{ organization: 'etoile-de-l-arve', role: 'STAFF' }],
+  },
+  {
+    email: 'multi@example.org',
+    firstName: 'Julien',
+    lastName: 'Favre',
+    memberships: [
+      { organization: 'stade-du-mont-blanc', role: 'OWNER' },
+      { organization: 'etoile-de-l-arve', role: 'STAFF' },
+    ],
   },
   {
     email: 'sponsor@example.org',
@@ -628,4 +652,19 @@ export const DEMO_ACCOUNTS: {
     lastName: 'Roux',
     sponsor: 'Fromagerie des Aravis',
   },
+  {
+    email: 'plateforme@example.org',
+    firstName: 'Sarah',
+    lastName: 'Morel',
+    platformAdmin: true,
+  },
+  {
+    email: 'spectateur@example.org',
+    firstName: 'Paul',
+    lastName: 'Bernard',
+  },
 ];
+
+/** Adresse d'un compte de test (code fixe accepté en préprod). */
+export const isDemoAccount = (email: string) =>
+  DEMO_ACCOUNTS.some((account) => account.email === email);

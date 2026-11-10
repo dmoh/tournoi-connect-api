@@ -13,6 +13,8 @@ x-api: &api
     REDIS_URL: ${REDIS_URL}
     PUBLIC_APP_URL: ${PUBLIC_APP_URL}
     AUTH_SECRET: ${AUTH_SECRET}
+    # Préprod seulement (données de démonstration) : code des comptes de test.
+    TEST_ACCOUNTS_CODE: ${TEST_ACCOUNTS_CODE:-}
     MAIL_TRANSPORT: ${MAIL_TRANSPORT}
     MAIL_FROM: ${MAIL_FROM}
     AWS_REGION: ${AWS_REGION}

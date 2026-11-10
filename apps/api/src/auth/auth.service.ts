@@ -6,7 +6,10 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Clock } from '../common/clock.js';
+import type { Env } from '../config/env.js';
+import { isDemoAccount } from '../database/demo-data.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type { IdentityProvider } from '../generated/prisma/enums.js';
 import { loginCodeMail } from '../mail/templates.js';
@@ -55,7 +58,13 @@ export class AuthService {
     private readonly clock: Clock,
     private readonly mailer: Mailer,
     @Inject(AUTH_KEYS) private readonly keys: AuthKeys | null,
-  ) {}
+    config: ConfigService<Env, true>,
+  ) {
+    this.testCode = config.get('TEST_ACCOUNTS_CODE', { infer: true }) ?? null;
+  }
+
+  /** Code fixe des comptes de test (préprod), ou null. */
+  private readonly testCode: string | null;
 
   async requestCode(rawEmail: string): Promise<void> {
     const keys = this.requireKeys();
@@ -73,7 +82,9 @@ export class AuthService {
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
-    const code = newLoginCode();
+    // Compte de test en préprod : code fixe, aucun email (la boîte n'existe pas).
+    const fixed = this.testCode && isDemoAccount(email) ? this.testCode : null;
+    const code = fixed ?? newLoginCode();
     await this.prisma.loginCode.create({
       data: {
         email,
@@ -82,7 +93,9 @@ export class AuthService {
         createdAt: now,
       },
     });
-    await this.mailer.send(loginCodeMail(email, code));
+    if (!fixed) {
+      await this.mailer.send(loginCodeMail(email, code));
+    }
   }
 
   async verifyCode(

@@ -23,6 +23,18 @@ export const envSchema = z.object({
    * la connexion est fermée (routes /auth et organisateur en 401).
    */
   AUTH_SECRET: optionalSecret(32),
+  /**
+   * Préprod uniquement : code fixe à 6 chiffres des comptes de test
+   * (adresses @example.org de seedDemo, qui ne reçoivent pas d'email).
+   * Jamais en production.
+   */
+  TEST_ACCOUNTS_CODE: z.preprocess(
+    empty,
+    z
+      .string()
+      .regex(/^\d{6}$/, 'TEST_ACCOUNTS_CODE compte 6 chiffres.')
+      .optional(),
+  ),
   /** Envoi des emails : SES en préprod et en prod, journal sinon. */
   MAIL_TRANSPORT: z.enum(['ses', 'log']).default('log'),
   MAIL_FROM: z
