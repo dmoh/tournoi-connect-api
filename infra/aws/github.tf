@@ -27,10 +27,17 @@ data "aws_iam_policy_document" "github_trust" {
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
+    # Format à identifiants immuables (défaut actuel de GitHub) et format
+    # classique, au cas où un dépôt reviendrait au sujet par nom.
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = [for repo in var.github_repositories : "repo:${repo}:environment:${each.value.github_environment}"]
+      values = flatten([
+        for repo, id in var.github_repositories : [
+          "repo:${var.github_owner.name}@${var.github_owner.id}/${repo}@${id}:environment:${each.value.github_environment}",
+          "repo:${var.github_owner.name}/${repo}:environment:${each.value.github_environment}",
+        ]
+      ])
     }
   }
 }
