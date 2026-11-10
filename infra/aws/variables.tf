@@ -15,10 +15,24 @@ variable "domain" {
   default     = "tournoi-connect.com"
 }
 
+variable "github_owner" {
+  description = "Propriétaire GitHub des dépôts : nom et identifiant numérique."
+  type        = object({ name = string, id = number })
+  default     = { name = "dmoh", id = 30497081 }
+}
+
 variable "github_repositories" {
-  description = "Dépôts autorisés à déployer par OIDC (aucune clé longue durée)."
-  type        = list(string)
-  default     = ["dmoh/tournoi-connect-front", "dmoh/tournoi-connect-api"]
+  description = <<-EOT
+    Dépôts autorisés à déployer par OIDC (aucune clé longue durée), avec leur
+    identifiant numérique : les jetons GitHub portent un sujet à identifiants
+    immuables (repo:dmoh@30497081/tournoi-connect-front@1451899734:…), qui ne
+    change pas si un dépôt est renommé ou recréé sous le même nom.
+  EOT
+  type        = map(number)
+  default = {
+    "tournoi-connect-front" = 1451899734
+    "tournoi-connect-api"   = 1451902027
+  }
 }
 
 variable "instance_type" {
