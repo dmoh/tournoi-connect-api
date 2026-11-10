@@ -231,6 +231,8 @@ enum ReactionKind {
 /// Fil du direct, en insertion seule (cahier des charges, section 6).
 model MatchEvent {
   id            String         @id @default(cuid(2))
+  /// Ordre d'enregistrement : deux saisies de la même milliseconde gardent leur ordre.
+  seq           Int            @default(autoincrement())
   matchId       String         @map("match_id")
   match         Match          @relation(fields: [matchId], references: [id], onDelete: Cascade)
   /// Créé sur l'appareil du rapporteur : un doublon est ignoré (idempotence).
@@ -245,7 +247,7 @@ model MatchEvent {
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz
 
   @@unique([matchId, clientEventId])
-  @@index([matchId, createdAt])
+  @@index([matchId, seq])
   @@map("match_event")
 }
 

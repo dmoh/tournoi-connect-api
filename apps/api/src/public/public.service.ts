@@ -285,7 +285,7 @@ export class PublicService {
     const [events, reactions] = await Promise.all([
       this.prisma.matchEvent.findMany({
         where: { matchId },
-        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        orderBy: { seq: 'asc' },
       }),
       this.reactionCounts(matchId),
     ]);

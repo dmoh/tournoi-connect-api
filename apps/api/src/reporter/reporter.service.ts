@@ -147,7 +147,7 @@ export class ReporterService {
       });
       const events = await tx.matchEvent.findMany({
         where: { matchId },
-        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        orderBy: { seq: 'asc' },
       });
       const feed = replayFeed(events);
       const score = feed[0]?.score ?? { home: 0, away: 0 };
