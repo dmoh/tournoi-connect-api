@@ -12,6 +12,7 @@ import { Prisma } from '../generated/prisma/client.js';
 import type { Placement } from '../generated/prisma/enums.js';
 import { AUDIENCE_QUEUE } from '../queue/queue.module.js';
 import { composeFeed } from './feed.js';
+import { replayFeed } from './match-feed.js';
 import {
   DISCOVERABLE_STATUSES,
   PUBLIC_STATUSES,
@@ -26,7 +27,10 @@ import type {
 } from './public.schemas.js';
 import type {
   AudienceEvent,
+  MatchFeed,
   NewsItem,
+  ReactionCounts,
+  ReactionInput,
   PollResult,
   PublicSponsors,
   SponsorCard,
@@ -273,6 +277,65 @@ export class PublicService {
     } else {
       await this.audienceWriter.apply(job);
     }
+  }
+
+  /** Fil du direct d'un match : événements rejoués, réactions, dernière mise à jour. */
+  async matchFeed(slug: string, code: string): Promise<MatchFeed> {
+    const matchId = await this.publicMatchId(slug, code);
+    const [events, reactions] = await Promise.all([
+      this.prisma.matchEvent.findMany({
+        where: { matchId },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      }),
+      this.reactionCounts(matchId),
+    ]);
+    const last = events.at(-1);
+    return {
+      events: replayFeed(events),
+      reactions,
+      updatedAt: last ? toIso(last.createdAt) : null,
+    };
+  }
+
+  /** Réaction anonyme : la même réaction du même appareil ne compte qu'une fois. */
+  async react(
+    slug: string,
+    code: string,
+    input: ReactionInput,
+  ): Promise<ReactionCounts> {
+    const matchId = await this.publicMatchId(slug, code);
+    await this.prisma.matchReaction.createMany({
+      data: [{ matchId, kind: input.kind, deviceId: input.deviceId }],
+      skipDuplicates: true,
+    });
+    return this.reactionCounts(matchId);
+  }
+
+  private async reactionCounts(matchId: string): Promise<ReactionCounts> {
+    const groups = await this.prisma.matchReaction.groupBy({
+      by: ['kind'],
+      where: { matchId },
+      _count: { _all: true },
+    });
+    const counts: ReactionCounts = { CLAP: 0, FIRE: 0, WOW: 0 };
+    for (const group of groups) {
+      counts[group.kind] = group._count._all;
+    }
+    return counts;
+  }
+
+  private async publicMatchId(slug: string, code: string): Promise<string> {
+    const match = await this.prisma.match.findFirst({
+      where: {
+        code,
+        tournament: { slug, status: { in: [...PUBLIC_STATUSES] } },
+      },
+      select: { id: true },
+    });
+    if (!match) {
+      throw new NotFoundException('Match introuvable.');
+    }
+    return match.id;
   }
 
   private async publicTournamentId(slug: string): Promise<string> {

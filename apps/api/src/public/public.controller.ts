@@ -19,12 +19,18 @@ import {
 import { openApi } from '../common/openapi-schema.js';
 import {
   audienceEventSchema,
+  matchFeedSchema,
   newsSchema,
   pollResultSchema,
   publicSponsorsSchema,
+  reactionCountsSchema,
+  reactionSchema,
   voteSchema,
   type AudienceEvent,
+  type MatchFeed,
   type NewsItem,
+  type ReactionCounts,
+  type ReactionInput,
   type PollResult,
   type PublicSponsors,
 } from './public-l5.schemas.js';
@@ -90,6 +96,35 @@ export class PublicController {
   @ApiOkResponse({ schema: openApi(publicSponsorsSchema) })
   sponsors(@Param('slug') slug: string): Promise<PublicSponsors> {
     return this.service.sponsors(slug);
+  }
+
+  @Get('tournaments/:slug/matches/:matchId/feed')
+  @ApiOperation({
+    summary: 'Fil du direct d’un match : événements, réactions, mise à jour',
+  })
+  @ApiOkResponse({ schema: openApi(matchFeedSchema) })
+  @ApiNotFoundResponse({ description: 'Match ou tournoi inconnu' })
+  matchFeed(
+    @Param('slug') slug: string,
+    @Param('matchId') matchId: string,
+  ): Promise<MatchFeed> {
+    return this.service.matchFeed(slug, matchId);
+  }
+
+  @Post('tournaments/:slug/matches/:matchId/reactions')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Réaction anonyme d’un spectateur, une par appareil et par emoji',
+  })
+  @ApiBody({ schema: openApi(reactionSchema) })
+  @ApiOkResponse({ schema: openApi(reactionCountsSchema) })
+  @ApiNotFoundResponse({ description: 'Match ou tournoi inconnu' })
+  react(
+    @Param('slug') slug: string,
+    @Param('matchId') matchId: string,
+    @Body({ schema: reactionSchema }) body: ReactionInput,
+  ): Promise<ReactionCounts> {
+    return this.service.react(slug, matchId, body);
   }
 
   @Post('posts/:postId/votes')

@@ -103,6 +103,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/tournaments/{slug}/matches/{matchId}/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fil du direct d’un match : événements, réactions, mise à jour */
+        get: operations["PublicController_matchFeed_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/tournaments/{slug}/matches/{matchId}/reactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Réaction anonyme d’un spectateur, une par appareil et par emoji */
+        post: operations["PublicController_react_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/posts/{postId}/votes": {
         parameters: {
             query?: never;
@@ -617,6 +651,100 @@ export interface operations {
                         }[];
                     };
                 };
+            };
+        };
+    };
+    PublicController_matchFeed_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        events: {
+                            id: string;
+                            /** @enum {string} */
+                            type: "GOAL" | "YELLOW_CARD" | "RED_CARD" | "SAVE" | "PHOTO" | "HALF_TIME" | "FULL_TIME";
+                            /** @enum {string} */
+                            side?: "home" | "away";
+                            minute: number;
+                            player?: string;
+                            assist?: string;
+                            caption?: string;
+                            score: {
+                                home: number;
+                                away: number;
+                            };
+                        }[];
+                        reactions: {
+                            CLAP: number;
+                            FIRE: number;
+                            WOW: number;
+                        };
+                        /** Format: date-time */
+                        updatedAt: string | null;
+                    };
+                };
+            };
+            /** @description Match ou tournoi inconnu */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicController_react_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    kind: "CLAP" | "FIRE" | "WOW";
+                    /** Format: uuid */
+                    deviceId: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        CLAP: number;
+                        FIRE: number;
+                        WOW: number;
+                    };
+                };
+            };
+            /** @description Match ou tournoi inconnu */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

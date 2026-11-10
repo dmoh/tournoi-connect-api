@@ -138,4 +138,49 @@ describe('Lectures publiques (e2e)', () => {
     });
     expect(unknown.statusCode).toBe(404);
   });
+
+  it('sert le fil du direct : buts, carton, arrêt, plus récent en tête', async () => {
+    const res = await get('/tournaments/challenge-u13-arve/matches/a5/feed');
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.events.map((e: { type: string }) => e.type)).toEqual([
+      'SAVE',
+      'YELLOW_CARD',
+      'GOAL',
+    ]);
+    expect(body.events[2]).toMatchObject({
+      side: 'home',
+      minute: 3,
+      player: 'L. Martin',
+      assist: 'N. Dubois',
+      score: { home: 1, away: 0 },
+    });
+    expect(body.reactions).toEqual({ CLAP: 24, FIRE: 9, WOW: 3 });
+    expect(body.updatedAt).toBe('2026-11-09T10:09:48.000Z');
+
+    const empty = await get('/tournaments/challenge-u13-arve/matches/df1/feed');
+    expect(empty.json()).toEqual({
+      events: [],
+      reactions: { CLAP: 0, FIRE: 0, WOW: 0 },
+      updatedAt: null,
+    });
+    expect(
+      (await get('/tournaments/challenge-u13-arve/matches/zz/feed')).statusCode,
+    ).toBe(404);
+  });
+
+  it('compte une réaction par appareil et par emoji', async () => {
+    const react = (kind: string, deviceId: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/api/v1/public/tournaments/challenge-u13-arve/matches/a5/reactions',
+        payload: { kind, deviceId },
+      });
+    const device = '6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b';
+    const first = await react('FIRE', device);
+    expect(first.statusCode).toBe(200);
+    expect(first.json()).toEqual({ CLAP: 24, FIRE: 10, WOW: 3 });
+    expect((await react('FIRE', device)).json().FIRE).toBe(10);
+    expect((await react('BOOM', device)).statusCode).toBe(400);
+  });
 });
