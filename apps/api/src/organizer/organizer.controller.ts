@@ -21,12 +21,17 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { z } from 'zod';
 import { openApi } from '../common/openapi-schema.js';
 import {
   OrganizerTokenGuard,
   type OrganizerRequest,
 } from './organizer-token.guard.js';
 import {
+  createTournamentSchema,
+  organizerTournamentSchema,
+  type CreateTournament,
+  type OrganizerTournament,
   createPostSchema,
   createdPostSchema,
   inviteSponsorSchema,
@@ -50,6 +55,26 @@ import { OrganizerService } from './organizer.service.js';
 @Controller('organizer')
 export class OrganizerController {
   constructor(private readonly service: OrganizerService) {}
+
+  @Get('tournaments')
+  @ApiOperation({ summary: 'Écran 01 : les tournois de l’organisation' })
+  @ApiOkResponse({ schema: openApi(z.array(organizerTournamentSchema)) })
+  tournaments(@Req() req: OrganizerRequest): Promise<OrganizerTournament[]> {
+    return this.service.tournaments(req.organizationSlug!);
+  }
+
+  @Post('tournaments')
+  @ApiOperation({
+    summary: 'Publier le tournoi de l’assistant de création (écrans 02 à 05)',
+  })
+  @ApiBody({ schema: openApi(createTournamentSchema) })
+  @ApiCreatedResponse({ schema: openApi(organizerTournamentSchema) })
+  createTournament(
+    @Req() req: OrganizerRequest,
+    @Body({ schema: createTournamentSchema }) body: CreateTournament,
+  ): Promise<OrganizerTournament> {
+    return this.service.createTournament(req.organizationSlug!, body);
+  }
 
   @Get('tournaments/:slug/sponsors')
   @ApiOperation({

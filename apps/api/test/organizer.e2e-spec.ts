@@ -175,4 +175,78 @@ describe('Espace organisateur (e2e)', () => {
     ).json();
     expect(news[0].title).toBe('Finale avancée à 15 h 30');
   });
+
+  const draft = {
+    name: 'Coupe d’hiver U13',
+    sport: 'football',
+    date: '2026-12-05',
+    startTime: '09:00',
+    endTime: '17:30',
+    venueName: 'Stade des Esserts',
+    city: 'Cluses',
+    lat: 46.0606,
+    lng: 6.5797,
+    fields: 3,
+    outdoor: true,
+    categories: ['U13'],
+    maxTeams: 16,
+    feeEuros: 60,
+    registrationDeadline: '2026-11-30',
+    format: 'groups-knockout',
+    matchMinutes: 10,
+    breakMinutes: 10,
+  };
+
+  it('liste les tournois de l’organisation seulement', async () => {
+    const res = await call('GET', '/tournaments');
+    expect(res.statusCode).toBe(200);
+    const slugs = res.json().map((t: { slug: string }) => t.slug);
+    expect(slugs).toContain('challenge-u13-arve');
+    expect(slugs).not.toContain('tournoi-11-novembre-u15');
+    expect(res.json()[0]).toMatchObject({
+      venueName: expect.any(String),
+      fields: 1,
+    });
+  });
+
+  it('publie le tournoi de l’assistant, visible dans la découverte', async () => {
+    const res = await call('POST', '/tournaments', draft);
+    expect(res.statusCode).toBe(201);
+    expect(res.json()).toMatchObject({
+      slug: 'coupe-d-hiver-u13',
+      status: 'PUBLISHED',
+      // 9 h à Paris en hiver.
+      startsAt: '2026-12-05T08:00:00.000Z',
+      venueName: 'Stade des Esserts',
+      fields: 3,
+    });
+
+    // Même nom : slug suivant ; le lieu est repris, pas dupliqué.
+    const again = await call('POST', '/tournaments', draft);
+    expect(again.json().slug).toBe('coupe-d-hiver-u13-2');
+
+    const nearby = await app.inject({
+      method: 'GET',
+      url: '/api/v1/public/tournaments?lat=46.06&lng=6.58&radiusKm=5',
+    });
+    expect(nearby.json().map((t: { slug: string }) => t.slug)).toContain(
+      'coupe-d-hiver-u13',
+    );
+  });
+
+  it('refuse un brouillon incohérent en problem+json', async () => {
+    const res = await call('POST', '/tournaments', {
+      ...draft,
+      feeEuros: 5,
+      registrationDeadline: '2026-12-10',
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.headers['content-type']).toContain('application/problem+json');
+  });
+
+  it('refuse la création sans jeton', async () => {
+    expect((await call('POST', '/tournaments', draft, '')).statusCode).toBe(
+      401,
+    );
+  });
 });

@@ -31,6 +31,14 @@ enum TournamentStatus {
   ARCHIVED
 }
 
+/// Format choisi dans l'assistant (écran 03 de la maquette).
+enum TournamentFormat {
+  SINGLE_GROUP
+  GROUPS_KNOCKOUT
+  KNOCKOUT
+  SWISS
+}
+
 enum Phase {
   groups
   round_of_32
@@ -110,26 +118,31 @@ model Venue {
 }
 
 model Tournament {
-  id             String           @id @default(cuid(2))
-  organizationId String           @map("organization_id")
-  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  venueId        String           @map("venue_id")
-  venue          Venue            @relation(fields: [venueId], references: [id])
-  slug           String           @unique
-  name           String
-  sport          Sport
-  startsAt       DateTime         @map("starts_at") @db.Timestamptz
-  endsAt         DateTime         @map("ends_at") @db.Timestamptz
-  categories     String[]
-  teamCount      Int              @default(0) @map("team_count")
-  maxTeams       Int              @map("max_teams")
-  feeCents       Int              @default(0) @map("fee_cents")
-  status         TournamentStatus @default(DRAFT)
-  teams          Team[]
-  matches        Match[]
-  posts          Post[]
-  packages       SponsorPackage[]
-  sponsors       TournamentSponsor[]
+  id                   String              @id @default(cuid(2))
+  organizationId       String              @map("organization_id")
+  organization         Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  venueId              String              @map("venue_id")
+  venue                Venue               @relation(fields: [venueId], references: [id])
+  slug                 String              @unique
+  name                 String
+  sport                Sport
+  startsAt             DateTime            @map("starts_at") @db.Timestamptz
+  endsAt               DateTime            @map("ends_at") @db.Timestamptz
+  categories           String[]
+  teamCount            Int                 @default(0) @map("team_count")
+  maxTeams             Int                 @map("max_teams")
+  feeCents             Int                 @default(0) @map("fee_cents")
+  status               TournamentStatus    @default(DRAFT)
+  format               TournamentFormat    @default(GROUPS_KNOCKOUT)
+  fieldCount           Int                 @default(1) @map("field_count")
+  matchMinutes         Int                 @default(15) @map("match_minutes")
+  breakMinutes         Int                 @default(5) @map("break_minutes")
+  registrationDeadline DateTime?           @map("registration_deadline") @db.Date
+  teams                Team[]
+  matches              Match[]
+  posts                Post[]
+  packages             SponsorPackage[]
+  sponsors             TournamentSponsor[]
 
   @@index([status, startsAt])
   @@index([organizationId])
@@ -234,17 +247,17 @@ model SponsorPackage {
 
 /// Un sponsor sur un tournoi : son avancement, son pack, son terrain.
 model TournamentSponsor {
-  id           String             @id @default(cuid(2))
-  tournamentId String             @map("tournament_id")
-  tournament   Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  sponsorId    String             @map("sponsor_id")
-  sponsor      Sponsor            @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
-  status       SponsorStatus      @default(INVITED)
+  id           String           @id @default(cuid(2))
+  tournamentId String           @map("tournament_id")
+  tournament   Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  sponsorId    String           @map("sponsor_id")
+  sponsor      Sponsor          @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+  status       SponsorStatus    @default(INVITED)
   tier         PackTier
   /// Terrain sponsorisé, pour un pack FIELD.
   field        String?
-  invitedAt    DateTime?          @map("invited_at") @db.Timestamptz
-  paidAt       DateTime?          @map("paid_at") @db.Timestamptz
+  invitedAt    DateTime?        @map("invited_at") @db.Timestamptz
+  paidAt       DateTime?        @map("paid_at") @db.Timestamptz
   audience     AudienceHourly[]
 
   @@unique([tournamentId, sponsorId])
