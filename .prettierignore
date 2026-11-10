@@ -5,3 +5,5 @@ pnpm-lock.yaml
 apps/api/openapi.json
 packages/contracts/src/openapi.ts
 packages/contracts/openapi.json
+apps/api/src/generated
+apps/api/prisma/migrations

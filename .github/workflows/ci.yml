@@ -17,6 +17,21 @@ jobs:
     name: Lint, types, tests, build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: tournoi
+          POSTGRES_PASSWORD: tournoi
+          POSTGRES_DB: tournoi_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tournoi -d tournoi_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      # Base éphémère du job, sans donnée réelle.
+      DATABASE_URL: postgresql://tournoi:tournoi@localhost:5432/tournoi_test
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -33,7 +48,11 @@ jobs:
         run: pnpm typecheck
       - name: Tests unitaires
         run: pnpm test
-      - name: Tests e2e
+      - name: Migrations (échec si une migration ne s'applique pas)
+        run: pnpm db:deploy
+      - name: Migrations à jour avec le schéma
+        run: pnpm --filter @tournoi-connect/api exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+      - name: Tests e2e (Postgres)
         run: pnpm test:e2e
       - name: Build
         run: pnpm build

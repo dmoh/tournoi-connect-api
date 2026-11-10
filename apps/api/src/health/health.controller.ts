@@ -3,13 +3,19 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   HealthCheck,
   HealthCheckService,
+  PrismaHealthIndicator,
   type HealthCheckResult,
 } from '@nestjs/terminus';
+import { PrismaService } from '../database/prisma.service.js';
 
 @ApiTags('health')
 @Controller({ path: 'health', version: VERSION_NEUTRAL })
 export class HealthController {
-  constructor(private readonly health: HealthCheckService) {}
+  constructor(
+    private readonly health: HealthCheckService,
+    private readonly db: PrismaHealthIndicator,
+    private readonly prisma: PrismaService,
+  ) {}
 
   /** Le process répond : utilisé par la sonde de vie du conteneur. */
   @Get('live')
@@ -19,13 +25,15 @@ export class HealthController {
   }
 
   /**
-   * L'instance peut recevoir du trafic. Les indicateurs Postgres et Redis
-   * s'ajoutent ici avec le schéma P0.
+   * L'instance peut recevoir du trafic : Postgres répond. L'indicateur Redis
+   * s'ajoutera avec BullMQ.
    */
   @Get('ready')
   @HealthCheck()
   @ApiOperation({ summary: 'Sonde de disponibilité' })
   ready(): Promise<HealthCheckResult> {
-    return this.health.check([]);
+    return this.health.check([
+      () => this.db.pingCheck('postgres', this.prisma),
+    ]);
   }
 }

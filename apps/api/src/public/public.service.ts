@@ -1,0 +1,306 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { computeStandings } from '@dmoh/tournoi-connect-engine';
+import { Clock } from '../common/clock.js';
+import { PrismaService } from '../database/prisma.service.js';
+import { Prisma } from '../generated/prisma/client.js';
+import type { Placement } from '../generated/prisma/enums.js';
+import { composeFeed } from './feed.js';
+import {
+  DISCOVERABLE_STATUSES,
+  PUBLIC_STATUSES,
+  toIso,
+  toPublicPhase,
+  toSummary,
+} from './public-mapping.js';
+import type {
+  NearbyTournament,
+  SearchQuery,
+  TournamentDetail,
+} from './public.schemas.js';
+import type {
+  AudienceEvent,
+  NewsItem,
+  PollResult,
+  PublicSponsors,
+  SponsorCard,
+} from './public-l5.schemas.js';
+
+const KM_PER_DEGREE_LAT = 111;
+const MAX_RESULTS = 50;
+const MAX_ROTATION = 6;
+
+@Injectable()
+export class PublicService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly clock: Clock,
+  ) {}
+
+  /**
+   * Tournois en cours ou à venir dans le rayon, triés par distance puis date.
+   * Distance haversine en SQL, préfiltrée par une boîte lat/lng indexée ;
+   * PostGIS (ST_DWithin, GiST) remplacera ce calcul (plan, section 4).
+   */
+  async search(query: SearchQuery): Promise<NearbyTournament[]> {
+    const dLat = query.radiusKm / KM_PER_DEGREE_LAT;
+    const dLng =
+      query.radiusKm /
+      (KM_PER_DEGREE_LAT * Math.cos((query.lat * Math.PI) / 180));
+    const rows = await this.prisma.$queryRaw<
+      { id: string; distance_km: number }[]
+    >`
+      SELECT t.id, d.distance_km
+      FROM tournament t
+      JOIN venue v ON v.id = t.venue_id
+      CROSS JOIN LATERAL (
+        SELECT 2 * 6371 * asin(sqrt(
+          power(sin(radians(v.lat - ${query.lat}) / 2), 2)
+          + cos(radians(${query.lat})) * cos(radians(v.lat))
+          * power(sin(radians(v.lng - ${query.lng}) / 2), 2)
+        )) AS distance_km
+      ) d
+      WHERE t.status::text IN (${Prisma.join([...DISCOVERABLE_STATUSES])})
+        AND t.ends_at >= ${this.clock.now()}
+        AND v.lat BETWEEN ${query.lat - dLat} AND ${query.lat + dLat}
+        AND v.lng BETWEEN ${query.lng - dLng} AND ${query.lng + dLng}
+        AND (${query.sport ?? null}::text IS NULL OR t.sport::text = ${query.sport ?? null})
+        AND d.distance_km <= ${query.radiusKm}
+      ORDER BY d.distance_km, t.starts_at
+      LIMIT ${MAX_RESULTS}`;
+
+    const tournaments = await this.prisma.tournament.findMany({
+      where: { id: { in: rows.map((row) => row.id) } },
+      include: { venue: true, organization: true },
+    });
+    const byId = new Map(tournaments.map((t) => [t.id, t]));
+    return rows.flatMap((row) => {
+      const tournament = byId.get(row.id);
+      return tournament
+        ? [{ ...toSummary(tournament), distanceKm: Number(row.distance_km) }]
+        : [];
+    });
+  }
+
+  async detail(slug: string): Promise<TournamentDetail> {
+    const t = await this.prisma.tournament.findFirst({
+      where: { slug, status: { in: [...PUBLIC_STATUSES] } },
+      include: {
+        venue: true,
+        organization: true,
+        teams: { orderBy: [{ group: 'asc' }, { name: 'asc' }] },
+        matches: { orderBy: [{ startsAt: 'asc' }, { field: 'asc' }] },
+      },
+    });
+    if (!t) {
+      throw new NotFoundException('Tournoi introuvable.');
+    }
+    const standings = computeStandings(
+      t.teams.map((team) => ({
+        id: team.code,
+        name: team.name,
+        group: team.group,
+      })),
+      t.matches
+        .filter((m) => m.phase === 'groups')
+        .map((m) => ({
+          homeTeamId: m.homeTeamCode,
+          awayTeamId: m.awayTeamCode,
+          scoreHome: m.scoreHome,
+          scoreAway: m.scoreAway,
+          finished: m.status === 'FINISHED',
+        })),
+    );
+    return {
+      ...toSummary(t),
+      teams: t.teams.map((team) => ({
+        id: team.code,
+        name: team.name,
+        shortName: team.shortName,
+        club: team.club,
+        ...(team.group ? { group: team.group } : {}),
+      })),
+      matches: t.matches.map((m) => ({
+        id: m.code,
+        phase: toPublicPhase(m.phase),
+        ...(m.group ? { group: m.group } : {}),
+        field: m.field,
+        startsAt: toIso(m.startsAt),
+        homeTeamId: m.homeTeamCode,
+        awayTeamId: m.awayTeamCode,
+        ...(m.homePlaceholder ? { homePlaceholder: m.homePlaceholder } : {}),
+        ...(m.awayPlaceholder ? { awayPlaceholder: m.awayPlaceholder } : {}),
+        scoreHome: m.scoreHome,
+        scoreAway: m.scoreAway,
+        status: m.status,
+        ...(m.minute === null ? {} : { minute: m.minute }),
+      })),
+      standings,
+    };
+  }
+
+  /** Fil News : posts du plus récent au plus ancien, cartes sponsorisées intercalées. */
+  async news(slug: string): Promise<NewsItem[]> {
+    const tournamentId = await this.publicTournamentId(slug);
+    const [posts, sponsors] = await Promise.all([
+      this.prisma.post.findMany({
+        where: { tournamentId },
+        orderBy: { publishedAt: 'desc' },
+        take: 50,
+        include: { options: { orderBy: { position: 'asc' } } },
+      }),
+      this.paidSponsors(tournamentId),
+    ]);
+    const feedSponsors = sponsors.filter((s) => s.tier !== 'FIELD');
+    return composeFeed(posts, feedSponsors).map((item): NewsItem => {
+      if (item.type === 'sponsored') {
+        return { type: 'sponsored', sponsor: card(item.sponsor) };
+      }
+      const post = item.post;
+      return {
+        type: 'post',
+        id: post.id,
+        kind:
+          post.kind === 'ANNOUNCEMENT'
+            ? 'announcement'
+            : post.kind === 'RESULT'
+              ? 'result'
+              : 'poll',
+        publishedAt: toIso(post.publishedAt),
+        title: post.title,
+        body: post.body,
+        ...(post.matchCode ? { matchId: post.matchCode } : {}),
+        ...(post.kind === 'POLL'
+          ? {
+              poll: {
+                options: post.options.map((o) => ({
+                  id: o.id,
+                  label: o.label,
+                  votes: o.votes,
+                })),
+              },
+            }
+          : {}),
+      };
+    });
+  }
+
+  /** Sponsors affichés : bannière exclusive (Or), bandeau partagé (6 au plus), terrains. */
+  async sponsors(slug: string): Promise<PublicSponsors> {
+    const sponsors = await this.paidSponsors(
+      await this.publicTournamentId(slug),
+    );
+    const gold = sponsors.find((s) => s.tier === 'GOLD');
+    return {
+      exclusive: gold ? card(gold) : null,
+      rotation: sponsors
+        .filter((s) => s.tier === 'SILVER' || s.tier === 'BRONZE')
+        .slice(0, MAX_ROTATION)
+        .map(card),
+      fields: sponsors
+        .filter((s) => s.tier === 'FIELD' && s.field)
+        .map((s) => ({ field: s.field!, sponsor: card(s) })),
+    };
+  }
+
+  /** Vote anonyme à un sondage ; l'appareil retient le vote pour ne pas le rejouer. */
+  async vote(postId: string, optionId: string): Promise<PollResult> {
+    const option = await this.prisma.pollOption.findFirst({
+      where: {
+        id: optionId,
+        postId,
+        post: {
+          kind: 'POLL',
+          tournament: { status: { in: [...PUBLIC_STATUSES] } },
+        },
+      },
+    });
+    if (!option) {
+      throw new NotFoundException('Sondage introuvable.');
+    }
+    await this.prisma.pollOption.update({
+      where: { id: optionId },
+      data: { votes: { increment: 1 } },
+    });
+    const options = await this.prisma.pollOption.findMany({
+      where: { postId },
+      orderBy: { position: 'asc' },
+    });
+    return {
+      options: options.map((o) => ({
+        id: o.id,
+        label: o.label,
+        votes: o.votes,
+      })),
+    };
+  }
+
+  /**
+   * Impression ou clic d'un sponsor payé, ajouté au cumul de l'heure. Le
+   * dédoublonnage par session se fait côté PWA (une impression par
+   * emplacement et par session) ; Redis le prendra en charge côté API.
+   */
+  async recordAudience(event: AudienceEvent): Promise<void> {
+    const sponsor = await this.prisma.tournamentSponsor.findFirst({
+      where: { id: event.sponsorId, status: 'PAID' },
+      select: { id: true },
+    });
+    if (!sponsor) {
+      throw new NotFoundException('Sponsor introuvable.');
+    }
+    const hourBucket = new Date(this.clock.now());
+    hourBucket.setUTCMinutes(0, 0, 0);
+    const placement = event.placement as Placement;
+    await this.prisma.audienceHourly.upsert({
+      where: {
+        tournamentSponsorId_placement_hourBucket: {
+          tournamentSponsorId: sponsor.id,
+          placement,
+          hourBucket,
+        },
+      },
+      create: {
+        tournamentSponsorId: sponsor.id,
+        placement,
+        hourBucket,
+        impressions: event.kind === 'impression' ? 1 : 0,
+        clicks: event.kind === 'click' ? 1 : 0,
+      },
+      update:
+        event.kind === 'click'
+          ? { clicks: { increment: 1 } }
+          : { impressions: { increment: 1 } },
+    });
+  }
+
+  private async publicTournamentId(slug: string): Promise<string> {
+    const t = await this.prisma.tournament.findFirst({
+      where: { slug, status: { in: [...PUBLIC_STATUSES] } },
+      select: { id: true },
+    });
+    if (!t) {
+      throw new NotFoundException('Tournoi introuvable.');
+    }
+    return t.id;
+  }
+
+  private paidSponsors(tournamentId: string) {
+    return this.prisma.tournamentSponsor.findMany({
+      where: { tournamentId, status: 'PAID' },
+      include: { sponsor: true },
+      orderBy: { paidAt: 'asc' },
+    });
+  }
+}
+
+function card(s: {
+  id: string;
+  tier: string;
+  sponsor: { name: string; website: string | null };
+}): SponsorCard {
+  return {
+    id: s.id,
+    name: s.sponsor.name,
+    tier: s.tier as SponsorCard['tier'],
+    ...(s.sponsor.website ? { website: s.sponsor.website } : {}),
+  };
+}

@@ -7,7 +7,9 @@ Le front (PWA Angular) vit dans [tournoi-connect-front](https://github.com/dmoh/
 
 - Node 26 LTS, pnpm 12 (espace de travail)
 - NestJS 12 en ESM sur Fastify 5, TypeScript 6 strict
-- Validation de configuration par zod, sondes de santé `@nestjs/terminus`, contrat OpenAPI `@nestjs/swagger`
+- PostgreSQL 17 et Prisma 7 (pilote `pg`, migrations versionnées), ADR-002 et ADR-003
+- Validation par schémas zod (pipe Standard Schema natif de NestJS 12) ; les mêmes schémas produisent le contrat OpenAPI
+- Erreurs au format `application/problem+json`, sondes de santé `@nestjs/terminus`
 - Vitest (unitaires et e2e), oxlint, Prettier
 
 ## Structure
@@ -29,6 +31,8 @@ npm install -g pnpm@12.18.0
 pnpm install
 cp .env.example .env
 pnpm infra:up           # Postgres + PostGIS, Redis, Mailpit, MinIO
+pnpm db:deploy          # applique les migrations
+pnpm build && pnpm db:seed   # données de démonstration (jamais en production)
 pnpm dev                # API sur http://localhost:3000 — Swagger sur /api/docs
 pnpm dev:worker         # worker
 ```
@@ -42,6 +46,9 @@ pnpm dev:worker         # worker
 | `pnpm test` / `pnpm test:e2e` | tests unitaires / e2e                               |
 | `pnpm build`                  | build de l'API et des paquets                       |
 | `pnpm openapi`                | régénère `openapi.json` et les types de `contracts` |
+| `pnpm db:migrate`             | crée une migration depuis `prisma/schema.prisma`    |
+| `pnpm db:deploy`              | applique les migrations                             |
+| `pnpm db:seed`                | charge les données de démonstration                 |
 | `pnpm format`                 | Prettier                                            |
 
 ## CI/CD
@@ -55,7 +62,27 @@ pnpm dev:worker         # worker
 
 ## Routes disponibles
 
-- `GET /health/live` — sonde de vie
-- `GET /health/ready` — sonde de disponibilité
-- `GET /api/docs` — Swagger UI (hors production)
-- Les routes métier sont préfixées `/api/v1`.
+Préfixe `/api/v1` ; détail et schémas dans Swagger (`/api/docs`) et `apps/api/openapi.json`.
+
+| Route                                            | Accès        | Rôle                                                               |
+| ------------------------------------------------ | ------------ | ------------------------------------------------------------------ |
+| `GET /health/live`, `GET /health/ready`          | public       | sondes (ready vérifie Postgres)                                    |
+| `GET /public/tournaments?lat&lng&radiusKm&sport` | public       | tournois en cours ou à venir dans le rayon, par distance puis date |
+| `GET /public/tournaments/:slug`                  | public       | page publique : équipes, matchs, classements (moteur)              |
+| `GET /public/tournaments/:slug/news`             | public       | fil News, une carte sponsorisée au plus pour quatre éléments       |
+| `GET /public/tournaments/:slug/sponsors`         | public       | bannière Or, bandeau partagé (6 au plus), sponsors de terrain      |
+| `POST /public/posts/:postId/votes`               | public       | vote à un sondage                                                  |
+| `POST /public/audience`                          | public       | impression ou clic d'un sponsor, cumulé par heure                  |
+| `GET /organizer/tournaments/:slug/sponsors`      | organisateur | packs, sponsors et audience, prospects du club                     |
+| `POST /organizer/tournaments/:slug/sponsors`     | organisateur | inviter un sponsor (pack épuisé : 409)                             |
+| `PATCH /organizer/tournament-sponsors/:id`       | organisateur | marquer payé hors Stripe                                           |
+| `POST /organizer/tournaments/:slug/posts`        | organisateur | publier une annonce ou un sondage                                  |
+
+## Décisions provisoires
+
+| Décision                                                                                           | Pourquoi                                                                | Remplacée par                                            |
+| -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------- |
+| Accès organisateur par un jeton de configuration (`ORGANIZER_DEMO_TOKEN`) ouvrant une organisation | Pas encore d'authentification ; aucune route d'écriture sans protection | JWT, refresh en cookie et matrice CASL (P1)              |
+| Distance haversine en SQL, préfiltrée par une boîte lat/lng indexée                                | Démarrer sans PostGIS ; résultats identiques à l'échelle d'une région   | `ST_DWithin` et index GiST (plan, section 4)             |
+| Dédoublonnage des impressions par session côté PWA                                                 | Pas encore de Redis branché                                             | Clé Redis par session et emplacement                     |
+| Classements calculés à la lecture avec `computeStandings` du moteur                                | Volume de démonstration                                                 | Classements matérialisés à la validation d'un score (P4) |

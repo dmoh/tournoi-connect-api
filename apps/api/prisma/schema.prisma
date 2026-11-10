@@ -1,0 +1,267 @@
+// Schéma de données Tournoi Connect (ADR-002, ADR-003).
+// Champs en camelCase, tables et colonnes en snake_case ; montants en centimes ;
+// horodatages en timestamptz. Toute donnée privée porte organizationId.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Sport {
+  football
+  handball
+  basketball
+  volleyball
+  rugby
+}
+
+enum TournamentStatus {
+  DRAFT
+  PUBLISHED
+  REGISTRATION_OPEN
+  REGISTRATION_CLOSED
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+enum Phase {
+  groups
+  round_of_32
+  round_of_16
+  quarter
+  semi
+  final
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+}
+
+enum PostKind {
+  ANNOUNCEMENT
+  RESULT
+  POLL
+}
+
+/// Origine d'un sponsor du carnet : nouvel annonceur du tournoi ou sponsor du club importé.
+enum SponsorSource {
+  TOURNAMENT
+  CLUB
+}
+
+/// Pipeline d'un sponsor sur un tournoi : prospect → invité → payé.
+enum SponsorStatus {
+  PROSPECT
+  INVITED
+  PAID
+}
+
+enum PackTier {
+  BRONZE
+  SILVER
+  GOLD
+  FIELD
+}
+
+/// Emplacement mesuré : bannière exclusive (Or), bandeau partagé, logo de terrain, carte du fil.
+enum Placement {
+  BANNER_EXCLUSIVE
+  BANNER_ROTATION
+  FIELD_LOGO
+  FEED_CARD
+}
+
+model Organization {
+  id          String       @id @default(cuid(2))
+  slug        String       @unique
+  name        String
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  venues      Venue[]
+  tournaments Tournament[]
+  sponsors    Sponsor[]
+
+  @@map("organization")
+}
+
+model Venue {
+  id             String       @id @default(cuid(2))
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  city           String
+  lat            Float
+  lng            Float
+  outdoor        Boolean
+  tournaments    Tournament[]
+
+  // Préfiltre de la découverte par rayon ; PostGIS (GiST) remplacera cet index.
+  @@index([lat, lng])
+  @@index([organizationId])
+  @@map("venue")
+}
+
+model Tournament {
+  id             String           @id @default(cuid(2))
+  organizationId String           @map("organization_id")
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  venueId        String           @map("venue_id")
+  venue          Venue            @relation(fields: [venueId], references: [id])
+  slug           String           @unique
+  name           String
+  sport          Sport
+  startsAt       DateTime         @map("starts_at") @db.Timestamptz
+  endsAt         DateTime         @map("ends_at") @db.Timestamptz
+  categories     String[]
+  teamCount      Int              @default(0) @map("team_count")
+  maxTeams       Int              @map("max_teams")
+  feeCents       Int              @default(0) @map("fee_cents")
+  status         TournamentStatus @default(DRAFT)
+  teams          Team[]
+  matches        Match[]
+  posts          Post[]
+  packages       SponsorPackage[]
+  sponsors       TournamentSponsor[]
+
+  @@index([status, startsAt])
+  @@index([organizationId])
+  @@map("tournament")
+}
+
+model Team {
+  id           String     @id @default(cuid(2))
+  tournamentId String     @map("tournament_id")
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  /// Identifiant court stable dans le tournoi (ex. « eda »).
+  code         String
+  name         String
+  shortName    String     @map("short_name")
+  club         String
+  group        String?
+
+  @@unique([tournamentId, code])
+  @@map("team")
+}
+
+model Match {
+  id              String      @id @default(cuid(2))
+  tournamentId    String      @map("tournament_id")
+  tournament      Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  /// Identifiant court stable dans le tournoi (ex. « a5 », « df1 »).
+  code            String
+  phase           Phase
+  group           String?
+  field           String
+  startsAt        DateTime    @map("starts_at") @db.Timestamptz
+  homeTeamCode    String?     @map("home_team_code")
+  awayTeamCode    String?     @map("away_team_code")
+  homePlaceholder String?     @map("home_placeholder")
+  awayPlaceholder String?     @map("away_placeholder")
+  scoreHome       Int         @default(0) @map("score_home")
+  scoreAway       Int         @default(0) @map("score_away")
+  status          MatchStatus @default(SCHEDULED)
+  minute          Int?
+  /// Verrou optimiste du direct (ADR-009).
+  version         Int         @default(0)
+
+  @@unique([tournamentId, code])
+  @@index([tournamentId, startsAt])
+  @@map("match")
+}
+
+model Post {
+  id           String       @id @default(cuid(2))
+  tournamentId String       @map("tournament_id")
+  tournament   Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  kind         PostKind
+  title        String
+  body         String
+  matchCode    String?      @map("match_code")
+  publishedAt  DateTime     @default(now()) @map("published_at") @db.Timestamptz
+  options      PollOption[]
+
+  @@index([tournamentId, publishedAt])
+  @@map("post")
+}
+
+model PollOption {
+  id       String @id @default(cuid(2))
+  postId   String @map("post_id")
+  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  label    String
+  position Int
+  votes    Int    @default(0)
+
+  @@unique([postId, position])
+  @@map("poll_option")
+}
+
+/// Carnet de sponsors de l'organisation, réutilisé d'un tournoi à l'autre. Privé.
+model Sponsor {
+  id             String              @id @default(cuid(2))
+  organizationId String              @map("organization_id")
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  email          String?
+  website        String?
+  source         SponsorSource       @default(TOURNAMENT)
+  tournaments    TournamentSponsor[]
+
+  @@index([organizationId])
+  @@map("sponsor")
+}
+
+/// Packs vendus par tournoi (Bronze, Argent, Or, sponsor de terrain).
+model SponsorPackage {
+  id           String     @id @default(cuid(2))
+  tournamentId String     @map("tournament_id")
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tier         PackTier
+  priceCents   Int        @map("price_cents")
+  inventory    Int
+
+  @@unique([tournamentId, tier])
+  @@map("sponsor_package")
+}
+
+/// Un sponsor sur un tournoi : son avancement, son pack, son terrain.
+model TournamentSponsor {
+  id           String             @id @default(cuid(2))
+  tournamentId String             @map("tournament_id")
+  tournament   Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  sponsorId    String             @map("sponsor_id")
+  sponsor      Sponsor            @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+  status       SponsorStatus      @default(INVITED)
+  tier         PackTier
+  /// Terrain sponsorisé, pour un pack FIELD.
+  field        String?
+  invitedAt    DateTime?          @map("invited_at") @db.Timestamptz
+  paidAt       DateTime?          @map("paid_at") @db.Timestamptz
+  audience     AudienceHourly[]
+
+  @@unique([tournamentId, sponsorId])
+  @@index([tournamentId, status])
+  @@map("tournament_sponsor")
+}
+
+/// Impressions et clics agrégés par heure (jamais d'événement brut lu par l'API).
+model AudienceHourly {
+  id                  String            @id @default(cuid(2))
+  tournamentSponsorId String            @map("tournament_sponsor_id")
+  tournamentSponsor   TournamentSponsor @relation(fields: [tournamentSponsorId], references: [id], onDelete: Cascade)
+  placement           Placement
+  hourBucket          DateTime          @map("hour_bucket") @db.Timestamptz
+  impressions         Int               @default(0)
+  clicks              Int               @default(0)
+
+  @@unique([tournamentSponsorId, placement, hourBucket])
+  @@map("audience_hourly")
+}

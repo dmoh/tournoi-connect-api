@@ -10,3 +10,6 @@ minimumReleaseAgeExclude:
 # Scripts d'installation refusés par défaut ; @scarf/scarf n'est que de la télémétrie.
 allowBuilds:
   '@scarf/scarf': false
+  # Prisma télécharge son moteur de migration à l'installation (ADR-003).
+  '@prisma/engines': true
+  prisma: true

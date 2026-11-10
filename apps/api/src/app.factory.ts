@@ -1,5 +1,5 @@
 import helmet from '@fastify/helmet';
-import { VersioningType } from '@nestjs/common';
+import { StandardSchemaValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import {
   FastifyAdapter,
@@ -8,6 +8,7 @@ import {
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { OpenAPIObject } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
+import { ProblemDetailsFilter } from './common/problem-details.filter.js';
 
 /** Configuration HTTP partagée par main.ts, les tests e2e et l'export OpenAPI. */
 export async function configureApp(
@@ -16,6 +17,9 @@ export async function configureApp(
   app.setGlobalPrefix('api', { exclude: ['health/live', 'health/ready'] });
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
   app.enableShutdownHooks();
+  // Validation par les schémas zod des routes (Standard Schema, NestJS 12).
+  app.useGlobalPipes(new StandardSchemaValidationPipe());
+  app.useGlobalFilters(new ProblemDetailsFilter());
   await app.register(helmet);
   return app;
 }
