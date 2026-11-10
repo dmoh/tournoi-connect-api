@@ -515,3 +515,65 @@ export const DEMO_PACKAGES: {
   { tier: 'BRONZE', priceCents: 15000, inventory: 4 },
   { tier: 'FIELD', priceCents: 9000, inventory: 2 },
 ];
+
+interface DemoMatchEvent {
+  match: string;
+  type: 'GOAL' | 'YELLOW_CARD' | 'SAVE' | 'PHOTO';
+  side?: 'HOME' | 'AWAY';
+  minute: number;
+  player?: string;
+  assist?: string;
+  caption?: string;
+  /** Heure d'enregistrement, le 9 novembre (heure de Paris). */
+  at: string;
+}
+
+/** Fil des deux matchs en direct, cohérent avec leur score (1 – 0 et 0 – 1). */
+export const DEMO_MATCH_EVENTS: DemoMatchEvent[] = [
+  {
+    match: 'a5',
+    type: 'GOAL',
+    side: 'HOME',
+    minute: 3,
+    player: 'L. Martin',
+    assist: 'N. Dubois',
+    at: '11:03:10',
+  },
+  {
+    match: 'a5',
+    type: 'YELLOW_CARD',
+    side: 'AWAY',
+    minute: 8,
+    player: 'K. Diallo',
+    at: '11:08:02',
+  },
+  {
+    match: 'a5',
+    type: 'SAVE',
+    side: 'AWAY',
+    minute: 12,
+    player: 'T. Roux',
+    at: '11:09:48',
+  },
+  {
+    match: 'b5',
+    type: 'GOAL',
+    side: 'AWAY',
+    minute: 6,
+    player: 'M. Perrin',
+    at: '11:06:30',
+  },
+  {
+    match: 'b5',
+    type: 'PHOTO',
+    minute: 10,
+    caption: '« Quelle frappe ! »',
+    at: '11:09:30',
+  },
+];
+
+/** Réactions déjà reçues par le match a5 (👏 24, 🔥 9, 😮 3). */
+export const DEMO_REACTIONS = {
+  match: 'a5',
+  counts: { CLAP: 24, FIRE: 9, WOW: 3 },
+} as const;

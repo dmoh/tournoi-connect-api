@@ -184,10 +184,68 @@ model Match {
   minute          Int?
   /// Verrou optimiste du direct (ADR-009).
   version         Int         @default(0)
+  events          MatchEvent[]
+  reactions       MatchReaction[]
 
   @@unique([tournamentId, code])
   @@index([tournamentId, startsAt])
   @@map("match")
+}
+
+enum MatchEventType {
+  GOAL
+  YELLOW_CARD
+  RED_CARD
+  SAVE
+  PHOTO
+  HALF_TIME
+  FULL_TIME
+  /// Annule l'événement désigné par cancelsId (rien n'est effacé).
+  CANCEL
+}
+
+enum Side {
+  HOME
+  AWAY
+}
+
+enum ReactionKind {
+  CLAP
+  FIRE
+  WOW
+}
+
+/// Fil du direct, en insertion seule (cahier des charges, section 6).
+model MatchEvent {
+  id            String         @id @default(cuid(2))
+  matchId       String         @map("match_id")
+  match         Match          @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  /// Créé sur l'appareil du rapporteur : un doublon est ignoré (idempotence).
+  clientEventId String         @map("client_event_id")
+  type          MatchEventType
+  side          Side?
+  minute        Int
+  player        String?
+  assist        String?
+  caption       String?
+  cancelsId     String?        @map("cancels_id")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([matchId, clientEventId])
+  @@index([matchId, createdAt])
+  @@map("match_event")
+}
+
+/// Réaction anonyme d'un spectateur : une par appareil et par emoji.
+model MatchReaction {
+  matchId   String       @map("match_id")
+  match     Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  kind      ReactionKind
+  deviceId  String       @map("device_id")
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([matchId, kind, deviceId])
+  @@map("match_reaction")
 }
 
 model Post {

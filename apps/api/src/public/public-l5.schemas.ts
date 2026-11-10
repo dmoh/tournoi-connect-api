@@ -62,3 +62,48 @@ export type PublicSponsors = z.infer<typeof publicSponsorsSchema>;
 export type NewsItem = z.infer<typeof newsItemSchema>;
 export type PollResult = z.infer<typeof pollResultSchema>;
 export type AudienceEvent = z.infer<typeof audienceEventSchema>;
+
+export const REACTION_KINDS = ['CLAP', 'FIRE', 'WOW'] as const;
+
+export const reactionCountsSchema = z.object({
+  CLAP: z.number().int(),
+  FIRE: z.number().int(),
+  WOW: z.number().int(),
+});
+
+export const matchFeedSchema = z.object({
+  events: z.array(
+    z.object({
+      id: z.string(),
+      type: z.enum([
+        'GOAL',
+        'YELLOW_CARD',
+        'RED_CARD',
+        'SAVE',
+        'PHOTO',
+        'HALF_TIME',
+        'FULL_TIME',
+      ]),
+      side: z.enum(['home', 'away']).optional(),
+      minute: z.number().int(),
+      player: z.string().optional(),
+      assist: z.string().optional(),
+      caption: z.string().optional(),
+      /** Score juste après l'événement. */
+      score: z.object({ home: z.number().int(), away: z.number().int() }),
+    }),
+  ),
+  reactions: reactionCountsSchema,
+  /** Dernier événement enregistré (« mis à jour il y a 12 s »), null sans événement. */
+  updatedAt: z.iso.datetime({ offset: true }).nullable(),
+});
+
+export const reactionSchema = z.object({
+  kind: z.enum(REACTION_KINDS),
+  /** Identifiant aléatoire de l'appareil : une réaction par appareil et par emoji. */
+  deviceId: z.uuid(),
+});
+
+export type MatchFeed = z.infer<typeof matchFeedSchema>;
+export type ReactionCounts = z.infer<typeof reactionCountsSchema>;
+export type ReactionInput = z.infer<typeof reactionSchema>;

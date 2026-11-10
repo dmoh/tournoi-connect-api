@@ -1,10 +1,12 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
 import {
+  DEMO_MATCH_EVENTS,
   DEMO_MATCHES,
   DEMO_ORGANIZATIONS,
   DEMO_PACKAGES,
   DEMO_POSTS,
+  DEMO_REACTIONS,
   DEMO_SPONSORS,
   DEMO_TEAMS,
   DEMO_TOURNAMENTS,
@@ -66,6 +68,32 @@ export async function seedDemo(prisma: PrismaClient): Promise<void> {
       homeTeamCode: home ?? null,
       awayTeamCode: away ?? null,
     })),
+  });
+  const matchIds = new Map(
+    (
+      await prisma.match.findMany({
+        where: { tournamentId: live.id },
+        select: { id: true, code: true },
+      })
+    ).map((m) => [m.code, m.id]),
+  );
+  await prisma.matchEvent.createMany({
+    data: DEMO_MATCH_EVENTS.map(({ match, at, ...event }, index) => ({
+      ...event,
+      matchId: matchIds.get(match)!,
+      clientEventId: `demo-${index + 1}`,
+      createdAt: new Date(`2026-11-09T${at}+01:00`),
+    })),
+  });
+  let device = 0;
+  await prisma.matchReaction.createMany({
+    data: Object.entries(DEMO_REACTIONS.counts).flatMap(([kind, count]) =>
+      Array.from({ length: count }, () => ({
+        matchId: matchIds.get(DEMO_REACTIONS.match)!,
+        kind: kind as keyof typeof DEMO_REACTIONS.counts,
+        deviceId: `00000000-0000-4000-8000-${String(++device).padStart(12, '0')}`,
+      })),
+    ),
   });
   for (const { options, publishedAt, ...post } of DEMO_POSTS) {
     await prisma.post.create({
