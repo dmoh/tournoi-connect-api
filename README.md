@@ -81,10 +81,9 @@ Préfixe `/api/v1` ; détail et schémas dans Swagger (`/api/docs`) et `apps/api
 
 ## Décisions provisoires
 
-| Décision                                                                                           | Pourquoi                                                                | Remplacée par                                            |
-| -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------- |
-| Accès organisateur par un jeton de configuration (`ORGANIZER_DEMO_TOKEN`) ouvrant une organisation | Pas encore d'authentification ; aucune route d'écriture sans protection | JWT, refresh en cookie et matrice CASL (P1)              |
-| Distance haversine en SQL, préfiltrée par une boîte lat/lng indexée                                | Démarrer sans PostGIS ; résultats identiques à l'échelle d'une région   | `ST_DWithin` et index GiST (plan, section 4)             |
-| Dédoublonnage des impressions par session côté PWA                                                 | Redis ne sert encore qu'aux files BullMQ                                | Clé Redis par session et emplacement                     |
-| Sans `REDIS_URL`, les événements d'audience s'écrivent directement en base                         | Tests et poste local sans Redis                                         | Redis obligatoire hors tests                             |
-| Classements calculés à la lecture avec `computeStandings` du moteur                                | Volume de démonstration                                                 | Classements matérialisés à la validation d'un score (P4) |
+| Décision                                                                   | Pourquoi                                                              | Remplacée par                                            |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------- |
+| Distance haversine en SQL, préfiltrée par une boîte lat/lng indexée        | Démarrer sans PostGIS ; résultats identiques à l'échelle d'une région | `ST_DWithin` et index GiST (plan, section 4)             |
+| Dédoublonnage des impressions par session côté PWA                         | Redis ne sert encore qu'aux files BullMQ                              | Clé Redis par session et emplacement                     |
+| Sans `REDIS_URL`, les événements d'audience s'écrivent directement en base | Tests et poste local sans Redis                                       | Redis obligatoire hors tests                             |
+| Classements calculés à la lecture avec `computeStandings` du moteur        | Volume de démonstration                                               | Classements matérialisés à la validation d'un score (P4) |

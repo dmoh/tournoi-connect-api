@@ -61,3 +61,13 @@ variable "host_files" {
   description = "Fichiers communs déposés sur le serveur (compose.yml, deploy.sh)."
   type        = map(string)
 }
+
+variable "ses_identity_arn" {
+  description = "Identité SES du domaine : le serveur peut envoyer en son nom."
+  type        = string
+}
+
+variable "mail_from" {
+  description = "Expéditeur des emails (codes de connexion, invitations)."
+  type        = string
+}

@@ -52,6 +52,8 @@ terraform apply plan.tfplan
 - **Journaux** : `docker compose logs` sur le serveur (rotation 3 × 10 Mo par conteneur).
 - **Serveur remplacé** : `terraform apply -replace=module.<env>.aws_instance.host` ; au démarrage, il recharge les dernières images de S3.
 - **Retour arrière** : redéployer un commit antérieur (les archives précédentes restent 30 jours, versions S3).
+- **Emails (SES)** : le domaine est vérifié par DKIM (`email.tf`). Tant que le compte est dans le bac à sable SES, seules les adresses vérifiées reçoivent les codes (`aws sesv2 create-email-identity --email-identity <adresse>`) ; sortir du bac à sable par la console SES (« Request production access », usage transactionnel : codes de connexion et invitations).
+- **Connexion Google, Apple, Facebook** : créer l'application chez le fournisseur avec l'URL de retour `https://<app>/api/v1/auth/oauth/<google|apple|facebook>/callback`, puis déposer les identifiants dans SSM (`aws ssm put-parameter --type SecureString --name /tournoi-connect/<env>/GOOGLE_CLIENT_SECRET …`, mêmes noms que `.env.example` ; la clé Apple sur une ligne, sauts de ligne écrits `\n`) et lancer `deploy.sh config`. Sans identifiants, le bouton n'apparaît pas.
 
 ## Décisions (budget de 80 €/mois)
 

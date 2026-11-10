@@ -598,3 +598,34 @@ export const DEMO_PLAYERS: { team: string; number: number; name: string }[] =
       name: DEMO_NAMES[(i + t) % DEMO_NAMES.length]!,
     })),
   );
+
+/**
+ * Comptes de démonstration, sur le domaine réservé example.org : aucun code
+ * de connexion n'y part réellement (tests e2e, poste local).
+ */
+export const DEMO_ACCOUNTS: {
+  email: string;
+  firstName: string;
+  lastName: string;
+  membership?: { organization: string; role: 'OWNER' | 'ADMIN' | 'STAFF' };
+  sponsor?: string;
+}[] = [
+  {
+    email: 'orga@example.org',
+    firstName: 'Camille',
+    lastName: 'Perrin',
+    membership: { organization: 'etoile-de-l-arve', role: 'OWNER' },
+  },
+  {
+    email: 'benevole@example.org',
+    firstName: 'Hugo',
+    lastName: 'Garcia',
+    membership: { organization: 'etoile-de-l-arve', role: 'STAFF' },
+  },
+  {
+    email: 'sponsor@example.org',
+    firstName: 'Inès',
+    lastName: 'Roux',
+    sponsor: 'Fromagerie des Aravis',
+  },
+];

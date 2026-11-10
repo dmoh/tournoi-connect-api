@@ -5,9 +5,8 @@ export const LINK_TTL_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Lien signé de la table de marque : `<match>.<expiration>.<signature>`,
- * limité à un match et à 24 heures. La clé HMAC est dérivée d'un secret de
- * configuration ; elle sera remplacée par une clé dédiée avec
- * l'authentification (P1).
+ * limité à un match et à 24 heures. La clé HMAC est dérivée d'AUTH_SECRET,
+ * propre à cet usage (AuthKeys.reporter).
  */
 export class ReporterLinkSigner {
   private readonly key: Buffer;

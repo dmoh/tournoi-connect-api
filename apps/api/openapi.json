@@ -1,6 +1,710 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/auth/providers": {
+      "get": {
+        "operationId": "AuthController_providers_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "providers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "GOOGLE",
+                          "APPLE",
+                          "FACEBOOK"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "providers"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "summary": "Fournisseurs de connexion en un clic configurés",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/code": {
+      "post": {
+        "operationId": "AuthController_requestCode_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Code envoyé (même pour une adresse inconnue)"
+          },
+          "429": {
+            "description": "Plus de 5 codes en une heure"
+          }
+        },
+        "summary": "Envoyer un code de connexion à 6 chiffres par email",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/verify": {
+      "post": {
+        "operationId": "AuthController_verify_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "type": "string",
+                    "pattern": "^\\d{6}$"
+                  }
+                },
+                "required": [
+                  "email",
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": {
+                      "type": "string"
+                    },
+                    "expiresIn": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "firstName": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "lastName": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "needsProfile": {
+                          "type": "boolean"
+                        },
+                        "providers": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "EMAIL",
+                              "GOOGLE",
+                              "APPLE",
+                              "FACEBOOK",
+                              "ECOCLUBSPORT"
+                            ]
+                          }
+                        },
+                        "memberships": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "organization": {
+                                "type": "object",
+                                "properties": {
+                                  "slug": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "slug",
+                                  "name"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "role": {
+                                "type": "string",
+                                "enum": [
+                                  "OWNER",
+                                  "ADMIN",
+                                  "STAFF"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "organization",
+                              "role"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "sponsors": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "organization": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "organization"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "platformAdmin": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "email",
+                        "firstName",
+                        "lastName",
+                        "needsProfile",
+                        "providers",
+                        "memberships",
+                        "sponsors",
+                        "platformAdmin"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "accessToken",
+                    "expiresIn",
+                    "user"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "summary": "Ouvrir une session avec le code reçu (crée le compte au besoin)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": {
+                      "type": "string"
+                    },
+                    "expiresIn": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "firstName": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "lastName": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "needsProfile": {
+                          "type": "boolean"
+                        },
+                        "providers": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "EMAIL",
+                              "GOOGLE",
+                              "APPLE",
+                              "FACEBOOK",
+                              "ECOCLUBSPORT"
+                            ]
+                          }
+                        },
+                        "memberships": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "organization": {
+                                "type": "object",
+                                "properties": {
+                                  "slug": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "slug",
+                                  "name"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "role": {
+                                "type": "string",
+                                "enum": [
+                                  "OWNER",
+                                  "ADMIN",
+                                  "STAFF"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "organization",
+                              "role"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "sponsors": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "organization": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "organization"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "platformAdmin": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "email",
+                        "firstName",
+                        "lastName",
+                        "needsProfile",
+                        "providers",
+                        "memberships",
+                        "sponsors",
+                        "platformAdmin"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "accessToken",
+                    "expiresIn",
+                    "user"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Pas de session ou session expirée"
+          }
+        },
+        "summary": "Nouveau jeton d’accès depuis le cookie de session",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout_v1",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Fermer la session de cet appareil",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_me_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "firstName": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "lastName": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "needsProfile": {
+                      "type": "boolean"
+                    },
+                    "providers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "EMAIL",
+                          "GOOGLE",
+                          "APPLE",
+                          "FACEBOOK",
+                          "ECOCLUBSPORT"
+                        ]
+                      }
+                    },
+                    "memberships": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "organization": {
+                            "type": "object",
+                            "properties": {
+                              "slug": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "slug",
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "OWNER",
+                              "ADMIN",
+                              "STAFF"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "organization",
+                          "role"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "sponsors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "organization": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "organization"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "platformAdmin": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "email",
+                    "firstName",
+                    "lastName",
+                    "needsProfile",
+                    "providers",
+                    "memberships",
+                    "sponsors",
+                    "platformAdmin"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mon compte : profil, moyens de connexion, clubs et sponsors",
+        "tags": [
+          "auth"
+        ]
+      },
+      "patch": {
+        "operationId": "AuthController_updateMe_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "firstName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  }
+                },
+                "required": [
+                  "firstName",
+                  "lastName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "firstName": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "lastName": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "needsProfile": {
+                      "type": "boolean"
+                    },
+                    "providers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "EMAIL",
+                          "GOOGLE",
+                          "APPLE",
+                          "FACEBOOK",
+                          "ECOCLUBSPORT"
+                        ]
+                      }
+                    },
+                    "memberships": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "organization": {
+                            "type": "object",
+                            "properties": {
+                              "slug": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "slug",
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "OWNER",
+                              "ADMIN",
+                              "STAFF"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "organization",
+                          "role"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "sponsors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "organization": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "organization"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "platformAdmin": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "email",
+                    "firstName",
+                    "lastName",
+                    "needsProfile",
+                    "providers",
+                    "memberships",
+                    "sponsors",
+                    "platformAdmin"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Compléter son prénom et son nom",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/health/live": {
       "get": {
         "operationId": "HealthController_live",
@@ -1453,6 +2157,15 @@
         "operationId": "OrganizerController_reporterLink_v1",
         "parameters": [
           {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "slug",
             "required": true,
             "in": "path",
@@ -1501,7 +2214,7 @@
             }
           },
           "401": {
-            "description": "Jeton absent ou invalide"
+            "description": "Connexion requise"
           },
           "404": {
             "description": "Match hors de l’organisation"
@@ -1521,7 +2234,17 @@
     "/api/v1/organizer/tournaments": {
       "get": {
         "operationId": "OrganizerController_tournaments_v1",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -1609,7 +2332,7 @@
             }
           },
           "401": {
-            "description": "Jeton absent ou invalide"
+            "description": "Connexion requise"
           }
         },
         "security": [
@@ -1624,7 +2347,17 @@
       },
       "post": {
         "operationId": "OrganizerController_createTournament_v1",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1841,7 +2574,7 @@
             }
           },
           "401": {
-            "description": "Jeton absent ou invalide"
+            "description": "Connexion requise"
           }
         },
         "security": [
@@ -1859,6 +2592,15 @@
       "get": {
         "operationId": "OrganizerController_sponsors_v1",
         "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "slug",
             "required": true,
@@ -2013,7 +2755,7 @@
             }
           },
           "401": {
-            "description": "Jeton absent ou invalide"
+            "description": "Connexion requise"
           },
           "404": {
             "description": "Tournoi hors de l’organisation"
@@ -2032,6 +2774,15 @@
       "post": {
         "operationId": "OrganizerController_invite_v1",
         "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "slug",
             "required": true,
@@ -2152,7 +2903,7 @@
             }
           },
           "401": {
-            "description": "Jeton absent ou invalide"
+            "description": "Connexion requise"
           },
           "409": {
             "description": "Pack épuisé ou sponsor déjà présent"
@@ -2173,6 +2924,15 @@
       "patch": {
         "operationId": "OrganizerController_update_v1",
         "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -2209,7 +2969,7 @@
             "description": ""
           },
           "401": {
-            "description": "Jeton absent ou invalide"
+            "description": "Connexion requise"
           }
         },
         "security": [
@@ -2227,6 +2987,15 @@
       "post": {
         "operationId": "OrganizerController_createPost_v1",
         "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "slug",
             "required": true,
@@ -2306,7 +3075,7 @@
             }
           },
           "401": {
-            "description": "Jeton absent ou invalide"
+            "description": "Connexion requise"
           }
         },
         "security": [

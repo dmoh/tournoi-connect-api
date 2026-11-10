@@ -27,6 +27,8 @@ module "preprod" {
   seed_demo          = true
   indexable          = false
   host_files         = local.host_files
+  ses_identity_arn   = aws_sesv2_email_identity.domain.arn
+  mail_from          = "Tournoi Connect <noreply@${var.domain}>"
 }
 
 # Prod : un serveur pour la PWA, l'API, le worker BullMQ et Redis ; base RDS.
@@ -45,6 +47,8 @@ module "prod" {
   managed_database   = true
   indexable          = true
   host_files         = local.host_files
+  ses_identity_arn   = aws_sesv2_email_identity.domain.arn
+  mail_from          = "Tournoi Connect <noreply@${var.domain}>"
 }
 
 # Seules Amazon (CloudFront) et Let's Encrypt (Caddy) peuvent émettre des

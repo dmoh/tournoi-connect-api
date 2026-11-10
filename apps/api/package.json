@@ -24,6 +24,7 @@
     "db:seed": "node dist/database/seed.js"
   },
   "dependencies": {
+    "@aws-sdk/client-sesv2": "3.1160.0",
     "@dmoh/tournoi-connect-engine": "workspace:*",
     "@fastify/helmet": "^13.2.0",
     "@fastify/static": "^10.1.10",
@@ -39,6 +40,7 @@
     "bullmq": "6.5.0",
     "fastify": "^5.12.8",
     "ioredis": "6.0.0",
+    "jose": "6.2.14",
     "pg": "8.23.1",
     "prisma": "7.10.1",
     "reflect-metadata": "^0.2.2",

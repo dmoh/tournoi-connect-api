@@ -14,6 +14,7 @@ import {
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiHeader,
   ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -24,9 +25,10 @@ import {
 import { z } from 'zod';
 import { openApi } from '../common/openapi-schema.js';
 import {
-  OrganizerTokenGuard,
+  OrganizerGuard,
+  OrganizerRole,
   type OrganizerRequest,
-} from './organizer-token.guard.js';
+} from './organizer.guard.js';
 import {
   createTournamentSchema,
   organizerTournamentSchema,
@@ -55,8 +57,13 @@ import { ReporterService } from '../reporter/reporter.service.js';
 /** Espace organisateur : sponsors, packs et annonces d'un tournoi de son organisation. */
 @ApiTags('organizer')
 @ApiBearerAuth()
-@ApiUnauthorizedResponse({ description: 'Jeton absent ou invalide' })
-@UseGuards(OrganizerTokenGuard)
+@ApiUnauthorizedResponse({ description: 'Connexion requise' })
+@ApiHeader({
+  name: 'X-Organization',
+  required: false,
+  description: 'Club concerné (slug), si le compte en a plusieurs',
+})
+@UseGuards(OrganizerGuard)
 @Controller('organizer')
 export class OrganizerController {
   constructor(
@@ -65,6 +72,7 @@ export class OrganizerController {
   ) {}
 
   @Post('tournaments/:slug/matches/:matchId/reporter-link')
+  @OrganizerRole('STAFF')
   @ApiOperation({
     summary: 'Lien de la table de marque d’un match, valable 24 heures',
   })

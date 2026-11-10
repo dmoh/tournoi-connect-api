@@ -1,29 +1,31 @@
 # Configuration du serveur dans SSM Parameter Store (niveau standard, gratuit) :
 # deploy.sh les recopie dans /opt/tournoi-connect/.env à chaque déploiement.
 
-resource "random_password" "organizer_token" {
-  length  = 40
+resource "random_password" "auth_secret" {
+  length  = 64
   special = false
 }
 
 locals {
   plain_parameters = merge(
     {
-      APP_HOST           = var.app_host
-      API_HOST           = var.api_host
-      PUBLIC_APP_URL     = "https://${var.app_host}"
-      NG_ALLOWED_HOSTS   = var.app_host
-      REDIS_URL          = "redis://redis:6379"
-      LOG_LEVEL          = var.name == "prod" ? "info" : "debug"
-      ORGANIZER_DEMO_ORG = "etoile-de-l-arve"
-      SEED_DEMO          = var.seed_demo ? "true" : "false"
+      APP_HOST         = var.app_host
+      API_HOST         = var.api_host
+      PUBLIC_APP_URL   = "https://${var.app_host}"
+      NG_ALLOWED_HOSTS = var.app_host
+      REDIS_URL        = "redis://redis:6379"
+      LOG_LEVEL        = var.name == "prod" ? "info" : "debug"
+      MAIL_TRANSPORT   = "ses"
+      MAIL_FROM        = var.mail_from
+      AWS_REGION       = data.aws_region.current.region
+      SEED_DEMO        = var.seed_demo ? "true" : "false"
     },
     var.managed_database ? {} : { COMPOSE_PROFILES = "local-db" },
   )
   secret_parameters = merge(
     {
-      DATABASE_URL         = local.database_url
-      ORGANIZER_DEMO_TOKEN = random_password.organizer_token.result
+      DATABASE_URL = local.database_url
+      AUTH_SECRET  = random_password.auth_secret.result
     },
     var.managed_database ? {} : { POSTGRES_PASSWORD = random_password.database.result },
   )

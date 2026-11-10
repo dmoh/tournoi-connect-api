@@ -17,10 +17,14 @@ describe('validateEnv', () => {
     expect(() => validateEnv({})).toThrow(/DATABASE_URL/);
   });
 
-  it('refuse un jeton organisateur trop court', () => {
-    expect(() =>
-      validateEnv({ ...base, ORGANIZER_DEMO_TOKEN: 'court' }),
-    ).toThrow(/Configuration invalide/);
+  it('refuse un secret des comptes trop court et ignore les variables vides', () => {
+    expect(() => validateEnv({ ...base, AUTH_SECRET: 'court' })).toThrow(
+      /Configuration invalide/,
+    );
+    expect(
+      validateEnv({ ...base, GOOGLE_CLIENT_ID: '' }).GOOGLE_CLIENT_ID,
+    ).toBeUndefined();
+    expect(validateEnv(base).MAIL_TRANSPORT).toBe('log');
   });
 
   it('refuse une configuration mal formée', () => {
