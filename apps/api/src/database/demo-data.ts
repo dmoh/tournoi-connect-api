@@ -577,3 +577,24 @@ export const DEMO_REACTIONS = {
   match: 'a5',
   counts: { CLAP: 24, FIRE: 9, WOW: 3 },
 } as const;
+
+/** Effectif de démonstration : numéros et noms fictifs, 8 joueurs par équipe. */
+const DEMO_NAMES = [
+  'T. Roux',
+  'H. Garcia',
+  'M. Petit',
+  'S. Lopez',
+  'E. Moreau',
+  'N. Dubois',
+  'L. Martin',
+  'Y. Benali',
+];
+export const DEMO_PLAYERS: { team: string; number: number; name: string }[] =
+  DEMO_TEAMS.flatMap((team, t) =>
+    DEMO_NAMES.map((_, i) => ({
+      team: team.code,
+      number: i + 1,
+      // Décale la liste par équipe pour que deux équipes n'aient pas le même effectif.
+      name: DEMO_NAMES[(i + t) % DEMO_NAMES.length]!,
+    })),
+  );

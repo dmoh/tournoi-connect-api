@@ -159,9 +159,22 @@ model Team {
   shortName    String     @map("short_name")
   club         String
   group        String?
+  players      Player[]
 
   @@unique([tournamentId, code])
   @@map("team")
+}
+
+/// Effectif d'une équipe, pour la feuille buteur du rapporteur (maquette 12b).
+model Player {
+  id     String @id @default(cuid(2))
+  teamId String @map("team_id")
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  number Int
+  name   String
+
+  @@unique([teamId, number])
+  @@map("player")
 }
 
 model Match {
