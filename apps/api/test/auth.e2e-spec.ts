@@ -198,6 +198,39 @@ describe('Comptes et connexion (e2e)', () => {
       (await app.inject({ method: 'GET', url: sponsors, headers: as(sponsor) }))
         .statusCode,
     ).toBe(404);
+
+    const admin = await login(app, 'admin@example.org');
+    expect(
+      (await app.inject({ method: 'GET', url: sponsors, headers: as(admin) }))
+        .statusCode,
+    ).toBe(200);
+
+    // Deux clubs : le club se choisit par l'en-tête X-Organization.
+    const multi = await login(app, 'multi@example.org');
+    expect(
+      (await app.inject({ method: 'GET', url: sponsors, headers: as(multi) }))
+        .statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: link,
+          headers: as(multi, { 'x-organization': 'etoile-de-l-arve' }),
+        })
+      ).statusCode,
+    ).toBe(201);
+
+    const platform = await login(app, 'plateforme@example.org');
+    const platformMe = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/me',
+      headers: as(platform),
+    });
+    expect(platformMe.json()).toMatchObject({
+      platformAdmin: true,
+      memberships: [],
+    });
   });
 
   it('ne propose que les fournisseurs configurés et revient à la connexion sinon', async () => {

@@ -186,7 +186,7 @@ export async function seedDemo(prisma: PrismaClient): Promise<void> {
     });
   }
 
-  for (const { membership, sponsor, ...account } of DEMO_ACCOUNTS) {
+  for (const { memberships, sponsor, ...account } of DEMO_ACCOUNTS) {
     const sponsorId = sponsor
       ? (
           await prisma.sponsor.findFirst({
@@ -199,13 +199,13 @@ export async function seedDemo(prisma: PrismaClient): Promise<void> {
       data: {
         ...account,
         identities: { create: { provider: 'EMAIL', subject: account.email } },
-        ...(membership
+        ...(memberships
           ? {
               memberships: {
-                create: {
-                  role: membership.role,
-                  organizationId: organizations.get(membership.organization)!,
-                },
+                create: memberships.map(({ organization, role }) => ({
+                  role,
+                  organizationId: organizations.get(organization)!,
+                })),
               },
             }
           : {}),

@@ -61,6 +61,27 @@ pnpm dev:worker         # worker
 - **Infrastructure** : Terraform dans [`infra/aws`](infra/aws/README.md) (réseau, serveurs, RDS, DNS, vitrine, rôles OIDC, coûts).
 - Pour exiger une validation manuelle avant la production : Settings → Environments → `production` → Required reviewers.
 
+## Comptes de test
+
+Créés par `seedDemo` (poste local, tests e2e, préprod). Connexion par code :
+
+- **en local**, le code s'affiche dans le journal de l'API (`MAIL_TRANSPORT=log`) ;
+- **en préprod**, aucun email ne part vers ces adresses ; le code fixe se lit dans SSM :
+  `aws ssm get-parameter --with-decryption --name /tournoi-connect/preprod/TEST_ACCOUNTS_CODE --query Parameter.Value --output text`.
+  Il faut toujours demander un code avant de le saisir, et les limites (5 essais, 5 codes par heure) s'appliquent.
+
+| Adresse                  | Personne       | Rôle                                                                           |
+| ------------------------ | -------------- | ------------------------------------------------------------------------------ |
+| `orga@example.org`       | Camille Perrin | Propriétaire de l'Étoile de l'Arve                                             |
+| `admin@example.org`      | Nadia Lambert  | Admin de l'Étoile de l'Arve (sponsors, annonces, tournois)                     |
+| `benevole@example.org`   | Hugo Garcia    | Bénévole de l'Étoile de l'Arve (liens rapporteur)                              |
+| `multi@example.org`      | Julien Favre   | Propriétaire du Stade du Mont-Blanc et bénévole de l'Étoile (`X-Organization`) |
+| `sponsor@example.org`    | Inès Roux      | Accès sponsor de la Fromagerie des Aravis                                      |
+| `plateforme@example.org` | Sarah Morel    | Admin plateforme                                                               |
+| `spectateur@example.org` | Paul Bernard   | Aucun rôle (spectateur connecté)                                               |
+
+Toute autre adresse crée un compte neuf au premier code (prénom et nom demandés). Le responsable d'équipe (lot 4) et le rapporteur (lien signé, sans compte) n'ont pas de compte dédié.
+
 ## Routes disponibles
 
 Préfixe `/api/v1` ; détail et schémas dans Swagger (`/api/docs`) et `apps/api/openapi.json`.

@@ -6,6 +6,17 @@ resource "random_password" "auth_secret" {
   special = false
 }
 
+# Code fixe des comptes de test (@example.org), seulement avec les données de
+# démonstration (préprod) : lire avec aws ssm get-parameter --with-decryption.
+resource "random_password" "test_accounts_code" {
+  count   = var.seed_demo ? 1 : 0
+  length  = 6
+  special = false
+  upper   = false
+  lower   = false
+  numeric = true
+}
+
 locals {
   plain_parameters = merge(
     {
@@ -28,6 +39,7 @@ locals {
       AUTH_SECRET  = random_password.auth_secret.result
     },
     var.managed_database ? {} : { POSTGRES_PASSWORD = random_password.database.result },
+    var.seed_demo ? { TEST_ACCOUNTS_CODE = random_password.test_accounts_code[0].result } : {},
   )
 }
 
