@@ -137,6 +137,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizer/tournaments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Écran 01 : les tournois de l’organisation */
+        get: operations["OrganizerController_tournaments_v1"];
+        put?: never;
+        /** Publier le tournoi de l’assistant de création (écrans 02 à 05) */
+        post: operations["OrganizerController_createTournament_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizer/tournaments/{slug}/sponsors": {
         parameters: {
             query?: never;
@@ -655,6 +673,115 @@ export interface operations {
         };
         responses: {
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerController_tournaments_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        slug: string;
+                        name: string;
+                        /** @enum {string} */
+                        status: "DRAFT" | "PUBLISHED" | "IN_PROGRESS";
+                        /** Format: date-time */
+                        startsAt: string;
+                        city: string;
+                        teamCount: number;
+                        maxTeams: number;
+                        /** @enum {string} */
+                        sport: "football" | "handball" | "basketball" | "volleyball" | "rugby";
+                        venueName: string;
+                        categories: string[];
+                        fields: number;
+                    }[];
+                };
+            };
+            /** @description Jeton absent ou invalide */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerController_createTournament_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @enum {string} */
+                    sport: "football" | "handball" | "basketball" | "volleyball" | "rugby";
+                    /** Format: date */
+                    date: string;
+                    startTime: string;
+                    endTime: string;
+                    venueName: string;
+                    city: string;
+                    lat: number;
+                    lng: number;
+                    fields: number;
+                    outdoor: boolean;
+                    categories: string[];
+                    maxTeams: number;
+                    feeEuros: number;
+                    /** Format: date */
+                    registrationDeadline: string;
+                    /** @enum {string} */
+                    format: "single-group" | "groups-knockout" | "knockout" | "swiss";
+                    matchMinutes: number;
+                    breakMinutes: number;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        slug: string;
+                        name: string;
+                        /** @enum {string} */
+                        status: "DRAFT" | "PUBLISHED" | "IN_PROGRESS";
+                        /** Format: date-time */
+                        startsAt: string;
+                        city: string;
+                        teamCount: number;
+                        maxTeams: number;
+                        /** @enum {string} */
+                        sport: "football" | "handball" | "basketball" | "volleyball" | "rugby";
+                        venueName: string;
+                        categories: string[];
+                        fields: number;
+                    };
+                };
+            };
+            /** @description Jeton absent ou invalide */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

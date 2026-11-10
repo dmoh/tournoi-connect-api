@@ -76,3 +76,77 @@ export type InviteSponsor = z.infer<typeof inviteSponsorSchema>;
 export type UpdateSponsor = z.infer<typeof updateSponsorSchema>;
 export type CreatePost = z.infer<typeof createPostSchema>;
 export type CreatedPost = z.infer<typeof createdPostSchema>;
+
+export const sportSchema = z.enum([
+  'football',
+  'handball',
+  'basketball',
+  'volleyball',
+  'rugby',
+]);
+export const formatSchema = z.enum([
+  'single-group',
+  'groups-knockout',
+  'knockout',
+  'swiss',
+]);
+const dateSchema = z.iso.date();
+const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'HH:MM');
+
+/** Tournoi de l'écran 01 « Tournois » (carte de l'organisateur). */
+export const organizerTournamentSchema = z.object({
+  slug: z.string(),
+  name: z.string(),
+  status: z.enum(['DRAFT', 'PUBLISHED', 'IN_PROGRESS']),
+  startsAt: z.iso.datetime({ offset: true }),
+  city: z.string(),
+  teamCount: z.number().int(),
+  maxTeams: z.number().int(),
+  sport: sportSchema,
+  venueName: z.string(),
+  categories: z.array(z.string()),
+  fields: z.number().int(),
+});
+
+/**
+ * Brouillon de l'assistant de création (écrans 02 à 05), publié d'un coup.
+ * La ville arrive avec ses coordonnées (choisie dans la liste de la PWA),
+ * pour la découverte par rayon.
+ */
+export const createTournamentSchema = z
+  .object({
+    name: z.string().trim().min(3).max(80),
+    sport: sportSchema,
+    date: dateSchema,
+    startTime: timeSchema,
+    endTime: timeSchema,
+    venueName: z.string().trim().min(2).max(120),
+    city: z.string().trim().min(2).max(80),
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+    fields: z.number().int().min(1).max(20),
+    outdoor: z.boolean(),
+    categories: z.array(z.string().trim().min(1).max(20)).min(1).max(8),
+    maxTeams: z.number().int().min(2).max(128),
+    /** Prix par équipe en euros ; 0 = gratuit, 10 € minimum sinon (section 11). */
+    feeEuros: z.number().min(0).max(500),
+    registrationDeadline: dateSchema,
+    format: formatSchema,
+    matchMinutes: z.number().int().min(5).max(120),
+    breakMinutes: z.number().int().min(0).max(60),
+  })
+  .refine((v) => v.endTime > v.startTime, {
+    message: 'La fin doit suivre le début.',
+    path: ['endTime'],
+  })
+  .refine((v) => v.feeEuros === 0 || v.feeEuros >= 10, {
+    message: '0 € (gratuit) ou 10 € minimum.',
+    path: ['feeEuros'],
+  })
+  .refine((v) => v.registrationDeadline <= v.date, {
+    message: 'La clôture doit précéder le tournoi.',
+    path: ['registrationDeadline'],
+  });
+
+export type OrganizerTournament = z.infer<typeof organizerTournamentSchema>;
+export type CreateTournament = z.infer<typeof createTournamentSchema>;

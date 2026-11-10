@@ -1201,6 +1201,343 @@
         ]
       }
     },
+    "/api/v1/organizer/tournaments": {
+      "get": {
+        "operationId": "OrganizerController_tournaments_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "slug": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "DRAFT",
+                          "PUBLISHED",
+                          "IN_PROGRESS"
+                        ]
+                      },
+                      "startsAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "city": {
+                        "type": "string"
+                      },
+                      "teamCount": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "maxTeams": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "sport": {
+                        "type": "string",
+                        "enum": [
+                          "football",
+                          "handball",
+                          "basketball",
+                          "volleyball",
+                          "rugby"
+                        ]
+                      },
+                      "venueName": {
+                        "type": "string"
+                      },
+                      "categories": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "fields": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "slug",
+                      "name",
+                      "status",
+                      "startsAt",
+                      "city",
+                      "teamCount",
+                      "maxTeams",
+                      "sport",
+                      "venueName",
+                      "categories",
+                      "fields"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent ou invalide"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Écran 01 : les tournois de l’organisation",
+        "tags": [
+          "organizer"
+        ]
+      },
+      "post": {
+        "operationId": "OrganizerController_createTournament_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 80
+                  },
+                  "sport": {
+                    "type": "string",
+                    "enum": [
+                      "football",
+                      "handball",
+                      "basketball",
+                      "volleyball",
+                      "rugby"
+                    ]
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "startTime": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                  },
+                  "endTime": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                  },
+                  "venueName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 120
+                  },
+                  "city": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 80
+                  },
+                  "lat": {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  },
+                  "lng": {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  },
+                  "fields": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20
+                  },
+                  "outdoor": {
+                    "type": "boolean"
+                  },
+                  "categories": {
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 20
+                    }
+                  },
+                  "maxTeams": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 128
+                  },
+                  "feeEuros": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 500
+                  },
+                  "registrationDeadline": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "single-group",
+                      "groups-knockout",
+                      "knockout",
+                      "swiss"
+                    ]
+                  },
+                  "matchMinutes": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 120
+                  },
+                  "breakMinutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 60
+                  }
+                },
+                "required": [
+                  "name",
+                  "sport",
+                  "date",
+                  "startTime",
+                  "endTime",
+                  "venueName",
+                  "city",
+                  "lat",
+                  "lng",
+                  "fields",
+                  "outdoor",
+                  "categories",
+                  "maxTeams",
+                  "feeEuros",
+                  "registrationDeadline",
+                  "format",
+                  "matchMinutes",
+                  "breakMinutes"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "slug": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PUBLISHED",
+                        "IN_PROGRESS"
+                      ]
+                    },
+                    "startsAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "city": {
+                      "type": "string"
+                    },
+                    "teamCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "maxTeams": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "sport": {
+                      "type": "string",
+                      "enum": [
+                        "football",
+                        "handball",
+                        "basketball",
+                        "volleyball",
+                        "rugby"
+                      ]
+                    },
+                    "venueName": {
+                      "type": "string"
+                    },
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "fields": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "slug",
+                    "name",
+                    "status",
+                    "startsAt",
+                    "city",
+                    "teamCount",
+                    "maxTeams",
+                    "sport",
+                    "venueName",
+                    "categories",
+                    "fields"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Jeton absent ou invalide"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publier le tournoi de l’assistant de création (écrans 02 à 05)",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
     "/api/v1/organizer/tournaments/{slug}/sponsors": {
       "get": {
         "operationId": "OrganizerController_sponsors_v1",
