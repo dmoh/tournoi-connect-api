@@ -31,7 +31,8 @@ services:
       - '443:443'
       - '443:443/udp'
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Dossier plutôt que fichier : un Caddyfile remplacé par renommage reste visible.
+      - ./caddy:/etc/caddy:ro
       - caddy-data:/data
       - caddy-config:/config
     mem_limit: 128m
@@ -43,6 +44,8 @@ services:
       NODE_ENV: production
       PORT: '4000'
       NG_ALLOWED_HOSTS: ${NG_ALLOWED_HOSTS}
+      # Rendu serveur : l'API par le réseau Docker, sans repasser par Internet.
+      API_INTERNAL_URL: http://api:3000
     mem_limit: 384m
 
   api:

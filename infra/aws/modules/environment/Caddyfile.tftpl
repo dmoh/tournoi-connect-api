@@ -20,7 +20,13 @@
 
 ${app_host} {
 	import commun
-	reverse_proxy front:4000
+	# Même origine que la PWA : le navigateur appelle /api/ sans CORS.
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+	handle {
+		reverse_proxy front:4000
+	}
 }
 
 ${api_host} {

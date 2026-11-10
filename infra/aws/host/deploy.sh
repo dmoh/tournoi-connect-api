@@ -21,7 +21,10 @@ sync_host_files() {
   rm -rf "$next" && mkdir -p "$next"
   aws s3 cp "s3://$TC_BUCKET/host/$TC_ENV/" "$next/" --recursive --only-show-errors
   # Remplacement par renommage : un deploy.sh en cours garde son ancienne copie.
+  mkdir -p "$DIR/caddy"
+  mv -f "$next/Caddyfile" "$DIR/caddy/Caddyfile"
   for f in "$next"/*; do mv -f "$f" "$DIR/"; done
+  rm -f "$DIR/Caddyfile"
   chmod 750 "$DIR/deploy.sh"
   rm -rf "$next"
 }
