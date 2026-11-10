@@ -6,6 +6,7 @@ import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
 import { OrganizerModule } from './organizer/organizer.module.js';
 import { PublicModule } from './public/public.module.js';
+import { ReporterModule } from './reporter/reporter.module.js';
 import { QueueModule } from './queue/queue.module.js';
 
 @Global()
@@ -17,6 +18,7 @@ import { QueueModule } from './queue/queue.module.js';
     HealthModule,
     PublicModule,
     OrganizerModule,
+    ReporterModule,
   ],
   providers: [{ provide: Clock, useClass: SystemClock }],
   exports: [Clock],

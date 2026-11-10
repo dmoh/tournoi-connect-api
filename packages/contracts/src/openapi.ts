@@ -171,6 +171,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizer/tournaments/{slug}/matches/{matchId}/reporter-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Lien de la table de marque d’un match, valable 24 heures */
+        post: operations["OrganizerController_reporterLink_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizer/tournaments": {
         parameters: {
             query?: never;
@@ -235,6 +252,40 @@ export interface paths {
         put?: never;
         /** Publier une annonce ou un sondage dans le fil News */
         post: operations["OrganizerController_createPost_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reporter/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Match ouvert par le lien du rapporteur, avec les effectifs */
+        get: operations["ReporterController_match_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reporter/{token}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Saisie du rapporteur (but, carton, arrêt, photo, période, annulation) */
+        post: operations["ReporterController_record_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -808,6 +859,48 @@ export interface operations {
             };
         };
     };
+    OrganizerController_reporterLink_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        token: string;
+                        /** Format: uri */
+                        url: string;
+                        /** Format: date-time */
+                        expiresAt: string;
+                    };
+                };
+            };
+            /** @description Jeton absent ou invalide */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Match hors de l’organisation */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     OrganizerController_tournaments_v1: {
         parameters: {
             query?: never;
@@ -1109,6 +1202,113 @@ export interface operations {
             };
             /** @description Jeton absent ou invalide */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReporterController_match_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        token: string;
+                        tournamentSlug: string;
+                        tournamentName: string;
+                        matchId: string;
+                        /** @enum {string} */
+                        phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "final";
+                        field: string;
+                        /** Format: date-time */
+                        startsAt: string;
+                        home: {
+                            name: string;
+                            shortName: string;
+                            players: {
+                                number: number;
+                                name: string;
+                            }[];
+                        };
+                        away: {
+                            name: string;
+                            shortName: string;
+                            players: {
+                                number: number;
+                                name: string;
+                            }[];
+                        };
+                        matchMinutes: number;
+                        /** @enum {string} */
+                        status: "SCHEDULED" | "LIVE" | "FINISHED";
+                    };
+                };
+            };
+            /** @description Lien invalide ou expiré */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReporterController_record_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    clientEventId: string;
+                    /** @enum {string} */
+                    type: "GOAL" | "YELLOW_CARD" | "RED_CARD" | "SAVE" | "PHOTO" | "HALF_TIME" | "FULL_TIME" | "CANCEL";
+                    /** @enum {string} */
+                    side?: "home" | "away";
+                    minute: number;
+                    player?: string;
+                    assist?: string;
+                    caption?: string;
+                    cancels?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        score: {
+                            home: number;
+                            away: number;
+                        };
+                        /** @enum {string} */
+                        status: "SCHEDULED" | "LIVE" | "FINISHED";
+                    };
+                };
+            };
+            /** @description Lien invalide ou expiré */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

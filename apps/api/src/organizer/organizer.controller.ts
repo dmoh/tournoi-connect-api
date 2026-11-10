@@ -46,6 +46,11 @@ import {
   type UpdateSponsor,
 } from './organizer.schemas.js';
 import { OrganizerService } from './organizer.service.js';
+import {
+  reporterLinkSchema,
+  type ReporterLink,
+} from '../reporter/reporter.schemas.js';
+import { ReporterService } from '../reporter/reporter.service.js';
 
 /** Espace organisateur : sponsors, packs et annonces d'un tournoi de son organisation. */
 @ApiTags('organizer')
@@ -54,7 +59,24 @@ import { OrganizerService } from './organizer.service.js';
 @UseGuards(OrganizerTokenGuard)
 @Controller('organizer')
 export class OrganizerController {
-  constructor(private readonly service: OrganizerService) {}
+  constructor(
+    private readonly service: OrganizerService,
+    private readonly reporter: ReporterService,
+  ) {}
+
+  @Post('tournaments/:slug/matches/:matchId/reporter-link')
+  @ApiOperation({
+    summary: 'Lien de la table de marque d’un match, valable 24 heures',
+  })
+  @ApiCreatedResponse({ schema: openApi(reporterLinkSchema) })
+  @ApiNotFoundResponse({ description: 'Match hors de l’organisation' })
+  reporterLink(
+    @Req() req: OrganizerRequest,
+    @Param('slug') slug: string,
+    @Param('matchId') matchId: string,
+  ): Promise<ReporterLink> {
+    return this.reporter.issueLink(req.organizationSlug!, slug, matchId);
+  }
 
   @Get('tournaments')
   @ApiOperation({ summary: 'Écran 01 : les tournois de l’organisation' })

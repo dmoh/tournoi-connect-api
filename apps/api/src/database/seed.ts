@@ -5,6 +5,7 @@ import {
   DEMO_MATCHES,
   DEMO_ORGANIZATIONS,
   DEMO_PACKAGES,
+  DEMO_PLAYERS,
   DEMO_POSTS,
   DEMO_REACTIONS,
   DEMO_SPONSORS,
@@ -58,6 +59,20 @@ export async function seedDemo(prisma: PrismaClient): Promise<void> {
       ...team,
       club: team.name,
       tournamentId: live.id,
+    })),
+  });
+  const teamIds = new Map(
+    (
+      await prisma.team.findMany({
+        where: { tournamentId: live.id },
+        select: { id: true, code: true },
+      })
+    ).map((t) => [t.code, t.id]),
+  );
+  await prisma.player.createMany({
+    data: DEMO_PLAYERS.map(({ team, ...player }) => ({
+      ...player,
+      teamId: teamIds.get(team)!,
     })),
   });
   await prisma.match.createMany({
