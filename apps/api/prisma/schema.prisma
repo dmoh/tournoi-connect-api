@@ -642,3 +642,19 @@ model IdempotencyKey {
   @@index([createdAt])
   @@map("idempotency_key")
 }
+
+/// Événement Stripe (webhook) déjà traité : un renvoi du même identifiant
+/// est sans effet, et un account.updated plus ancien n'écrase pas l'état.
+model StripeEvent {
+  /// Identifiant Stripe de l'événement (evt_…).
+  id              String    @id
+  type            String
+  /// Objet concerné (compte, session) : ordre des account.updated.
+  objectId        String?   @map("object_id")
+  /// Date de création de l'événement chez Stripe (champ created).
+  stripeCreatedAt DateTime? @map("stripe_created_at") @db.Timestamptz
+  receivedAt      DateTime  @default(now()) @map("received_at") @db.Timestamptz
+
+  @@index([objectId, type])
+  @@map("stripe_event")
+}
