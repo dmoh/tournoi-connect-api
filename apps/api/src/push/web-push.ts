@@ -114,3 +114,56 @@ export async function vapidAuthorization(
     .sign(key);
   return `vapid t=${jwt}, k=${keys.publicKey}`;
 }
+
+type VapidKeys = Parameters<typeof vapidAuthorization>[1];
+
+/** Le JWT dure 12 heures : on le renouvelle au bout de 11 heures. */
+const VAPID_REUSE_MS = 11 * 60 * 60 * 1000;
+
+/**
+ * En-têtes VAPID gardés en mémoire par service push : le JWT ne dépend que
+ * de l'origine du service (son audience), une signature ES256 sert donc à
+ * tous les envois vers cette origine pendant 11 heures. Les envois
+ * simultanés d'une même origine partagent la même signature en cours.
+ */
+export class VapidCache {
+  private readonly entries = new Map<
+    string,
+    { header: Promise<string>; issuedAt: number }
+  >();
+
+  constructor(private readonly sign = vapidAuthorization) {}
+
+  authorization(endpoint: string, keys: VapidKeys, now: Date): Promise<string> {
+    const origin = new URL(endpoint).origin;
+    const key = `${keys.publicKey} ${keys.subject} ${origin}`;
+    const at = now.getTime();
+    const cached = this.entries.get(key);
+    if (
+      cached &&
+      at >= cached.issuedAt &&
+      at < cached.issuedAt + VAPID_REUSE_MS
+    ) {
+      return cached.header;
+    }
+    this.prune(at);
+    const header = this.sign(endpoint, keys, now);
+    this.entries.set(key, { header, issuedAt: at });
+    // Une signature ratée n'est pas gardée : le prochain envoi réessaie.
+    header.catch(() => {
+      if (this.entries.get(key)?.header === header) {
+        this.entries.delete(key);
+      }
+    });
+    return header;
+  }
+
+  /** Oublie les en-têtes périmés (sous-domaines régionaux en nombre limité). */
+  private prune(at: number): void {
+    for (const [key, entry] of this.entries) {
+      if (at < entry.issuedAt || at >= entry.issuedAt + VAPID_REUSE_MS) {
+        this.entries.delete(key);
+      }
+    }
+  }
+}
