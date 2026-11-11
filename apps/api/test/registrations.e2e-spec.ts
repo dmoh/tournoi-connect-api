@@ -213,9 +213,9 @@ describe('Inscriptions et paiements (e2e)', () => {
       shortName: 'AA',
       club: 'FC Annecy',
     });
-    expect(tournament.teams[0]?.players.map((p) => p.number).sort()).toEqual([
-      2, 9,
-    ]);
+    expect(
+      tournament.teams[0]?.players.map((p) => p.number).sort((a, b) => a - b),
+    ).toEqual([2, 9]);
     expect(mailbox.findLast((m) => m.to === 'lea@example.com')?.subject).toBe(
       'Les Aigles d’Annecy est inscrite au Tournoi du 11-Novembre U15',
     );
