@@ -1,3 +1,5 @@
 # Faux positifs vérifiés, ignorés par leur empreinte exacte (commit:fichier:règle:ligne).
 # Jeton organisateur factice des tests e2e, remplacé ensuite par une valeur tirée au lancement.
 7c2867cfc79aa4c9f56e458d93b7615202f174f8:apps/api/test/setup-app.ts:generic-api-key:13
+# Vecteur de test public de la RFC 8291 (annexe A) dans le test du chiffrement Web Push.
+d599899a3774a78ff024916cd1d328071737e051:apps/api/src/push/web-push.spec.ts:generic-api-key:65
