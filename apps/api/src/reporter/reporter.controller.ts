@@ -1,12 +1,32 @@
-import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
 import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
   ApiBody,
+  ApiConflictResponse,
+  ApiHeader,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { openApi } from '../common/openapi-schema.js';
+import {
+  OrganizerGuard,
+  OrganizerRole,
+  type OrganizerRequest,
+} from '../organizer/organizer.guard.js';
 import {
   reporterEventSchema,
   reporterMatchSchema,
@@ -19,10 +39,10 @@ import { ReporterService } from './reporter.service.js';
 
 /**
  * Table de marque (écran 12) : le lien signé tient lieu d'accès, limité à un
- * match et à 24 heures. Un lien invalide ou expiré répond 404.
+ * match et à 24 heures. Un lien invalide, expiré ou révoqué répond 404.
  */
 @ApiTags('reporter')
-@ApiNotFoundResponse({ description: 'Lien invalide ou expiré' })
+@ApiNotFoundResponse({ description: 'Lien invalide, expiré ou révoqué' })
 @Controller('reporter')
 export class ReporterController {
   constructor(private readonly service: ReporterService) {}
@@ -44,10 +64,45 @@ export class ReporterController {
   })
   @ApiBody({ schema: openApi(reporterEventSchema) })
   @ApiOkResponse({ schema: openApi(reporterStateSchema) })
+  @ApiConflictResponse({
+    description:
+      'Tournoi plus public, match terminé (seule la fin s’annule), annulation impossible, ou clientEventId déjà utilisé pour une autre saisie',
+  })
   record(
     @Param('token') token: string,
     @Body({ schema: reporterEventSchema }) body: ReporterEvent,
   ): Promise<ReporterState> {
     return this.service.record(token, body);
+  }
+}
+
+/** Liens rapporteur d'un match, côté club : révocation (dès bénévole, comme l'émission). */
+@ApiTags('organizer')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Connexion requise' })
+@ApiHeader({
+  name: 'X-Organization',
+  required: false,
+  description: 'Club concerné (slug), si le compte en a plusieurs',
+})
+@UseGuards(OrganizerGuard)
+@Controller('organizer')
+export class ReporterLinksController {
+  constructor(private readonly service: ReporterService) {}
+
+  @Delete('tournaments/:slug/matches/:matchId/reporter-links')
+  @OrganizerRole('STAFF')
+  @HttpCode(204)
+  @ApiOperation({
+    summary: 'Révoquer tous les liens de la table de marque d’un match',
+  })
+  @ApiNoContentResponse()
+  @ApiNotFoundResponse({ description: 'Match hors de l’organisation' })
+  revoke(
+    @Req() req: OrganizerRequest,
+    @Param('slug') slug: string,
+    @Param('matchId') matchId: string,
+  ): Promise<void> {
+    return this.service.revokeLinks(req.organizationSlug!, slug, matchId);
   }
 }
