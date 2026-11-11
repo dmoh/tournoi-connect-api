@@ -1860,6 +1860,8 @@ export interface operations {
             header?: {
                 /** @description Club concerné (slug), si le compte en a plusieurs */
                 "X-Organization"?: string;
+                /** @description Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures. */
+                "Idempotency-Key"?: string;
             };
             path?: never;
             cookie?: never;
@@ -1916,8 +1918,29 @@ export interface operations {
                     };
                 };
             };
+            /** @description Idempotency-Key invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Connexion requise */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Requête de même clé encore en cours */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Idempotency-Key déjà utilisée pour un autre corps */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2054,6 +2077,8 @@ export interface operations {
             header?: {
                 /** @description Club concerné (slug), si le compte en a plusieurs */
                 "X-Organization"?: string;
+                /** @description Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures. */
+                "Idempotency-Key"?: string;
             };
             path: {
                 slug: string;
@@ -2095,6 +2120,13 @@ export interface operations {
                     };
                 };
             };
+            /** @description Idempotency-Key invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Connexion requise */
             401: {
                 headers: {
@@ -2102,8 +2134,15 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Pack épuisé ou sponsor déjà présent */
+            /** @description Pack épuisé, sponsor déjà présent ou requête de même clé en cours */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Idempotency-Key déjà utilisée pour un autre corps */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2153,6 +2192,8 @@ export interface operations {
             header?: {
                 /** @description Club concerné (slug), si le compte en a plusieurs */
                 "X-Organization"?: string;
+                /** @description Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures. */
+                "Idempotency-Key"?: string;
             };
             path: {
                 slug: string;
@@ -2184,8 +2225,29 @@ export interface operations {
                     };
                 };
             };
+            /** @description Idempotency-Key invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Connexion requise */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Requête de même clé encore en cours */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Idempotency-Key déjà utilisée pour un autre corps */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

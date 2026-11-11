@@ -11,12 +11,12 @@ import type { AuthUser } from '../auth/auth.guard.js';
 import type { Me } from '../auth/auth.schemas.js';
 import { AuthService } from '../auth/auth.service.js';
 import { Clock } from '../common/clock.js';
+import { insertWithUniqueSlug, slugify } from '../common/slug.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type { MemberRole } from '../generated/prisma/enums.js';
 import { Mailer } from '../mail/mailer.js';
 import { invitationMail } from '../mail/templates.js';
-import { slugify } from '../organizer/organizer.service.js';
 import type {
   CreateClub,
   InviteMember,
@@ -62,26 +62,23 @@ export class ClubsService {
       );
     }
     const base = slugify(input.name) || 'club';
-    const taken = new Set(
-      (
-        await this.prisma.organization.findMany({
-          where: { slug: { startsWith: base } },
-          select: { slug: true },
-        })
-      ).map((o) => o.slug),
-    );
-    let slug = base;
-    for (let n = 2; taken.has(slug); n += 1) {
-      slug = `${base}-${n}`;
-    }
-    await this.prisma.organization.create({
-      data: {
-        slug,
-        name: input.name,
-        city: input.city ?? null,
-        members: { create: { userId: user.id, role: 'OWNER' } },
-      },
+    const taken = await this.prisma.organization.findMany({
+      where: { slug: { startsWith: base } },
+      select: { slug: true },
     });
+    await insertWithUniqueSlug(
+      base,
+      taken.map((o) => o.slug),
+      (slug) =>
+        this.prisma.organization.create({
+          data: {
+            slug,
+            name: input.name,
+            city: input.city ?? null,
+            members: { create: { userId: user.id, role: 'OWNER' } },
+          },
+        }),
+    );
     return this.auth.me(user.id);
   }
 
