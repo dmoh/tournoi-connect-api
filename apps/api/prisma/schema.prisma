@@ -410,6 +410,7 @@ model User {
   registrations     Registration[]
   follows           Follow[]
   pushSubscriptions PushSubscription[]
+  idempotencyKeys   IdempotencyKey[]
 
   @@map("app_user")
 }
@@ -591,4 +592,27 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscription")
+}
+
+/// Écriture rejouable par sa clé Idempotency-Key pendant 24 heures : même
+/// compte, même portée et même clé rendent la réponse enregistrée. La
+/// contrainte unique fait qu'une seule requête s'exécute ; une ligne sans
+/// statut est une requête encore en cours.
+model IdempotencyKey {
+  id          String   @id @default(cuid(2))
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Club, méthode et chemin : « etoile-de-l-arve POST /api/v1/organizer/tournaments ».
+  scope       String
+  key         String
+  /// SHA-256 du corps de la requête : la même clé sur un autre corps est refusée.
+  fingerprint String
+  /// Statut HTTP de la réponse ; vide tant que la requête est en cours.
+  status      Int?
+  response    Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([userId, scope, key])
+  @@index([createdAt])
+  @@map("idempotency_key")
 }

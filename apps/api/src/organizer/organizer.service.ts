@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Clock } from '../common/clock.js';
 import { parisDate, parisDateTime } from '../common/paris-time.js';
+import { insertWithUniqueSlug, slugify } from '../common/slug.js';
 import type {
   TournamentFormat,
   TournamentStatus,
@@ -38,17 +39,6 @@ function cardStatus(status: TournamentStatus): OrganizerTournament['status'] {
     return 'DRAFT';
   }
   return status === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'PUBLISHED';
-}
-
-/** « Coupe d'hiver U13 » → « coupe-d-hiver-u13 ». */
-export function slugify(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60);
 }
 
 /**
@@ -300,62 +290,61 @@ export class OrganizerService {
     const startsAt = parisDateTime(input.date, input.startTime);
     const endsAt = parisDateTime(input.date, input.endTime);
 
-    const created = await this.prisma.$transaction(async (tx) => {
-      const venue =
-        (await tx.venue.findFirst({
-          where: {
-            organizationId: organization.id,
-            name: input.venueName,
-            city: input.city,
-          },
-        })) ??
-        (await tx.venue.create({
-          data: {
-            organizationId: organization.id,
-            name: input.venueName,
-            city: input.city,
-            lat: input.lat,
-            lng: input.lng,
-            outdoor: input.outdoor,
-          },
-        }));
-      const base = slugify(input.name) || 'tournoi';
-      const taken = new Set(
-        (
-          await tx.tournament.findMany({
-            where: { slug: { startsWith: base } },
-            select: { slug: true },
-          })
-        ).map((t) => t.slug),
-      );
-      let slug = base;
-      for (let n = 2; taken.has(slug); n += 1) {
-        slug = `${base}-${n}`;
-      }
-      return tx.tournament.create({
-        data: {
-          organizationId: organization.id,
-          venueId: venue.id,
-          slug,
-          name: input.name,
-          sport: input.sport,
-          startsAt,
-          endsAt,
-          categories: input.categories,
-          maxTeams: input.maxTeams,
-          feeCents: Math.round(input.feeEuros * 100),
-          status: 'REGISTRATION_OPEN',
-          format: FORMATS[input.format],
-          fieldCount: input.fields,
-          matchMinutes: input.matchMinutes,
-          breakMinutes: input.breakMinutes,
-          registrationDeadline: new Date(
-            `${input.registrationDeadline}T00:00:00Z`,
-          ),
-        },
-        include: { venue: true },
-      });
+    const base = slugify(input.name) || 'tournoi';
+    const taken = await this.prisma.tournament.findMany({
+      where: { slug: { startsWith: base } },
+      select: { slug: true },
     });
+    // Toute la transaction est rejouée sur un slug pris entre-temps : le lieu
+    // créé par la tentative interrompue est annulé avec elle.
+    const created = await insertWithUniqueSlug(
+      base,
+      taken.map((t) => t.slug),
+      (slug) =>
+        this.prisma.$transaction(async (tx) => {
+          const venue =
+            (await tx.venue.findFirst({
+              where: {
+                organizationId: organization.id,
+                name: input.venueName,
+                city: input.city,
+              },
+            })) ??
+            (await tx.venue.create({
+              data: {
+                organizationId: organization.id,
+                name: input.venueName,
+                city: input.city,
+                lat: input.lat,
+                lng: input.lng,
+                outdoor: input.outdoor,
+              },
+            }));
+          return tx.tournament.create({
+            data: {
+              organizationId: organization.id,
+              venueId: venue.id,
+              slug,
+              name: input.name,
+              sport: input.sport,
+              startsAt,
+              endsAt,
+              categories: input.categories,
+              maxTeams: input.maxTeams,
+              feeCents: Math.round(input.feeEuros * 100),
+              status: 'REGISTRATION_OPEN',
+              format: FORMATS[input.format],
+              fieldCount: input.fields,
+              matchMinutes: input.matchMinutes,
+              breakMinutes: input.breakMinutes,
+              registrationDeadline: new Date(
+                `${input.registrationDeadline}T00:00:00Z`,
+              ),
+            },
+            include: { venue: true },
+          });
+        }),
+    );
 
     return {
       slug: created.slug,

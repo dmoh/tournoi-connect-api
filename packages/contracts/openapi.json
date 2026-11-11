@@ -2831,6 +2831,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -3048,8 +3057,17 @@
               }
             }
           },
+          "400": {
+            "description": "Idempotency-Key invalide"
+          },
           "401": {
             "description": "Connexion requise"
+          },
+          "409": {
+            "description": "Requête de même clé encore en cours"
+          },
+          "422": {
+            "description": "Idempotency-Key déjà utilisée pour un autre corps"
           }
         },
         "security": [
@@ -3375,6 +3393,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -3487,11 +3514,17 @@
               }
             }
           },
+          "400": {
+            "description": "Idempotency-Key invalide"
+          },
           "401": {
             "description": "Connexion requise"
           },
           "409": {
-            "description": "Pack épuisé ou sponsor déjà présent"
+            "description": "Pack épuisé, sponsor déjà présent ou requête de même clé en cours"
+          },
+          "422": {
+            "description": "Idempotency-Key déjà utilisée pour un autre corps"
           }
         },
         "security": [
@@ -3588,6 +3621,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -3659,8 +3701,17 @@
               }
             }
           },
+          "400": {
+            "description": "Idempotency-Key invalide"
+          },
           "401": {
             "description": "Connexion requise"
+          },
+          "409": {
+            "description": "Requête de même clé encore en cours"
+          },
+          "422": {
+            "description": "Idempotency-Key déjà utilisée pour un autre corps"
           }
         },
         "security": [

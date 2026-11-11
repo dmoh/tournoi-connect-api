@@ -298,6 +298,7 @@ describe('Mes données : export, suppression, purge (e2e)', () => {
       invitations: expect.any(Number),
       registrations: 1,
       pushSubscriptions: 1,
+      idempotencyKeys: expect.any(Number),
     });
     expect(
       await prisma.loginCode.count({ where: { email: 'x@example.com' } }),
