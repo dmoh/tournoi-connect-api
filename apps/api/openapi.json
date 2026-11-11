@@ -3886,7 +3886,7 @@
             }
           },
           "404": {
-            "description": "Lien invalide ou expiré"
+            "description": "Lien invalide, expiré ou révoqué"
           }
         },
         "summary": "Match ouvert par le lien du rapporteur, avec les effectifs",
@@ -4022,12 +4022,67 @@
             }
           },
           "404": {
-            "description": "Lien invalide ou expiré"
+            "description": "Lien invalide, expiré ou révoqué"
+          },
+          "409": {
+            "description": "Tournoi plus public, match terminé (seule la fin s’annule), annulation impossible, ou clientEventId déjà utilisé pour une autre saisie"
           }
         },
         "summary": "Saisie du rapporteur (but, carton, arrêt, photo, période, annulation)",
         "tags": [
           "reporter"
+        ]
+      }
+    },
+    "/api/v1/organizer/tournaments/{slug}/matches/{matchId}/reporter-links": {
+      "delete": {
+        "operationId": "ReporterLinksController_revoke_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Match hors de l’organisation"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Révoquer tous les liens de la table de marque d’un match",
+        "tags": [
+          "organizer"
         ]
       }
     },

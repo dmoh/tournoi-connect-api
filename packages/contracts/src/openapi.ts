@@ -446,6 +446,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizer/tournaments/{slug}/matches/{matchId}/reporter-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Révoquer tous les liens de la table de marque d’un match */
+        delete: operations["ReporterLinksController_revoke_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/clubs": {
         parameters: {
             query?: never;
@@ -2303,7 +2320,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Lien invalide ou expiré */
+            /** @description Lien invalide, expiré ou révoqué */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2353,7 +2370,51 @@ export interface operations {
                     };
                 };
             };
-            /** @description Lien invalide ou expiré */
+            /** @description Lien invalide, expiré ou révoqué */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi plus public, match terminé (seule la fin s’annule), annulation impossible, ou clientEventId déjà utilisé pour une autre saisie */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReporterLinksController_revoke_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Match hors de l’organisation */
             404: {
                 headers: {
                     [name: string]: unknown;

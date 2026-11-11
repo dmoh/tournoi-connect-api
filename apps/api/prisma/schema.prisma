@@ -98,6 +98,7 @@ model Organization {
   sponsors             Sponsor[]
   members              Membership[]
   invitations          Invitation[]
+  reporterLinks        ReporterLink[]
   /// Compte Stripe Connect (Express) du club : les inscriptions lui sont versées.
   stripeAccountId      String?         @unique @map("stripe_account_id")
   /// Paiements acceptés par Stripe (vérification du club terminée).
@@ -213,6 +214,7 @@ model Match {
   version         Int             @default(0)
   events          MatchEvent[]
   reactions       MatchReaction[]
+  reporterLinks   ReporterLink[]
 
   @@unique([tournamentId, code])
   @@index([tournamentId, startsAt])
@@ -263,6 +265,26 @@ model MatchEvent {
   @@unique([matchId, clientEventId])
   @@index([matchId, seq])
   @@map("match_event")
+}
+
+/// Lien de la table de marque : son identifiant est signé dans le jeton ; il
+/// se révoque (match, membre retiré du club) et expire au bout de 24 heures.
+model ReporterLink {
+  id             String       @id @default(cuid(2))
+  matchId        String       @map("match_id")
+  match          Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Membre qui l'a émis ; la suppression de son compte supprime ses liens.
+  issuedById     String       @map("issued_by_id")
+  issuedBy       User         @relation(fields: [issuedById], references: [id], onDelete: Cascade)
+  expiresAt      DateTime     @map("expires_at") @db.Timestamptz
+  revokedAt      DateTime?    @map("revoked_at") @db.Timestamptz
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([matchId])
+  @@index([issuedById, organizationId])
+  @@map("reporter_link")
 }
 
 /// Réaction anonyme d'un spectateur : une par appareil et par emoji.
@@ -411,6 +433,7 @@ model User {
   follows           Follow[]
   pushSubscriptions PushSubscription[]
   idempotencyKeys   IdempotencyKey[]
+  reporterLinks     ReporterLink[]
 
   @@map("app_user")
 }
