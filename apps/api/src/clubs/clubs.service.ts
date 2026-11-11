@@ -17,6 +17,7 @@ import type { MemberRole } from '../generated/prisma/enums.js';
 import { Mailer } from '../mail/mailer.js';
 import { invitationMail } from '../mail/templates.js';
 import { slugify } from '../organizer/organizer.service.js';
+import { revokeLinksIssuedBy } from '../reporter/reporter-link.js';
 import type {
   CreateClub,
   InviteMember,
@@ -271,13 +272,22 @@ export class ClubsService {
     if (membership.role === 'OWNER') {
       await this.keepAnOwner(membership.organizationId);
     }
-    await this.prisma.membership.delete({
-      where: {
-        userId_organizationId: {
-          userId,
-          organizationId: membership.organizationId,
+    // Ses liens de table de marque cessent de fonctionner avec son départ.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.membership.delete({
+        where: {
+          userId_organizationId: {
+            userId,
+            organizationId: membership.organizationId,
+          },
         },
-      },
+      });
+      await revokeLinksIssuedBy(
+        tx,
+        userId,
+        membership.organizationId,
+        this.clock.now(),
+      );
     });
   }
 

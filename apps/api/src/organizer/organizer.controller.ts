@@ -88,7 +88,12 @@ export class OrganizerController {
     @Param('slug') slug: string,
     @Param('matchId') matchId: string,
   ): Promise<ReporterLink> {
-    return this.reporter.issueLink(req.organizationSlug!, slug, matchId);
+    return this.reporter.issueLink(
+      req.organizationSlug!,
+      req.user!.id,
+      slug,
+      matchId,
+    );
   }
 
   @Get('tournaments')
