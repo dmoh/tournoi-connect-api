@@ -95,6 +95,14 @@ Préfixe `/api/v1` ; détail et schémas dans Swagger (`/api/docs`) et `apps/api
 | `GET /public/tournaments/:slug/sponsors`         | public       | bannière Or, bandeau partagé (6 au plus), sponsors de terrain      |
 | `POST /public/posts/:postId/votes`               | public       | vote à un sondage                                                  |
 | `POST /public/audience`                          | public       | impression ou clic d'un sponsor, cumulé par heure                  |
+| `POST /clubs`                                    | connecté     | créer un club (on en devient propriétaire)                         |
+| `GET /organizer/members`                         | bénévole     | membres du club et invitations en attente                          |
+| `POST /organizer/invitations`                    | admin        | inviter par email (lien de 7 jours, réservé à l'adresse)           |
+| `DELETE /organizer/invitations/:id`              | admin        | annuler une invitation                                             |
+| `PATCH /organizer/members/:userId`               | propriétaire | changer un rôle (toujours un propriétaire au moins)                |
+| `DELETE /organizer/members/:userId`              | bénévole     | quitter le club, ou retirer un membre de rôle inférieur            |
+| `GET /invitations/:token`                        | public       | invitation lue par son lien (adresse masquée)                      |
+| `POST /invitations/:token/accept`                | connecté     | rejoindre le club, avec le compte de l'adresse invitée             |
 | `GET /organizer/tournaments/:slug/sponsors`      | organisateur | packs, sponsors et audience, prospects du club                     |
 | `POST /organizer/tournaments/:slug/sponsors`     | organisateur | inviter un sponsor (pack épuisé : 409)                             |
 | `PATCH /organizer/tournament-sponsors/:id`       | organisateur | marquer payé hors Stripe                                           |
