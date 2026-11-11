@@ -24,6 +24,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { z } from 'zod';
+import { Idempotent } from '../common/idempotency/idempotent.decorator.js';
 import { openApi } from '../common/openapi-schema.js';
 import {
   OrganizerGuard,
@@ -102,9 +103,11 @@ export class OrganizerController {
   }
 
   @Post('tournaments')
+  @Idempotent()
   @ApiOperation({
     summary: 'Publier le tournoi de l’assistant de création (écrans 02 à 05)',
   })
+  @ApiConflictResponse({ description: 'Requête de même clé encore en cours' })
   @ApiBody({ schema: openApi(createTournamentSchema) })
   @ApiCreatedResponse({ schema: openApi(organizerTournamentSchema) })
   createTournament(
@@ -147,10 +150,14 @@ export class OrganizerController {
   }
 
   @Post('tournaments/:slug/sponsors')
+  @Idempotent()
   @ApiOperation({ summary: 'Inviter un sponsor à prendre un pack' })
   @ApiBody({ schema: openApi(inviteSponsorSchema) })
   @ApiCreatedResponse({ schema: openApi(sponsorRowSchema) })
-  @ApiConflictResponse({ description: 'Pack épuisé ou sponsor déjà présent' })
+  @ApiConflictResponse({
+    description:
+      'Pack épuisé, sponsor déjà présent ou requête de même clé en cours',
+  })
   invite(
     @Req() req: OrganizerRequest,
     @Param('slug') slug: string,
@@ -176,9 +183,11 @@ export class OrganizerController {
   }
 
   @Post('tournaments/:slug/posts')
+  @Idempotent()
   @ApiOperation({
     summary: 'Publier une annonce ou un sondage dans le fil News',
   })
+  @ApiConflictResponse({ description: 'Requête de même clé encore en cours' })
   @ApiBody({ schema: openApi(createPostSchema) })
   @ApiCreatedResponse({ schema: openApi(createdPostSchema) })
   createPost(

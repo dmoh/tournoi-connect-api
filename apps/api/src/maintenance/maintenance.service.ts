@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Clock } from '../common/clock.js';
+import { IDEMPOTENCY_TTL_MS } from '../common/idempotency/idempotency.interceptor.js';
 import { PrismaService } from '../database/prisma.service.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -27,6 +28,7 @@ export interface PurgeReport {
   invitations: number;
   registrations: number;
   pushSubscriptions: number;
+  idempotencyKeys: number;
 }
 
 /** Purge quotidienne des données arrivées au bout de leur conservation. */
@@ -89,6 +91,10 @@ export class MaintenanceService {
         OR: [{ lastSentAt: null }, { lastSentAt: { lt: pushBefore } }],
       },
     });
+    // Clés Idempotency-Key au-delà de leurs 24 heures de rejeu.
+    const idempotencyKeys = await this.prisma.idempotencyKey.deleteMany({
+      where: { createdAt: { lt: new Date(now - IDEMPOTENCY_TTL_MS) } },
+    });
 
     const report: PurgeReport = {
       loginCodes: loginCodes.count,
@@ -96,6 +102,7 @@ export class MaintenanceService {
       invitations: invitations.count,
       registrations: registrations.count,
       pushSubscriptions: pushSubscriptions.count,
+      idempotencyKeys: idempotencyKeys.count,
     };
     this.logger.log(`Purge : ${JSON.stringify(report)}`);
     return report;
