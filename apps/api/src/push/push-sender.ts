@@ -2,23 +2,24 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Clock } from '../common/clock.js';
 import type { Env } from '../config/env.js';
-import {
-  encryptPayload,
-  vapidAuthorization,
-  type PushKeys,
-} from './web-push.js';
+import { isPushEndpoint } from './push-hosts.js';
+import { encryptPayload, VapidCache, type PushKeys } from './web-push.js';
 
 export interface PushTarget extends PushKeys {
   endpoint: string;
 }
 
-/** Résultat d'un envoi : livré, abonnement expiré (à supprimer), ou échec passager. */
+/**
+ * Résultat d'un envoi : livré, abonnement expiré ou hors des services push
+ * connus (à supprimer), ou échec passager.
+ */
 export type PushOutcome = 'sent' | 'gone' | 'failed';
 
 /** Envoi HTTP vers le service push du navigateur (Web Push, RFC 8030). */
 @Injectable()
 export class PushSender {
   private readonly logger = new Logger('Push');
+  private readonly vapid = new VapidCache();
 
   constructor(
     private readonly config: ConfigService<Env, true>,
@@ -34,12 +35,15 @@ export class PushSender {
     if (!keys) {
       return 'failed';
     }
+    if (!isPushEndpoint(target.endpoint)) {
+      return 'gone';
+    }
     try {
       const body = encryptPayload(Buffer.from(JSON.stringify(payload)), target);
       const response = await fetch(target.endpoint, {
         method: 'POST',
         headers: {
-          Authorization: await vapidAuthorization(
+          Authorization: await this.vapid.authorization(
             target.endpoint,
             keys,
             this.clock.now(),
@@ -51,7 +55,9 @@ export class PushSender {
           Urgency: 'high',
         },
         body: new Uint8Array(body),
-        signal: AbortSignal.timeout(10_000),
+        // Un service push ne redirige pas : une redirection est refusée.
+        redirect: 'error',
+        signal: AbortSignal.timeout(5_000),
       });
       if (response.status === 404 || response.status === 410) {
         return 'gone';
