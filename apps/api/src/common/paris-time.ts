@@ -29,3 +29,13 @@ export function parisDateTime(date: string, time: string): Date {
   const first = asUtc - parisOffsetMinutes(new Date(asUtc)) * 60_000;
   return new Date(asUtc - parisOffsetMinutes(new Date(first)) * 60_000);
 }
+
+/** Jour de Paris d'un instant (« 2026-04-11 »). */
+export function parisDate(instant: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: TOURNAMENT_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(instant);
+}

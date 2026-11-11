@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Clock } from '../common/clock.js';
-import { parisDateTime } from '../common/paris-time.js';
+import { parisDate, parisDateTime } from '../common/paris-time.js';
 import type {
   TournamentFormat,
   TournamentStatus,
@@ -19,6 +19,8 @@ import type {
   OrganizerSponsors,
   SponsorRow,
   UpdateSponsor,
+  Schedule,
+  ScheduleResult,
 } from './organizer.schemas.js';
 
 const TIER_ORDER = { GOLD: 0, SILVER: 1, BRONZE: 2, FIELD: 3 } as const;
@@ -382,5 +384,52 @@ export class OrganizerService {
       throw new NotFoundException('Tournoi introuvable.');
     }
     return tournament;
+  }
+
+  /**
+   * Publie le planning : seuls les matchs encore à venir bougent ; un match
+   * inconnu du tournoi répond 404, un match commencé ou terminé 409.
+   */
+  async saveSchedule(
+    organizationSlug: string,
+    slug: string,
+    input: Schedule,
+  ): Promise<ScheduleResult> {
+    const tournament = await this.prisma.tournament.findFirst({
+      where: { slug, organization: { slug: organizationSlug } },
+      include: { matches: true },
+    });
+    if (!tournament) {
+      throw new NotFoundException('Tournoi introuvable.');
+    }
+    const byCode = new Map(tournament.matches.map((m) => [m.code, m]));
+    const changes: { id: string; field: string; startsAt: Date }[] = [];
+    for (const slot of input.slots) {
+      const match = byCode.get(slot.match);
+      if (!match) {
+        throw new NotFoundException(`Match ${slot.match} introuvable.`);
+      }
+      const hh = String(Math.floor(slot.minutes / 60)).padStart(2, '0');
+      const mm = String(slot.minutes % 60).padStart(2, '0');
+      const startsAt = parisDateTime(parisDate(match.startsAt), `${hh}:${mm}`);
+      if (
+        startsAt.getTime() === match.startsAt.getTime() &&
+        slot.field === match.field
+      ) {
+        continue;
+      }
+      if (match.status !== 'SCHEDULED') {
+        throw new ConflictException(
+          `Le match ${slot.match} a commencé : il ne change plus de créneau.`,
+        );
+      }
+      changes.push({ id: match.id, field: slot.field, startsAt });
+    }
+    await this.prisma.$transaction(
+      changes.map(({ id, field, startsAt }) =>
+        this.prisma.match.update({ where: { id }, data: { field, startsAt } }),
+      ),
+    );
+    return { updated: changes.length };
   }
 }

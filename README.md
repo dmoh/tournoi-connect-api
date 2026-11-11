@@ -95,6 +95,7 @@ Préfixe `/api/v1` ; détail et schémas dans Swagger (`/api/docs`) et `apps/api
 | `GET /public/tournaments/:slug/sponsors`         | public       | bannière Or, bandeau partagé (6 au plus), sponsors de terrain      |
 | `POST /public/posts/:postId/votes`               | public       | vote à un sondage                                                  |
 | `POST /public/audience`                          | public       | impression ou clic d'un sponsor, cumulé par heure                  |
+| `PUT /organizer/tournaments/:slug/schedule`      | admin        | publier le planning (terrain et heure des matchs à venir)          |
 | `POST /clubs`                                    | connecté     | créer un club (on en devient propriétaire)                         |
 | `GET /organizer/members`                         | bénévole     | membres du club et invitations en attente                          |
 | `POST /organizer/invitations`                    | admin        | inviter par email (lien de 7 jours, réservé à l'adresse)           |

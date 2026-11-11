@@ -150,3 +150,34 @@ export const createTournamentSchema = z
 
 export type OrganizerTournament = z.infer<typeof organizerTournamentSchema>;
 export type CreateTournament = z.infer<typeof createTournamentSchema>;
+
+/**
+ * Planning publié depuis l'écran 07 : pour chaque match à venir, son terrain
+ * et son heure de début en minutes depuis minuit (heure de Paris), le jour du
+ * match restant le même.
+ */
+export const scheduleSchema = z.object({
+  slots: z
+    .array(
+      z.object({
+        /** Identifiant court du match (« a5 »). */
+        match: z.string().min(1).max(20),
+        field: z.string().trim().min(1).max(40),
+        minutes: z
+          .number()
+          .int()
+          .min(0)
+          .max(24 * 60 - 1),
+      }),
+    )
+    .min(1)
+    .max(500),
+});
+
+export const scheduleResultSchema = z.object({
+  /** Matchs dont l'heure ou le terrain a changé. */
+  updated: z.number().int(),
+});
+
+export type Schedule = z.infer<typeof scheduleSchema>;
+export type ScheduleResult = z.infer<typeof scheduleResultSchema>;

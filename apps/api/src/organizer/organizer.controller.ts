@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -46,6 +47,10 @@ import {
   type OrganizerSponsors,
   type SponsorRow,
   type UpdateSponsor,
+  scheduleResultSchema,
+  scheduleSchema,
+  type Schedule,
+  type ScheduleResult,
 } from './organizer.schemas.js';
 import { OrganizerService } from './organizer.service.js';
 import {
@@ -87,7 +92,10 @@ export class OrganizerController {
   }
 
   @Get('tournaments')
-  @ApiOperation({ summary: 'Écran 01 : les tournois de l’organisation' })
+  @OrganizerRole('STAFF')
+  @ApiOperation({
+    summary: 'Écran 01 : les tournois de l’organisation (lecture dès bénévole)',
+  })
   @ApiOkResponse({ schema: openApi(z.array(organizerTournamentSchema)) })
   tournaments(@Req() req: OrganizerRequest): Promise<OrganizerTournament[]> {
     return this.service.tournaments(req.organizationSlug!);
@@ -104,6 +112,25 @@ export class OrganizerController {
     @Body({ schema: createTournamentSchema }) body: CreateTournament,
   ): Promise<OrganizerTournament> {
     return this.service.createTournament(req.organizationSlug!, body);
+  }
+
+  @Put('tournaments/:slug/schedule')
+  @ApiOperation({
+    summary:
+      'Écran 07 : publier le planning (terrain et heure des matchs à venir)',
+  })
+  @ApiBody({ schema: openApi(scheduleSchema) })
+  @ApiOkResponse({ schema: openApi(scheduleResultSchema) })
+  @ApiNotFoundResponse({
+    description: 'Tournoi ou match hors de l’organisation',
+  })
+  @ApiConflictResponse({ description: 'Match déjà commencé' })
+  saveSchedule(
+    @Req() req: OrganizerRequest,
+    @Param('slug') slug: string,
+    @Body({ schema: scheduleSchema }) body: Schedule,
+  ): Promise<ScheduleResult> {
+    return this.service.saveSchedule(req.organizationSlug!, slug, body);
   }
 
   @Get('tournaments/:slug/sponsors')

@@ -1,15 +1,18 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import type { PrismaService } from '../src/database/prisma.service.js';
 import { createTestApp, login } from './setup-app.js';
 
 describe('Espace organisateur (e2e)', () => {
   let app: NestFastifyApplication;
   let reset: () => Promise<void>;
+  let prisma: PrismaService;
   let ORGANIZER_TOKEN = '';
 
   beforeAll(async () => {
     const ctx = await createTestApp();
     app = ctx.app;
     reset = ctx.reset;
+    prisma = ctx.prisma;
   });
   beforeEach(async () => {
     await reset();
@@ -18,7 +21,7 @@ describe('Espace organisateur (e2e)', () => {
   afterAll(() => app.close());
 
   const call = (
-    method: 'GET' | 'POST' | 'PATCH',
+    method: 'GET' | 'POST' | 'PATCH' | 'PUT',
     url: string,
     payload?: object,
     token = ORGANIZER_TOKEN,
@@ -252,5 +255,89 @@ describe('Espace organisateur (e2e)', () => {
     expect((await call('POST', '/tournaments', draft, '')).statusCode).toBe(
       401,
     );
+  });
+
+  it('publie le planning des matchs à venir, à l’heure de Paris', async () => {
+    const tournament = await prisma.tournament.findUniqueOrThrow({
+      where: { slug: 'challenge-u13-arve' },
+      include: { matches: { orderBy: { startsAt: 'asc' } } },
+    });
+    const upcoming = tournament.matches.find((m) => m.status === 'SCHEDULED')!;
+    const started = tournament.matches.find((m) => m.status !== 'SCHEDULED')!;
+
+    const saved = await call(
+      'PUT',
+      '/tournaments/challenge-u13-arve/schedule',
+      {
+        slots: [
+          { match: upcoming.code, field: 'Terrain 9', minutes: 17 * 60 + 5 },
+        ],
+      },
+    );
+    expect(saved.statusCode).toBe(200);
+    expect(saved.json()).toEqual({ updated: 1 });
+    const moved = await prisma.match.findUniqueOrThrow({
+      where: { id: upcoming.id },
+    });
+    expect(moved.field).toBe('Terrain 9');
+    // 17 h 05 à Paris le même jour (UTC+1 en novembre).
+    expect(moved.startsAt.toISOString()).toBe(
+      `${upcoming.startsAt.toISOString().slice(0, 10)}T16:05:00.000Z`,
+    );
+
+    // Sans changement : rien n'est réécrit, même pour un match commencé.
+    const startedMinutes =
+      ((started.startsAt.getUTCHours() + 1) % 24) * 60 +
+      started.startsAt.getUTCMinutes();
+    expect(
+      (
+        await call('PUT', '/tournaments/challenge-u13-arve/schedule', {
+          slots: [
+            {
+              match: started.code,
+              field: started.field,
+              minutes: startedMinutes,
+            },
+          ],
+        })
+      ).json(),
+    ).toEqual({ updated: 0 });
+    expect(
+      (
+        await call('PUT', '/tournaments/challenge-u13-arve/schedule', {
+          slots: [
+            {
+              match: started.code,
+              field: 'Terrain 9',
+              minutes: startedMinutes,
+            },
+          ],
+        })
+      ).statusCode,
+    ).toBe(409);
+    expect(
+      (
+        await call('PUT', '/tournaments/challenge-u13-arve/schedule', {
+          slots: [{ match: 'zz9', field: 'Terrain 1', minutes: 600 }],
+        })
+      ).statusCode,
+    ).toBe(404);
+  });
+
+  it('montre les tournois à un bénévole, sans lui laisser le planning', async () => {
+    const staff = await login(app, 'benevole@example.org');
+    expect(
+      (await call('GET', '/tournaments', undefined, staff)).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await call(
+          'PUT',
+          '/tournaments/challenge-u13-arve/schedule',
+          { slots: [{ match: 'a5', field: 'Terrain 1', minutes: 600 }] },
+          staff,
+        )
+      ).statusCode,
+    ).toBe(404);
   });
 });
