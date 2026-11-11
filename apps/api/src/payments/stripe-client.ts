@@ -2,6 +2,9 @@ import { Logger } from '@nestjs/common';
 
 const API = 'https://api.stripe.com/v1';
 
+/** Devise des paiements d'inscription (minuscules, comme Stripe la renvoie). */
+export const CURRENCY = 'eur';
+
 /** Erreur renvoyée par Stripe (message lisible et code). */
 export class StripeError extends Error {
   constructor(
@@ -28,6 +31,13 @@ export interface CheckoutSessionInput {
   idempotencyKey: string;
 }
 
+export interface RefundInput {
+  /** Paiement de la session Checkout (charge de destination). */
+  paymentIntent: string;
+  metadata: Record<string, string>;
+  idempotencyKey: string;
+}
+
 /** Corps form-urlencoded de Stripe : objets et tableaux en clés imbriquées (a[b][0]=…). */
 export function formEncode(value: unknown, prefix = ''): string[] {
   if (value === undefined || value === null) {
@@ -48,7 +58,8 @@ export function formEncode(value: unknown, prefix = ''): string[] {
 
 /**
  * Client Stripe minimal (API REST, sans SDK) : comptes Connect Express du
- * club, lien d'activation, sessions Checkout en charge de destination.
+ * club, lien d'activation, sessions Checkout en charge de destination,
+ * remboursements.
  */
 export class StripeClient {
   private readonly logger = new Logger('Stripe');
@@ -57,6 +68,11 @@ export class StripeClient {
 
   get enabled(): boolean {
     return this.secretKey !== null;
+  }
+
+  /** Clé du mode réel (sk_live_, rk_live_) : les événements doivent avoir le même livemode. */
+  get livemode(): boolean {
+    return /^[rs]k_live_/.test(this.secretKey ?? '');
   }
 
   createAccount(input: { email: string; clubName: string; clubSlug: string }) {
@@ -103,7 +119,7 @@ export class StripeClient {
         line_items: input.lines.map((line) => ({
           quantity: 1,
           price_data: {
-            currency: 'eur',
+            currency: CURRENCY,
             unit_amount: line.amountCents,
             product_data: { name: line.name },
           },
@@ -113,6 +129,24 @@ export class StripeClient {
           transfer_data: { destination: input.destination },
           metadata: input.metadata,
         },
+        metadata: input.metadata,
+      },
+      input.idempotencyKey,
+    );
+  }
+
+  /**
+   * Remboursement intégral d'une charge de destination : le virement au club
+   * est repris (reverse_transfer) et la commission de la plateforme lui est
+   * rendue (refund_application_fee), le club et la plateforme reviennent à zéro.
+   */
+  createRefund(input: RefundInput) {
+    return this.post<{ id: string; status: string }>(
+      '/refunds',
+      {
+        payment_intent: input.paymentIntent,
+        reverse_transfer: true,
+        refund_application_fee: true,
         metadata: input.metadata,
       },
       input.idempotencyKey,
