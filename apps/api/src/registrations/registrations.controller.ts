@@ -6,6 +6,7 @@ import {
   Headers,
   HttpCode,
   Inject,
+  Logger,
   Param,
   Post,
   Req,
@@ -57,6 +58,14 @@ import {
 import { RegistrationsService } from './registrations.service.js';
 
 const IDEMPOTENCY = /^[\w-]{8,100}$/;
+
+/** Enveloppe d'un événement Stripe ; l'objet est lu par type dans le service. */
+const stripeEventSchema = z.object({
+  id: z.string().min(1).max(255),
+  type: z.string().min(1).max(255),
+  created: z.number().int().optional(),
+  data: z.object({ object: z.record(z.string(), z.unknown()) }),
+});
 
 /** Lien d'inscription d'un tournoi, lisible sans connexion. */
 @ApiTags('registrations')
@@ -146,6 +155,8 @@ export class RegistrationsController {
 /** Événements Stripe, authentifiés par la signature du corps brut. */
 @Controller('payments/stripe')
 export class StripeWebhookController {
+  private readonly logger = new Logger('Stripe');
+
   constructor(
     private readonly registrations: RegistrationsService,
     private readonly config: ConfigService<Env, true>,
@@ -161,44 +172,32 @@ export class StripeWebhookController {
   ): Promise<{ received: true }> {
     const secret = this.config.get('STRIPE_WEBHOOK_SECRET', { infer: true });
     const raw = req.rawBody?.toString('utf8') ?? '';
+    if (!secret) {
+      this.logger.error('Webhook reçu sans STRIPE_WEBHOOK_SECRET : refusé.');
+    }
     if (
       !secret ||
       !verifyStripeSignature(raw, signature, secret, this.clock.now())
     ) {
       throw new UnauthorizedException('Signature Stripe invalide.');
     }
-    const event = JSON.parse(raw) as {
-      type: string;
-      data: { object: Record<string, unknown> };
-    };
-    const object = event.data.object;
-    const text = (v: unknown) => (typeof v === 'string' ? v : null);
-    switch (event.type) {
-      case 'checkout.session.completed':
-      case 'checkout.session.async_payment_succeeded':
-        if (object['payment_status'] === 'paid' && text(object['id'])) {
-          await this.registrations.confirmPayment(
-            text(object['id'])!,
-            text(object['payment_intent']),
-          );
-        }
-        break;
-      case 'checkout.session.expired':
-        if (text(object['id'])) {
-          await this.registrations.expireCheckout(text(object['id'])!);
-        }
-        break;
-      case 'account.updated':
-        if (text(object['id'])) {
-          await this.registrations.accountUpdated(
-            text(object['id'])!,
-            object['charges_enabled'] === true,
-          );
-        }
-        break;
-      default:
-        break;
+    let event: unknown;
+    try {
+      event = JSON.parse(raw);
+    } catch {
+      throw new BadRequestException('Événement Stripe illisible.');
     }
+    const parsed = stripeEventSchema.safeParse(event);
+    if (!parsed.success) {
+      throw new BadRequestException('Événement Stripe illisible.');
+    }
+    // Types non gérés : acceptés (200) sans effet, Stripe ne les renvoie pas.
+    await this.registrations.handleStripeEvent({
+      id: parsed.data.id,
+      type: parsed.data.type,
+      created: parsed.data.created ?? null,
+      object: parsed.data.data.object,
+    });
     return { received: true };
   }
 }
