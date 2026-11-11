@@ -411,6 +411,8 @@ export class ReporterService {
       matchCode: match.code,
       homeTeam: match.homeTeamCode,
       awayTeam: match.awayTeamCode,
+      // Identifiant de la tâche push : une notification par saisie, jamais fusionnée sur le texte.
+      eventId: input.clientEventId,
       ...content,
     });
   }

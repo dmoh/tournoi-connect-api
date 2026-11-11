@@ -103,7 +103,7 @@ Préfixe `/api/v1` ; détail et schémas dans Swagger (`/api/docs`) et `apps/api
 | `POST /tournaments/:code/registrations`                               | connecté     | inscrire son équipe (Idempotency-Key) : payée, gratuite ou attente |
 | `GET /registrations`, `GET /registrations/:id`                        | connecté     | mes équipes (responsable d'équipe)                                 |
 | `POST /registrations/:id/checkout`                                    | connecté     | reprendre un paiement expiré, s'il reste une place                 |
-| `POST /payments/stripe/webhook`                                       | Stripe       | paiement confirmé ou remboursé, expiré, compte validé (signature)   |
+| `POST /payments/stripe/webhook`                                       | Stripe       | paiement confirmé ou remboursé, expiré, compte validé (signature)  |
 | `GET /organizer/tournaments/:slug/registrations`                      | admin        | inscriptions d'un tournoi du club                                  |
 | `GET /organizer/payments`                                             | admin        | paiements en ligne du club (Stripe Connect)                        |
 | `POST /organizer/payments/onboarding`                                 | propriétaire | lien d'activation des paiements (vérification Stripe)              |
