@@ -20,6 +20,8 @@ import {
   CODE_MAX_ATTEMPTS,
   CODE_TTL_MS,
   CODES_PER_HOUR,
+  FAILED_ATTEMPTS_PER_DAY,
+  FAILED_ATTEMPTS_WINDOW_MS,
   SESSION_TTL_MS,
   hashRefresh,
   newLoginCode,
@@ -45,6 +47,9 @@ export interface ExternalIdentity {
 }
 
 const INVALID_CODE = 'Code incorrect ou expiré. Demandez-en un nouveau.';
+const TOO_MANY_CODES =
+  'Trop de tentatives pour cette adresse. Réessayez plus tard.';
+const SESSION_EXPIRED = 'Session expirée. Connectez-vous à nouveau.';
 
 /**
  * Comptes et sessions : connexion par code email (sans mot de passe) ou par
@@ -60,10 +65,14 @@ export class AuthService {
     @Inject(AUTH_KEYS) private readonly keys: AuthKeys | null,
     config: ConfigService<Env, true>,
   ) {
-    this.testCode = config.get('TEST_ACCOUNTS_CODE', { infer: true }) ?? null;
+    // validateEnv ignore déjà le code sans le drapeau ; revérifié ici.
+    this.testCode =
+      config.get('ALLOW_TEST_ACCOUNTS', { infer: true }) === 'true'
+        ? (config.get('TEST_ACCOUNTS_CODE', { infer: true }) ?? null)
+        : null;
   }
 
-  /** Code fixe des comptes de test (préprod), ou null. */
+  /** Code fixe des comptes de test (préprod, ALLOW_TEST_ACCOUNTS=true), ou null. */
   private readonly testCode: string | null;
 
   async requestCode(rawEmail: string): Promise<void> {
@@ -76,11 +85,8 @@ export class AuthService {
         createdAt: { gt: new Date(now.getTime() - 60 * 60 * 1000) },
       },
     });
-    if (recent >= CODES_PER_HOUR) {
-      throw new HttpException(
-        'Trop de codes demandés pour cette adresse. Réessayez dans une heure.',
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
+    if (recent >= CODES_PER_HOUR || (await this.isLocked(email, now))) {
+      throw new HttpException(TOO_MANY_CODES, HttpStatus.TOO_MANY_REQUESTS);
     }
     // Compte de test en préprod : code fixe, aucun email (la boîte n'existe pas).
     const fixed = this.testCode && isDemoAccount(email) ? this.testCode : null;
@@ -98,6 +104,12 @@ export class AuthService {
     }
   }
 
+  /**
+   * Chaque essai réserve d'abord sa place (incrément conditionnel atomique)
+   * avant la comparaison : des requêtes parallèles ne dépassent jamais les
+   * 5 essais d'un code. Un essai réussi rend sa place : `attempts` compte les
+   * essais ratés, que cumule le plafond sur 24 heures.
+   */
   async verifyCode(
     rawEmail: string,
     code: string,
@@ -110,35 +122,55 @@ export class AuthService {
       where: { email, consumedAt: null, expiresAt: { gt: now } },
       orderBy: { createdAt: 'desc' },
     });
-    if (!pending || pending.attempts >= CODE_MAX_ATTEMPTS) {
+    if (!pending || (await this.isLocked(email, now))) {
       throw new BadRequestException(INVALID_CODE);
     }
-    await this.prisma.loginCode.update({
-      where: { id: pending.id },
+    const counted = await this.prisma.loginCode.updateMany({
+      where: {
+        id: pending.id,
+        consumedAt: null,
+        expiresAt: { gt: now },
+        attempts: { lt: CODE_MAX_ATTEMPTS },
+      },
       data: { attempts: { increment: 1 } },
     });
-    if (!keys.sameHash(pending.codeHash, keys.hashCode(email, code))) {
+    if (
+      counted.count === 0 ||
+      !keys.sameHash(pending.codeHash, keys.hashCode(email, code))
+    ) {
       throw new BadRequestException(INVALID_CODE);
     }
-    // Un code ouvert ferme tous les autres codes de l'adresse.
-    await this.prisma.loginCode.updateMany({
-      where: { email, consumedAt: null },
-      data: { consumedAt: now },
+    const userId = await this.prisma.$transaction(async (tx) => {
+      // Un seul gagnant pour un même code : les autres requêtes voient
+      // consumedAt déjà posé et repartent sans session.
+      const consumed = await tx.loginCode.updateMany({
+        where: { id: pending.id, consumedAt: null },
+        data: { consumedAt: now, attempts: { decrement: 1 } },
+      });
+      if (consumed.count !== 1) {
+        throw new BadRequestException(INVALID_CODE);
+      }
+      // Un code ouvert ferme tous les autres codes de l'adresse.
+      await tx.loginCode.updateMany({
+        where: { email, consumedAt: null },
+        data: { consumedAt: now },
+      });
+      const user = await tx.user.upsert({
+        where: { email },
+        create: {
+          email,
+          identities: { create: { provider: 'EMAIL', subject: email } },
+        },
+        update: {},
+      });
+      await tx.identity.upsert({
+        where: { provider_subject: { provider: 'EMAIL', subject: email } },
+        create: { userId: user.id, provider: 'EMAIL', subject: email },
+        update: {},
+      });
+      return user.id;
     });
-    const user = await this.prisma.user.upsert({
-      where: { email },
-      create: {
-        email,
-        identities: { create: { provider: 'EMAIL', subject: email } },
-      },
-      update: {},
-    });
-    await this.prisma.identity.upsert({
-      where: { provider_subject: { provider: 'EMAIL', subject: email } },
-      create: { userId: user.id, provider: 'EMAIL', subject: email },
-      update: {},
-    });
-    return this.openSession(user.id, userAgent);
+    return this.openSession(userId, userAgent);
   }
 
   /**
@@ -193,25 +225,31 @@ export class AuthService {
     return this.openSession(user.id, userAgent);
   }
 
-  /** Nouveau jeton d'accès ; le jeton de rafraîchissement est remplacé à chaque usage. */
+  /**
+   * Nouveau jeton d'accès ; le jeton de rafraîchissement est remplacé à chaque
+   * usage, par une écriture conditionnée à l'ancien : de deux requêtes
+   * parallèles avec le même jeton, une seule obtient le suivant.
+   */
   async refresh(
     refreshToken: string | null,
     userAgent?: string,
   ): Promise<OpenedSession> {
     const now = this.clock.now();
-    const session = refreshToken
-      ? await this.prisma.session.findUnique({
-          where: { refreshHash: hashRefresh(refreshToken) },
-        })
+    const refreshHash = refreshToken ? hashRefresh(refreshToken) : null;
+    const session = refreshHash
+      ? await this.prisma.session.findUnique({ where: { refreshHash } })
       : null;
-    if (!session || session.revokedAt || session.expiresAt <= now) {
-      throw new UnauthorizedException(
-        'Session expirée. Connectez-vous à nouveau.',
-      );
+    if (!refreshHash || !session) {
+      throw new UnauthorizedException(SESSION_EXPIRED);
     }
     const next = newRefreshToken();
-    await this.prisma.session.update({
-      where: { id: session.id },
+    const rotated = await this.prisma.session.updateMany({
+      where: {
+        id: session.id,
+        refreshHash,
+        revokedAt: null,
+        expiresAt: { gt: now },
+      },
       data: {
         refreshHash: next.hash,
         expiresAt: new Date(now.getTime() + SESSION_TTL_MS),
@@ -219,6 +257,9 @@ export class AuthService {
         userAgent: userAgent?.slice(0, 300) ?? session.userAgent,
       },
     });
+    if (rotated.count !== 1) {
+      throw new UnauthorizedException(SESSION_EXPIRED);
+    }
     return {
       refreshToken: next.token,
       response: await this.sessionResponse(session.userId, session.id),
@@ -274,6 +315,22 @@ export class AuthService {
   async updateProfile(userId: string, profile: Profile): Promise<Me> {
     await this.prisma.user.update({ where: { id: userId }, data: profile });
     return this.me(userId);
+  }
+
+  /**
+   * Plafond d'essais ratés de l'adresse sur 24 heures, tous codes confondus.
+   * Lecture non verrouillée : des requêtes parallèles peuvent le dépasser
+   * d'au plus 4 essais (ceux du dernier code, bornés à 5 de façon atomique).
+   */
+  private async isLocked(email: string, now: Date): Promise<boolean> {
+    const failed = await this.prisma.loginCode.aggregate({
+      where: {
+        email,
+        createdAt: { gt: new Date(now.getTime() - FAILED_ATTEMPTS_WINDOW_MS) },
+      },
+      _sum: { attempts: true },
+    });
+    return (failed._sum.attempts ?? 0) >= FAILED_ATTEMPTS_PER_DAY;
   }
 
   private async openSession(

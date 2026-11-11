@@ -68,7 +68,9 @@ Créés par `seedDemo` (poste local, tests e2e, préprod). Connexion par code :
 - **en local**, le code s'affiche dans le journal de l'API (`MAIL_TRANSPORT=log`) ;
 - **en préprod**, aucun email ne part vers ces adresses ; le code fixe se lit dans SSM :
   `aws ssm get-parameter --with-decryption --name /tournoi-connect/preprod/TEST_ACCOUNTS_CODE --query Parameter.Value --output text`.
-  Il faut toujours demander un code avant de le saisir, et les limites (5 essais, 5 codes par heure) s'appliquent.
+  Il faut toujours demander un code avant de le saisir, et les limites (5 essais par code, 5 codes par heure, 20 essais ratés par adresse sur 24 heures) s'appliquent.
+
+Le code fixe n'est actif qu'avec `ALLOW_TEST_ACCOUNTS=true` (posé par Terraform en préprod, avec `seed_demo`) ; sans ce drapeau, `TEST_ACCOUNTS_CODE` est ignoré et les comptes de test reçoivent un code ordinaire. L'API refuse de démarrer si `TEST_ACCOUNTS_CODE` ou `ALLOW_TEST_ACCOUNTS` est renseigné avec `PUBLIC_APP_URL=https://app.tournoi-connect.com`, et si `MAIL_TRANSPORT=log` (valeur par défaut) est gardé avec une PWA en https hors localhost.
 
 | Adresse                  | Personne       | Rôle                                                                           |
 | ------------------------ | -------------- | ------------------------------------------------------------------------------ |
