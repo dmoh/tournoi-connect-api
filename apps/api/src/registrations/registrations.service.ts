@@ -293,7 +293,7 @@ export class RegistrationsService {
       });
     });
     if (updated.status === 'PENDING_PAYMENT') {
-      await this.openCheckout(updated, tournament, registration.manager.email);
+      await this.openCheckout(updated, tournament, registration.manager!.email);
     }
     return this.view(id, userId);
   }
@@ -371,7 +371,7 @@ export class RegistrationsService {
       teamName: r.teamName,
       club: r.club,
       managerName: r.managerName,
-      email: r.manager.email,
+      email: r.manager?.email ?? null,
       phone: r.phone,
       players: Array.isArray(r.players) ? r.players.length : 0,
       status:
@@ -591,6 +591,10 @@ export class RegistrationsService {
       where: { id: registrationId },
       include: { tournament: true, manager: true },
     });
+    // Compte supprimé entre le paiement et sa confirmation : personne à prévenir.
+    if (!registration.manager) {
+      return;
+    }
     await this.mailer.send(
       registrationConfirmedMail(registration.manager.email, {
         team: registration.teamName,

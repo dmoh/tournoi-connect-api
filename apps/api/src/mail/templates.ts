@@ -86,3 +86,24 @@ export function registrationConfirmedMail(
 </div></body></html>`;
   return { to, subject, text, html };
 }
+
+/** Confirmation de la suppression du compte (RGPD, droit à l'effacement). */
+export function accountDeletedMail(to: string): MailMessage {
+  const subject = 'Votre compte Tournoi Connect est supprimé';
+  const body =
+    'Votre compte et vos données personnelles ont été supprimés. Les inscriptions d’équipe confirmées restent aux tournois concernés, sans votre nom ni votre téléphone.';
+  const text = [
+    body,
+    '',
+    'Si vous n’êtes pas à l’origine de cette suppression, répondez à cet email.',
+    '',
+    'Tournoi Connect',
+  ].join('\n');
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+<div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
+<p style="margin:0 0 12px;font-size:20px;font-weight:700;color:#1e3a8a">Compte supprimé</p>
+<p style="margin:0 0 12px;font-size:15px">${escape(body)}</p>
+<p style="margin:0;font-size:14px;color:#5c6a7f">Si vous n’êtes pas à l’origine de cette suppression, répondez à cet email.</p>
+</div></body></html>`;
+  return { to, subject, text, html };
+}

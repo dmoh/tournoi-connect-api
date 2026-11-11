@@ -3,6 +3,7 @@ import { AppModule } from './app.module.js';
 import { AudienceModule } from './audience/audience.module.js';
 import { AudienceProcessor } from './audience/audience.processor.js';
 import { MailProcessor } from './mail/mail.processor.js';
+import { MaintenanceProcessor } from './maintenance/maintenance.processor.js';
 import { PushProcessor } from './push/push.processor.js';
 
 /**
@@ -12,7 +13,7 @@ import { PushProcessor } from './push/push.processor.js';
 @Module({
   imports: [AppModule, AudienceModule],
   providers: process.env['REDIS_URL']
-    ? [AudienceProcessor, MailProcessor, PushProcessor]
+    ? [AudienceProcessor, MailProcessor, MaintenanceProcessor, PushProcessor]
     : [],
 })
 export class WorkerModule {}

@@ -6,6 +6,8 @@ import { createRedisClient } from './redis-connection.js';
 export const AUDIENCE_QUEUE = 'audience';
 /** File des emails (codes de connexion, invitations) : jamais envoyés dans la requête HTTP. */
 export const MAIL_QUEUE = 'mail';
+/** Tâches planifiées d'exploitation (purge quotidienne des données). */
+export const MAINTENANCE_QUEUE = 'maintenance';
 /** File des notifications web push (coup d'envoi, buts, résultats). */
 export const PUSH_QUEUE = 'push';
 
@@ -46,6 +48,15 @@ export class QueueModule {
             backoff: { type: 'exponential', delay: 2000 },
             removeOnComplete: 1000,
             removeOnFail: 5000,
+          },
+        }),
+        BullModule.registerQueue({
+          name: MAINTENANCE_QUEUE,
+          defaultJobOptions: {
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 60_000 },
+            removeOnComplete: 30,
+            removeOnFail: 100,
           },
         }),
         BullModule.registerQueue({

@@ -1,11 +1,13 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AccountModule } from './account/account.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { validateEnv } from './config/env.js';
 import { Clock, SystemClock } from './common/clock.js';
 import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
 import { MailModule } from './mail/mail.module.js';
+import { MaintenanceModule } from './maintenance/maintenance.module.js';
 import { OrganizerModule } from './organizer/organizer.module.js';
 import { ClubsModule } from './clubs/clubs.module.js';
 import { RegistrationsModule } from './registrations/registrations.module.js';
@@ -22,6 +24,7 @@ import { QueueModule } from './queue/queue.module.js';
     QueueModule.forRoot(),
     MailModule,
     AuthModule,
+    AccountModule,
     HealthModule,
     PublicModule,
     OrganizerModule,
@@ -29,6 +32,7 @@ import { QueueModule } from './queue/queue.module.js';
     RegistrationsModule,
     PushModule,
     ReporterModule,
+    MaintenanceModule,
   ],
   providers: [{ provide: Clock, useClass: SystemClock }],
   exports: [Clock],
