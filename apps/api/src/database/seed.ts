@@ -26,9 +26,9 @@ export async function seedDemo(prisma: PrismaClient): Promise<void> {
   await prisma.user.deleteMany({
     where: { email: { endsWith: '@example.org' } },
   });
-  await prisma.loginCode.deleteMany({
-    where: { email: { endsWith: '@example.org' } },
-  });
+  // Tous les codes : ceux des adresses de test d'une exécution précédente
+  // compteraient dans la limite de 5 codes par heure.
+  await prisma.loginCode.deleteMany();
 
   const organizations = new Map<string, string>();
   for (const org of DEMO_ORGANIZATIONS) {

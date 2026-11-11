@@ -298,11 +298,28 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Écran 01 : les tournois de l’organisation */
+        /** Écran 01 : les tournois de l’organisation (lecture dès bénévole) */
         get: operations["OrganizerController_tournaments_v1"];
         put?: never;
         /** Publier le tournoi de l’assistant de création (écrans 02 à 05) */
         post: operations["OrganizerController_createTournament_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Écran 07 : publier le planning (terrain et heure des matchs à venir) */
+        put: operations["OrganizerController_saveSchedule_v1"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1493,6 +1510,63 @@ export interface operations {
             };
             /** @description Connexion requise */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerController_saveSchedule_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    slots: {
+                        match: string;
+                        field: string;
+                        minutes: number;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        updated: number;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou match hors de l’organisation */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Match déjà commencé */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
