@@ -393,21 +393,23 @@ enum MemberRole {
 }
 
 model User {
-  id              String          @id @default(cuid(2))
+  id                String             @id @default(cuid(2))
   /// Toujours en minuscules.
-  email           String          @unique
-  firstName       String?         @map("first_name")
-  lastName        String?         @map("last_name")
-  locale          String          @default("fr")
+  email             String             @unique
+  firstName         String?            @map("first_name")
+  lastName          String?            @map("last_name")
+  locale            String             @default("fr")
   /// Admin de la plateforme (support, modération).
-  platformAdmin   Boolean         @default(false) @map("platform_admin")
-  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
-  identities      Identity[]
-  sessions        Session[]
-  memberships     Membership[]
-  sponsorAccess   SponsorAccess[]
-  invitationsSent Invitation[]    @relation("InvitedBy")
-  registrations   Registration[]
+  platformAdmin     Boolean            @default(false) @map("platform_admin")
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  identities        Identity[]
+  sessions          Session[]
+  memberships       Membership[]
+  sponsorAccess     SponsorAccess[]
+  invitationsSent   Invitation[]       @relation("InvitedBy")
+  registrations     Registration[]
+  follows           Follow[]
+  pushSubscriptions PushSubscription[]
 
   @@map("app_user")
 }
@@ -547,4 +549,45 @@ model Registration {
   @@index([tournamentId, status])
   @@index([managerId])
   @@map("registration")
+}
+
+enum FollowKind {
+  TOURNAMENT
+  TEAM
+}
+
+/// Suivi d'un tournoi (slug) ou d'une équipe (« slug/code ») par un compte :
+/// les suivis de chaque appareil s'y fusionnent à la connexion.
+model Follow {
+  userId    String     @map("user_id")
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      FollowKind
+  target    String
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([userId, kind, target])
+  @@index([kind, target])
+  @@map("follow")
+}
+
+/// Abonnement aux notifications d'un navigateur (Web Push), avec les suivis
+/// de l'appareil et ses préférences ; relié au compte quand on est connecté.
+model PushSubscription {
+  id          String    @id @default(cuid(2))
+  endpoint    String    @unique
+  p256dh      String
+  auth        String
+  userId      String?   @map("user_id")
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tournaments String[]
+  teams       String[]
+  kickoff     Boolean   @default(true)
+  goals       Boolean   @default(true)
+  results     Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  lastSentAt  DateTime? @map("last_sent_at") @db.Timestamptz
+
+  @@index([userId])
+  @@map("push_subscription")
 }

@@ -21,7 +21,8 @@
     "test:e2e": "prisma generate && vitest run --config ./vitest.config.e2e.ts",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "node dist/database/seed.js"
+    "db:seed": "node dist/database/seed.js",
+    "vapid:keys": "node -e \"const c=require('node:crypto').createECDH('prime256v1');c.generateKeys();console.log('VAPID_PUBLIC_KEY='+c.getPublicKey('base64url'));console.log('VAPID_PRIVATE_KEY='+c.getPrivateKey('base64url'))\""
   },
   "dependencies": {
     "@aws-sdk/client-sesv2": "3.1160.0",

@@ -18,6 +18,9 @@ x-api: &api
     MAIL_TRANSPORT: ${MAIL_TRANSPORT}
     MAIL_FROM: ${MAIL_FROM}
     AWS_REGION: ${AWS_REGION}
+    # Notifications web push (VAPID) : renseignées dans SSM ; vides, pas de notifications.
+    VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+    VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
     # Paiements des inscriptions (Stripe Connect) : renseignés dans SSM ;
     # vides, les inscriptions payantes sont fermées.
     STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}

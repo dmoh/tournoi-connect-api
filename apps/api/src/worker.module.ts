@@ -3,6 +3,7 @@ import { AppModule } from './app.module.js';
 import { AudienceModule } from './audience/audience.module.js';
 import { AudienceProcessor } from './audience/audience.processor.js';
 import { MailProcessor } from './mail/mail.processor.js';
+import { PushProcessor } from './push/push.processor.js';
 
 /**
  * Contexte du worker : l'application complète plus les processeurs BullMQ,
@@ -10,6 +11,8 @@ import { MailProcessor } from './mail/mail.processor.js';
  */
 @Module({
   imports: [AppModule, AudienceModule],
-  providers: process.env['REDIS_URL'] ? [AudienceProcessor, MailProcessor] : [],
+  providers: process.env['REDIS_URL']
+    ? [AudienceProcessor, MailProcessor, PushProcessor]
+    : [],
 })
 export class WorkerModule {}
