@@ -152,7 +152,7 @@ describe('Mes données : export, suppression, purge (e2e)', () => {
       headers: { ...as(orga), 'x-organization': 'avenir-des-bornes' },
     });
     expect(list.statusCode).toBe(200);
-    expect(list.json()).toContainEqual(
+    expect(list.json().items).toContainEqual(
       expect.objectContaining({
         managerName: 'Compte supprimé',
         email: null,

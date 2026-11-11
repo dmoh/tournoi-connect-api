@@ -160,6 +160,8 @@ model Tournament {
 
   @@index([status, startsAt])
   @@index([organizationId])
+  /// Écran 01 paginé : (startsAt, id) dans le club.
+  @@index([organizationId, startsAt, id])
   @@map("tournament")
 }
 
@@ -311,6 +313,8 @@ model Post {
   options      PollOption[]
 
   @@index([tournamentId, publishedAt])
+  /// Fil News paginé : (publishedAt, id) décroissants.
+  @@index([tournamentId, publishedAt, id])
   @@map("post")
 }
 
@@ -493,6 +497,8 @@ model Membership {
 
   @@id([userId, organizationId])
   @@index([organizationId])
+  /// Écran des membres paginé : (rôle, arrivée, compte).
+  @@index([organizationId, role, createdAt, userId])
   @@map("membership")
 }
 
@@ -527,6 +533,8 @@ model Invitation {
 
   @@index([organizationId])
   @@index([email])
+  /// Invitations en attente, les plus récentes d'abord.
+  @@index([organizationId, createdAt])
   @@map("invitation")
 }
 
@@ -573,6 +581,11 @@ model Registration {
 
   @@index([tournamentId, status])
   @@index([managerId])
+  /// Mes équipes paginées : (createdAt, id) décroissants.
+  @@index([managerId, createdAt, id])
+  /// Tableau organisateur : tri par date ou par nom d'équipe, puis id.
+  @@index([tournamentId, createdAt, id])
+  @@index([tournamentId, teamName, id])
   @@map("registration")
 }
 

@@ -9,6 +9,7 @@ import {
   Logger,
   Param,
   Post,
+  Query,
   Req,
   UnauthorizedException,
   UseGuards,
@@ -35,6 +36,11 @@ import { z } from 'zod';
 import { AuthGuard, CurrentUser, type AuthUser } from '../auth/auth.guard.js';
 import { Clock } from '../common/clock.js';
 import { openApi } from '../common/openapi-schema.js';
+import {
+  pageQuerySchema,
+  type Page,
+  type PageQuery,
+} from '../common/pagination.js';
 import { RateLimited } from '../common/rate-limit.js';
 import type { Env } from '../config/env.js';
 import {
@@ -45,12 +51,15 @@ import {
 import { verifyStripeSignature } from '../payments/stripe-signature.js';
 import {
   onboardingSchema,
-  organizerRegistrationSchema,
+  organizerRegistrationPageSchema,
+  organizerRegistrationsQuerySchema,
   paymentsStatusSchema,
   registerSchema,
   registrationInviteSchema,
+  registrationPageSchema,
   registrationSchema,
   type OrganizerRegistration,
+  type OrganizerRegistrationsQuery,
   type PaymentsStatus,
   type Register,
   type RegistrationInvite,
@@ -123,9 +132,13 @@ export class RegistrationsController {
   @ApiOperation({
     summary: 'Mes équipes : mes inscriptions, plus récentes en tête',
   })
-  @ApiOkResponse({ schema: openApi(z.array(registrationSchema)) })
-  mine(@CurrentUser() user: AuthUser): Promise<RegistrationView[]> {
-    return this.registrations.mine(user.id);
+  @ApiOkResponse({ schema: openApi(registrationPageSchema) })
+  @ApiBadRequestResponse({ description: 'Limite ou curseur invalide' })
+  mine(
+    @CurrentUser() user: AuthUser,
+    @Query({ schema: pageQuerySchema }) query: PageQuery,
+  ): Promise<Page<RegistrationView>> {
+    return this.registrations.mine(user.id, query);
   }
 
   @Get('registrations/:id')
@@ -222,16 +235,25 @@ export class OrganizerRegistrationsController {
   ) {}
 
   @Get('tournaments/:slug/registrations')
-  @ApiOperation({ summary: 'Inscriptions d’un tournoi du club' })
-  @ApiOkResponse({ schema: openApi(z.array(organizerRegistrationSchema)) })
+  @ApiOperation({
+    summary:
+      'Inscriptions d’un tournoi du club : tri, filtre de statut, pagination',
+  })
+  @ApiOkResponse({ schema: openApi(organizerRegistrationPageSchema) })
+  @ApiBadRequestResponse({
+    description: 'Tri, statut, limite ou curseur invalide',
+  })
   @ApiNotFoundResponse({ description: 'Tournoi hors du club' })
   list(
     @Req() req: OrganizerRequest,
     @Param('slug') slug: string,
-  ): Promise<OrganizerRegistration[]> {
+    @Query({ schema: organizerRegistrationsQuerySchema })
+    query: OrganizerRegistrationsQuery,
+  ): Promise<Page<OrganizerRegistration>> {
     return this.registrations.organizerRegistrations(
       req.organizationSlug!,
       slug,
+      query,
     );
   }
 

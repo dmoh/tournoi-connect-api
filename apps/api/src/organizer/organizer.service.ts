@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Clock } from '../common/clock.js';
+import { keyset, type Page, type PageQuery } from '../common/pagination.js';
 import { parisDate, parisDateTime } from '../common/paris-time.js';
 import { insertWithUniqueSlug, slugify } from '../common/slug.js';
 import type {
@@ -25,6 +26,14 @@ import type {
 } from './organizer.schemas.js';
 
 const TIER_ORDER = { GOLD: 0, SILVER: 1, BRONZE: 2, FIELD: 3 } as const;
+
+/**
+ * Bornes de l'écran sponsors (non paginé) : les sponsors d'un tournoi sont
+ * limités par les packs (4 au plus, leur inventaire), le carnet de
+ * prospects du club par cette borne.
+ */
+export const MAX_TOURNAMENT_SPONSORS = 200;
+export const MAX_PROSPECTS = 200;
 
 const FORMATS: Record<CreateTournament['format'], TournamentFormat> = {
   'single-group': 'SINGLE_GROUP',
@@ -61,13 +70,23 @@ export class OrganizerService {
       organizationSlug,
       tournamentSlug,
     );
-    const [packages, rows, prospects] = await Promise.all([
+    const [packages, rows, audience, prospects] = await Promise.all([
+      // Un pack par palier (contrainte unique) : 4 au plus.
       this.prisma.sponsorPackage.findMany({
         where: { tournamentId: tournament.id },
+        take: Object.keys(TIER_ORDER).length,
       }),
       this.prisma.tournamentSponsor.findMany({
         where: { tournamentId: tournament.id },
-        include: { sponsor: true, audience: true },
+        include: { sponsor: true },
+        orderBy: { id: 'asc' },
+        take: MAX_TOURNAMENT_SPONSORS,
+      }),
+      // Cumul de l'audience en base : les lignes horaires grandissent avec le temps.
+      this.prisma.audienceHourly.groupBy({
+        by: ['tournamentSponsorId'],
+        where: { tournamentSponsor: { tournamentId: tournament.id } },
+        _sum: { impressions: true, clicks: true },
       }),
       this.prisma.sponsor.findMany({
         where: {
@@ -75,9 +94,13 @@ export class OrganizerService {
           source: 'CLUB',
           tournaments: { none: { tournamentId: tournament.id } },
         },
-        orderBy: { name: 'asc' },
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        take: MAX_PROSPECTS,
       }),
     ]);
+    const totals = new Map(
+      audience.map((a) => [a.tournamentSponsorId, a._sum]),
+    );
     return {
       packages: packages
         .sort((a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier])
@@ -98,8 +121,8 @@ export class OrganizerService {
           status: r.status,
           tier: r.tier,
           ...(r.field ? { field: r.field } : {}),
-          impressions: r.audience.reduce((sum, a) => sum + a.impressions, 0),
-          clicks: r.audience.reduce((sum, a) => sum + a.clicks, 0),
+          impressions: totals.get(r.id)?.impressions ?? 0,
+          clicks: totals.get(r.id)?.clicks ?? 0,
         }))
         .sort(
           (a, b) =>
@@ -247,17 +270,34 @@ export class OrganizerService {
     return { id: post.id, publishedAt: post.publishedAt.toISOString() };
   }
 
-  /** Écran 01 : les tournois de l'organisation, les plus proches en premier. */
-  async tournaments(organizationSlug: string): Promise<OrganizerTournament[]> {
+  /**
+   * Écran 01 : les tournois de l'organisation, les plus proches en premier,
+   * paginés sur (startsAt, id).
+   */
+  async tournaments(
+    organizationSlug: string,
+    query: PageQuery,
+  ): Promise<Page<OrganizerTournament>> {
+    const page = keyset(
+      {
+        scope: 'organizer:tournaments',
+        key: 'startsAt',
+        kind: 'date',
+        direction: 'asc',
+      },
+      query,
+    );
     const rows = await this.prisma.tournament.findMany({
       where: {
         organization: { slug: organizationSlug },
         status: { not: 'ARCHIVED' },
+        ...page.where,
       },
       include: { venue: true },
-      orderBy: { startsAt: 'asc' },
+      orderBy: page.orderBy,
+      take: page.take,
     });
-    return rows.map((t) => ({
+    return page.finish(rows, (t) => ({
       slug: t.slug,
       name: t.name,
       status: cardStatus(t.status),

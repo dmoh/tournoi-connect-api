@@ -28,6 +28,15 @@ const PREFERENCE = {
 /** Envois simultanés vers les services push, par tranche. */
 export const PUSH_CONCURRENCY = 20;
 
+/** Abonnements lus par lot (curseur sur l'id) pour une notification. */
+export const PUSH_BATCH = 500;
+
+/**
+ * Suivis d'un compte par sorte : la borne du schéma de PUT /me/follows. Une
+ * fusion (merge) peut la dépasser : seuls les plus récents sont rendus.
+ */
+export const MAX_FOLLOWS = 200;
+
 /**
  * Suivis des comptes et notifications web push. Un appareil abonné reçoit
  * les matchs des tournois et équipes qu'il suit, plus ceux du compte
@@ -74,16 +83,26 @@ export class PushService {
     await this.prisma.pushSubscription.deleteMany({ where: { endpoint } });
   }
 
+  /**
+   * Suivis du compte, non paginés : un ensemble synchronisé avec l'appareil,
+   * borné à 200 tournois et 200 équipes (les plus récents), du plus ancien
+   * au plus récent.
+   */
   async follows(userId: string): Promise<Follows> {
-    const rows = await this.prisma.follow.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'asc' },
-    });
+    const read = (kind: 'TOURNAMENT' | 'TEAM') =>
+      this.prisma.follow.findMany({
+        where: { userId, kind },
+        orderBy: [{ createdAt: 'desc' }, { target: 'desc' }],
+        take: MAX_FOLLOWS,
+        select: { target: true },
+      });
+    const [tournaments, teams] = await Promise.all([
+      read('TOURNAMENT'),
+      read('TEAM'),
+    ]);
     return {
-      tournaments: rows
-        .filter((r) => r.kind === 'TOURNAMENT')
-        .map((r) => r.target),
-      teams: rows.filter((r) => r.kind === 'TEAM').map((r) => r.target),
+      tournaments: tournaments.map((r) => r.target).reverse(),
+      teams: teams.map((r) => r.target).reverse(),
     };
   }
 
@@ -123,34 +142,64 @@ export class PushService {
     }
   }
 
-  /** Envoie la notification aux appareils qui suivent le tournoi ou l'une des équipes. */
+  /**
+   * Envoie la notification aux appareils qui suivent le tournoi ou l'une des
+   * équipes (suivis de l'appareil ou du compte relié), lus par lots de
+   * PUSH_BATCH abonnements : aucun chargement sans borne.
+   */
   async deliver(
     notification: MatchNotification,
   ): Promise<{ sent: number; gone: number }> {
+    const total = { sent: 0, gone: 0 };
+    let after: string | undefined;
+    for (;;) {
+      const batch = await this.subscribers(notification, after);
+      const result = await this.deliverBatch(notification, batch);
+      total.sent += result.sent;
+      total.gone += result.gone;
+      if (batch.length < PUSH_BATCH) {
+        return total;
+      }
+      after = batch.at(-1)!.id;
+    }
+  }
+
+  /** Lot suivant des abonnements visés, par id croissant. */
+  private subscribers(notification: MatchNotification, after?: string) {
     const slug = notification.tournamentSlug;
-    const teams = [notification.homeTeam, notification.awayTeam]
-      .filter((code): code is string => code !== null)
-      .map((code) => `${slug}/${code}`);
-    const followers = await this.prisma.follow.findMany({
-      where: {
-        OR: [
-          { kind: 'TOURNAMENT', target: slug },
-          { kind: 'TEAM', target: { in: teams } },
-        ],
-      },
-      select: { userId: true },
-    });
+    const teams = teamKeys(notification);
     const preference = PREFERENCE[notification.kind];
-    const targets = await this.prisma.pushSubscription.findMany({
+    return this.prisma.pushSubscription.findMany({
       where: {
         [preference]: true,
+        ...(after ? { id: { gt: after } } : {}),
         OR: [
           { tournaments: { has: slug } },
           { teams: { hasSome: teams } },
-          { userId: { in: [...new Set(followers.map((f) => f.userId))] } },
+          {
+            user: {
+              follows: {
+                some: {
+                  OR: [
+                    { kind: 'TOURNAMENT', target: slug },
+                    { kind: 'TEAM', target: { in: teams } },
+                  ],
+                },
+              },
+            },
+          },
         ],
       },
+      orderBy: { id: 'asc' },
+      take: PUSH_BATCH,
     });
+  }
+
+  private async deliverBatch(
+    notification: MatchNotification,
+    targets: { id: string; endpoint: string; p256dh: string; auth: string }[],
+  ): Promise<{ sent: number; gone: number }> {
+    const slug = notification.tournamentSlug;
     const payload = {
       notification: {
         title: notification.title,
@@ -217,6 +266,13 @@ export class PushService {
 }
 
 const unique = (list: readonly string[]) => [...new Set(list)];
+
+/** Équipes du match au format des suivis (« slug/code »). */
+function teamKeys(notification: MatchNotification): string[] {
+  return [notification.homeTeam, notification.awayTeam]
+    .filter((code): code is string => code !== null)
+    .map((code) => `${notification.tournamentSlug}/${code}`);
+}
 
 /**
  * Identifiant BullMQ de la notification (sans « : », interdit par BullMQ) :

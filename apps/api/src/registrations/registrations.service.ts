@@ -11,6 +11,12 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { AuthUser } from '../auth/auth.guard.js';
 import { Clock } from '../common/clock.js';
+import {
+  keyset,
+  takePage,
+  type Page,
+  type PageQuery,
+} from '../common/pagination.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -34,6 +40,7 @@ import {
 } from './pricing.js';
 import type {
   OrganizerRegistration,
+  OrganizerRegistrationsQuery,
   PaymentsStatus,
   Register,
   RegistrationInvite,
@@ -217,13 +224,31 @@ export class RegistrationsService {
     return this.view(registration.id, user.id);
   }
 
-  async mine(userId: string): Promise<RegistrationView[]> {
+  /** Mes équipes, plus récentes en tête, paginées sur (createdAt, id). */
+  async mine(
+    userId: string,
+    query: PageQuery,
+  ): Promise<Page<RegistrationView>> {
+    const page = keyset(
+      {
+        scope: 'registrations:mine',
+        key: 'createdAt',
+        kind: 'date',
+        direction: 'desc',
+      },
+      query,
+    );
     const rows = await this.prisma.registration.findMany({
-      where: { managerId: userId },
-      orderBy: { createdAt: 'desc' },
-      select: { id: true },
+      where: { managerId: userId, ...page.where },
+      orderBy: page.orderBy,
+      take: page.take,
+      include: { tournament: true },
     });
-    return Promise.all(rows.map((r) => this.view(r.id, userId)));
+    const result = page.finish(rows, (row) => row);
+    return {
+      items: await Promise.all(result.items.map((r) => this.toView(r))),
+      nextCursor: result.nextCursor,
+    };
   }
 
   async view(id: string, userId: string): Promise<RegistrationView> {
@@ -234,6 +259,12 @@ export class RegistrationsService {
     if (!registration) {
       throw new NotFoundException('Inscription introuvable.');
     }
+    return this.toView(registration);
+  }
+
+  private async toView(
+    registration: Registration & { tournament: Tournament },
+  ): Promise<RegistrationView> {
     const now = this.clock.now();
     const status =
       registration.status === 'PENDING_PAYMENT' &&
@@ -583,10 +614,16 @@ export class RegistrationsService {
     });
   }
 
+  /**
+   * Tableau des inscriptions d'un tournoi du club : tri (date d'inscription
+   * ou nom d'équipe, dans les deux sens, départagé par id) et filtre de
+   * statut côté serveur, paginé par curseur.
+   */
   async organizerRegistrations(
     organizationSlug: string,
     slug: string,
-  ): Promise<OrganizerRegistration[]> {
+    query: OrganizerRegistrationsQuery,
+  ): Promise<Page<OrganizerRegistration>> {
     const tournament = await this.prisma.tournament.findFirst({
       where: { slug, organization: { slug: organizationSlug } },
     });
@@ -594,12 +631,28 @@ export class RegistrationsService {
       throw new NotFoundException('Tournoi introuvable.');
     }
     const now = this.clock.now();
+    const direction = query.sort.startsWith('-') ? 'desc' : 'asc';
+    const key = query.sort.replace('-', '') as 'createdAt' | 'teamName';
+    const scope = `registrations:organizer:${query.sort}`;
+    const page =
+      key === 'createdAt'
+        ? keyset({ scope, key: 'createdAt', kind: 'date', direction }, query)
+        : keyset({ scope, key: 'teamName', kind: 'text', direction }, query);
     const rows = await this.prisma.registration.findMany({
-      where: { tournamentId: tournament.id },
+      where: {
+        tournamentId: tournament.id,
+        AND: [page.where, this.displayedStatus(query.status, now)],
+      },
       include: { manager: { select: { email: true } } },
-      orderBy: { createdAt: 'asc' },
+      orderBy: page.orderBy,
+      take: page.take,
     });
-    return rows.map((r) => ({
+    const { rows: kept, nextCursor } = takePage(
+      rows,
+      query.limit,
+      page.cursorOf,
+    );
+    const items = kept.map((r): OrganizerRegistration => ({
       id: r.id,
       teamName: r.teamName,
       club: r.club,
@@ -614,6 +667,34 @@ export class RegistrationsService {
       totalCents: r.totalCents,
       createdAt: r.createdAt.toISOString(),
     }));
+    return { items, nextCursor };
+  }
+
+  /**
+   * Filtre du statut affiché : une place tenue dont le paiement a expiré
+   * s'affiche EXPIRED avant que la tâche de maintenance ne l'écrive.
+   */
+  private displayedStatus(
+    status: OrganizerRegistrationsQuery['status'],
+    now: Date,
+  ): Prisma.RegistrationWhereInput {
+    const lapsed = {
+      status: 'PENDING_PAYMENT' as const,
+      expiresAt: { lte: now },
+    };
+    switch (status) {
+      case undefined:
+        return {};
+      case 'EXPIRED':
+        return { OR: [{ status: 'EXPIRED' }, lapsed] };
+      case 'PENDING_PAYMENT':
+        return {
+          status: 'PENDING_PAYMENT',
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        };
+      default:
+        return { status };
+    }
   }
 
   async paymentsStatus(organizationSlug: string): Promise<PaymentsStatus> {

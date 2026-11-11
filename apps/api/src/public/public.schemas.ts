@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { pageQuerySchema, pageSchema } from '../common/pagination.js';
 
 /**
  * Contrat des lectures publiques, calqué sur les modèles de la PWA
@@ -96,14 +97,49 @@ export const tournamentDetailSchema = tournamentSummarySchema.extend({
   ),
 });
 
-export const searchQuerySchema = z.object({
+/**
+ * Explorer : point, rayon, sport, puis `cursor` et `limit`. Un curseur ne
+ * vaut que pour les mêmes lat, lng, radiusKm et sport.
+ */
+export const searchQuerySchema = pageQuerySchema.extend({
   lat: z.coerce.number().min(-90).max(90),
   lng: z.coerce.number().min(-180).max(180),
   radiusKm: z.coerce.number().min(1).max(200).default(25),
   sport: sportSchema.optional(),
 });
 
+/** Page de l'Explorer, triée par (distance, début, id). */
+export const nearbyPageSchema = pageSchema(nearbyTournamentSchema);
+
+/** Journée de Paris (« 2026-11-09 ») des matchs à lire. */
+export const dayQuerySchema = z.object({ day: z.iso.date().optional() });
+
+/**
+ * Matchs d'une journée de la page publique, regroupés par créneau (heure de
+ * début) puis par phase ; `days` liste les journées du tournoi pour les
+ * ancres partageables (`?day=`).
+ */
+export const dayMatchesSchema = z.object({
+  /** Journée rendue (heure de Paris). */
+  day: z.iso.date(),
+  /** Toutes les journées qui ont des matchs, dans l'ordre. */
+  days: z.array(z.iso.date()),
+  previousDay: z.iso.date().nullable(),
+  nextDay: z.iso.date().nullable(),
+  slots: z.array(
+    z.object({
+      startsAt: z.iso.datetime({ offset: true }),
+      phases: z.array(
+        z.object({ phase: phaseSchema, matches: z.array(matchSchema) }),
+      ),
+    }),
+  ),
+});
+
 export type SearchQuery = z.infer<typeof searchQuerySchema>;
+export type DayQuery = z.infer<typeof dayQuerySchema>;
+export type DayMatches = z.infer<typeof dayMatchesSchema>;
+export type PublicMatch = z.infer<typeof matchSchema>;
 export type TournamentSummary = z.infer<typeof tournamentSummarySchema>;
 export type NearbyTournament = z.infer<typeof nearbyTournamentSchema>;
 export type TournamentDetail = z.infer<typeof tournamentDetailSchema>;
