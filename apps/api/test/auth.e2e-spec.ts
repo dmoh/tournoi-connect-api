@@ -1,13 +1,16 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { createTestApp, login, mailbox } from './setup-app.js';
+import type { PrismaService } from '../src/database/prisma.service.js';
+import { DEMO_NOW, createTestApp, login, mailbox } from './setup-app.js';
 
 describe('Comptes et connexion (e2e)', () => {
   let app: NestFastifyApplication;
+  let prisma: PrismaService;
   let reset: () => Promise<void>;
 
   beforeAll(async () => {
     const ctx = await createTestApp();
     app = ctx.app;
+    prisma = ctx.prisma;
     reset = ctx.reset;
   });
   beforeEach(() => reset());
@@ -80,6 +83,95 @@ describe('Comptes et connexion (e2e)', () => {
     ).toBe(400);
   });
 
+  it('ne compte que cinq essais sur dix envoyés en parallèle', async () => {
+    const email = 'orga@example.org';
+    await post('/auth/code', { email });
+    const good = lastCode(email);
+    const bad = good === '000000' ? '111111' : '000000';
+    const tries = await Promise.all(
+      Array.from({ length: 10 }, () =>
+        post('/auth/verify', { email, code: bad }),
+      ),
+    );
+    expect(tries.map((r) => r.statusCode)).toEqual(Array(10).fill(400));
+    const stored = await prisma.loginCode.findFirstOrThrow({
+      where: { email },
+    });
+    expect(stored.attempts).toBe(5);
+    // Code épuisé : le bon code ne sert plus.
+    expect((await post('/auth/verify', { email, code: good })).statusCode).toBe(
+      400,
+    );
+  });
+
+  it('n’ouvre qu’une session pour un même code envoyé deux fois en parallèle', async () => {
+    const email = 'paralleles@example.org';
+    await post('/auth/code', { email });
+    const code = lastCode(email);
+    const [a, b] = await Promise.all([
+      post('/auth/verify', { email, code }),
+      post('/auth/verify', { email, code }),
+    ]);
+    expect([a.statusCode, b.statusCode].sort((x, y) => x - y)).toEqual([
+      200, 400,
+    ]);
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { email },
+      include: { sessions: true, identities: true },
+    });
+    expect(user.sessions).toHaveLength(1);
+    expect(user.identities).toHaveLength(1);
+    const stored = await prisma.loginCode.findFirstOrThrow({
+      where: { email },
+    });
+    expect(stored.consumedAt).not.toBeNull();
+    // L'essai gagnant rend sa place ; le perdant compte au plus pour un échec.
+    expect(stored.attempts).toBeLessThanOrEqual(1);
+  });
+
+  it('bloque l’adresse après vingt essais ratés en 24 heures', async () => {
+    const email = 'spectateur@example.org';
+    const hoursAgo = (hours: number) =>
+      new Date(DEMO_NOW.getTime() - hours * 60 * 60 * 1000);
+    const failed = (hours: number, attempts: number) => ({
+      email,
+      codeHash: 'ancien',
+      attempts,
+      createdAt: hoursAgo(hours),
+      expiresAt: hoursAgo(hours),
+    });
+    // 19 essais ratés dans les 24 heures ; ceux d'avant-hier ne comptent plus.
+    await prisma.loginCode.createMany({
+      data: [
+        failed(30, 5),
+        failed(23, 5),
+        failed(5, 5),
+        failed(3, 5),
+        failed(2, 4),
+      ],
+    });
+    expect((await post('/auth/code', { email })).statusCode).toBe(204);
+    const good = lastCode(email);
+    const bad = good === '000000' ? '111111' : '000000';
+    const wrong = await post('/auth/verify', { email, code: bad });
+    expect(wrong.statusCode).toBe(400);
+
+    // Vingtième échec : même le bon code est refusé, avec le message habituel.
+    const blocked = await post('/auth/verify', { email, code: good });
+    expect(blocked.statusCode).toBe(400);
+    expect(blocked.json().detail).toBe(wrong.json().detail);
+    const again = await post('/auth/code', { email });
+    expect(again.statusCode).toBe(429);
+    expect(again.json().title).toBe(
+      'Trop de tentatives pour cette adresse. Réessayez plus tard.',
+    );
+    // Le refus ne compte pas d'essai de plus.
+    const latest = await prisma.loginCode.findFirstOrThrow({
+      where: { email, codeHash: { not: 'ancien' } },
+    });
+    expect(latest.attempts).toBe(1);
+  });
+
   it('limite à cinq codes par heure et par adresse', async () => {
     for (let i = 0; i < 5; i++) {
       expect(
@@ -124,6 +216,27 @@ describe('Comptes et connexion (e2e)', () => {
       (await post('/auth/refresh', undefined, { cookie: second })).statusCode,
     ).toBe(401);
     expect((await post('/auth/refresh')).statusCode).toBe(401);
+  });
+
+  it('ne renouvelle qu’une fois un jeton envoyé deux fois en parallèle', async () => {
+    await post('/auth/code', { email: 'orga@example.org' });
+    const opened = await post('/auth/verify', {
+      email: 'orga@example.org',
+      code: lastCode('orga@example.org'),
+    });
+    const cookie = cookieOf(opened);
+    const results = await Promise.all([
+      post('/auth/refresh', undefined, { cookie }),
+      post('/auth/refresh', undefined, { cookie }),
+    ]);
+    expect(results.map((r) => r.statusCode).sort((x, y) => x - y)).toEqual([
+      200, 401,
+    ]);
+    const winner = results.find((r) => r.statusCode === 200)!;
+    expect(
+      (await post('/auth/refresh', undefined, { cookie: cookieOf(winner) }))
+        .statusCode,
+    ).toBe(200);
   });
 
   it('lit et complète le profil avec le jeton d’accès', async () => {
