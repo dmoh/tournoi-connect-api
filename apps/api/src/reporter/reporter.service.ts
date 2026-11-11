@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { Clock } from '../common/clock.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../database/prisma.service.js';
+import { PushService } from '../push/push.service.js';
 import { replayFeed } from '../public/match-feed.js';
 import {
   PUBLIC_STATUSES,
@@ -36,6 +37,7 @@ export class ReporterService {
     private readonly clock: Clock,
     private readonly config: ConfigService<Env, true>,
     @Inject(AUTH_KEYS) keys: AuthKeys | null,
+    private readonly push: PushService,
   ) {
     this.signer = keys ? new ReporterLinkSigner(keys.reporter) : null;
   }
@@ -114,10 +116,18 @@ export class ReporterService {
 
   async record(token: string, input: ReporterEvent): Promise<ReporterState> {
     const matchId = this.matchIdOf(token);
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const match = await tx.match.findUnique({
         where: { id: matchId },
-        select: { id: true },
+        select: {
+          id: true,
+          code: true,
+          status: true,
+          homeTeamCode: true,
+          awayTeamCode: true,
+          tournamentId: true,
+          tournament: { select: { slug: true } },
+        },
       });
       if (!match) {
         throw new NotFoundException('Lien de saisie invalide ou expiré.');
@@ -130,7 +140,7 @@ export class ReporterService {
             select: { id: true },
           })
         : null;
-      await tx.matchEvent.createMany({
+      const inserted = await tx.matchEvent.createMany({
         data: [
           {
             matchId,
@@ -169,7 +179,82 @@ export class ReporterService {
           version: { increment: 1 },
         },
       });
-      return { score, status };
+      return {
+        state: { score, status } as ReporterState,
+        // Saisie nouvelle (un renvoi de la file hors ligne ne notifie pas deux fois).
+        fresh: inserted.count > 0,
+        previous: match.status,
+        match,
+        minute: input.minute,
+      };
+    });
+    if (result.fresh) {
+      await this.notify(input, result).catch(() => undefined);
+    }
+    return result.state;
+  }
+
+  /** Coup d'envoi, but ou fin du match : notification aux appareils qui suivent. */
+  private async notify(
+    input: ReporterEvent,
+    result: {
+      state: ReporterState;
+      previous: string;
+      match: {
+        code: string;
+        homeTeamCode: string | null;
+        awayTeamCode: string | null;
+        tournamentId: string;
+        tournament: { slug: string };
+      };
+      minute: number;
+    },
+  ): Promise<void> {
+    const { match, state } = result;
+    const kind =
+      input.type === 'GOAL'
+        ? 'goal'
+        : input.type === 'FULL_TIME'
+          ? 'result'
+          : result.previous === 'SCHEDULED'
+            ? 'kickoff'
+            : null;
+    if (!kind) {
+      return;
+    }
+    const teams = await this.prisma.team.findMany({
+      where: {
+        tournamentId: match.tournamentId,
+        code: {
+          in: [match.homeTeamCode, match.awayTeamCode].filter(
+            (c): c is string => c !== null,
+          ),
+        },
+      },
+      select: { code: true, name: true },
+    });
+    const name = (code: string | null) =>
+      teams.find((t) => t.code === code)?.name ?? '?';
+    const home = name(match.homeTeamCode);
+    const away = name(match.awayTeamCode);
+    const score = `${home} ${state.score.home} – ${state.score.away} ${away}`;
+    const scorer =
+      input.side === 'home' ? home : input.side === 'away' ? away : null;
+    const content = {
+      kickoff: { title: 'Coup d’envoi', body: `${home} – ${away}` },
+      goal: {
+        title: scorer ? `But pour ${scorer} !` : 'But !',
+        body: `${score} (${input.minute}’)${input.player ? ` · ${input.player}` : ''}`,
+      },
+      result: { title: 'Fin du match', body: score },
+    }[kind];
+    await this.push.notify({
+      kind,
+      tournamentSlug: match.tournament.slug,
+      matchCode: match.code,
+      homeTeam: match.homeTeamCode,
+      awayTeam: match.awayTeamCode,
+      ...content,
     });
   }
 

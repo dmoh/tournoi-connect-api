@@ -42,6 +42,12 @@ export const envSchema = z.object({
   STRIPE_SECRET_KEY: optionalSecret(20),
   /** Secret de signature du webhook Stripe (whsec_…). */
   STRIPE_WEBHOOK_SECRET: optionalSecret(20),
+  /**
+   * Notifications web push (VAPID, base64url) : clé publique (65 octets) et
+   * privée (32 octets). Sans elles, l'abonnement aux notifications est fermé.
+   */
+  VAPID_PUBLIC_KEY: optional(),
+  VAPID_PRIVATE_KEY: optionalSecret(40),
   /** Envoi des emails : SES en préprod et en prod, journal sinon. */
   MAIL_TRANSPORT: z.enum(['ses', 'log']).default('log'),
   MAIL_FROM: z

@@ -54,7 +54,10 @@ export const DEMO_NOW = new Date('2026-11-09T11:10:00+01:00');
  * matin du tournoi de démonstration.
  */
 export async function createTestApp(
-  overrides: { provide: symbol | string; useValue: unknown }[] = [],
+  overrides: {
+    provide: symbol | string | (abstract new (...args: never[]) => unknown);
+    useValue: unknown;
+  }[] = [],
 ): Promise<{
   app: NestFastifyApplication;
   prisma: PrismaService;

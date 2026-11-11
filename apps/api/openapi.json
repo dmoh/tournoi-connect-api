@@ -5571,6 +5571,421 @@
           "organizer"
         ]
       }
+    },
+    "/api/v1/push/config": {
+      "get": {
+        "operationId": "PushController_config_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "publicKey": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "publicKey"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "summary": "Clé publique VAPID pour s’abonner (null sans notifications)",
+        "tags": [
+          "push"
+        ]
+      }
+    },
+    "/api/v1/push/subscriptions": {
+      "put": {
+        "operationId": "PushController_subscribe_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "endpoint": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "format": "starts_with",
+                    "pattern": "^https:\\/\\/.*"
+                  },
+                  "keys": {
+                    "type": "object",
+                    "properties": {
+                      "p256dh": {
+                        "type": "string",
+                        "pattern": "^[\\w-]{80,100}$"
+                      },
+                      "auth": {
+                        "type": "string",
+                        "pattern": "^[\\w-]{16,30}$"
+                      }
+                    },
+                    "required": [
+                      "p256dh",
+                      "auth"
+                    ]
+                  },
+                  "follows": {
+                    "type": "object",
+                    "properties": {
+                      "tournaments": {
+                        "maxItems": 200,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120,
+                          "pattern": "^[a-z0-9-]+$"
+                        }
+                      },
+                      "teams": {
+                        "maxItems": 200,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 160,
+                          "pattern": "^[a-z0-9-]+\\/[a-z0-9-]+$"
+                        }
+                      }
+                    },
+                    "required": [
+                      "tournaments",
+                      "teams"
+                    ]
+                  },
+                  "preferences": {
+                    "type": "object",
+                    "properties": {
+                      "kickoff": {
+                        "type": "boolean"
+                      },
+                      "goals": {
+                        "type": "boolean"
+                      },
+                      "results": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "kickoff",
+                      "goals",
+                      "results"
+                    ]
+                  }
+                },
+                "required": [
+                  "endpoint",
+                  "keys",
+                  "follows",
+                  "preferences"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "503": {
+            "description": "Notifications non configurées"
+          }
+        },
+        "summary": "Abonner ce navigateur avec ses suivis et préférences ; relié au compte si le jeton est fourni",
+        "tags": [
+          "push"
+        ]
+      }
+    },
+    "/api/v1/push/subscriptions/delete": {
+      "post": {
+        "operationId": "PushController_unsubscribe_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "endpoint": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "format": "uri"
+                  }
+                },
+                "required": [
+                  "endpoint"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Désabonner ce navigateur",
+        "tags": [
+          "push"
+        ]
+      }
+    },
+    "/api/v1/me/follows": {
+      "get": {
+        "operationId": "FollowsController_get_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tournaments": {
+                      "maxItems": 200,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120,
+                        "pattern": "^[a-z0-9-]+$"
+                      }
+                    },
+                    "teams": {
+                      "maxItems": 200,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 160,
+                        "pattern": "^[a-z0-9-]+\\/[a-z0-9-]+$"
+                      }
+                    }
+                  },
+                  "required": [
+                    "tournaments",
+                    "teams"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tournois et équipes suivis par le compte",
+        "tags": [
+          "push"
+        ]
+      },
+      "put": {
+        "operationId": "FollowsController_replace_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tournaments": {
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120,
+                      "pattern": "^[a-z0-9-]+$"
+                    }
+                  },
+                  "teams": {
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 160,
+                      "pattern": "^[a-z0-9-]+\\/[a-z0-9-]+$"
+                    }
+                  }
+                },
+                "required": [
+                  "tournaments",
+                  "teams"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tournaments": {
+                      "maxItems": 200,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120,
+                        "pattern": "^[a-z0-9-]+$"
+                      }
+                    },
+                    "teams": {
+                      "maxItems": 200,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 160,
+                        "pattern": "^[a-z0-9-]+\\/[a-z0-9-]+$"
+                      }
+                    }
+                  },
+                  "required": [
+                    "tournaments",
+                    "teams"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remplacer les suivis du compte",
+        "tags": [
+          "push"
+        ]
+      }
+    },
+    "/api/v1/me/follows/merge": {
+      "post": {
+        "operationId": "FollowsController_merge_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tournaments": {
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120,
+                      "pattern": "^[a-z0-9-]+$"
+                    }
+                  },
+                  "teams": {
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 160,
+                      "pattern": "^[a-z0-9-]+\\/[a-z0-9-]+$"
+                    }
+                  }
+                },
+                "required": [
+                  "tournaments",
+                  "teams"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tournaments": {
+                      "maxItems": 200,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120,
+                        "pattern": "^[a-z0-9-]+$"
+                      }
+                    },
+                    "teams": {
+                      "maxItems": 200,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 160,
+                        "pattern": "^[a-z0-9-]+\\/[a-z0-9-]+$"
+                      }
+                    }
+                  },
+                  "required": [
+                    "tournaments",
+                    "teams"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ajouter les suivis de l’appareil à ceux du compte (connexion)",
+        "tags": [
+          "push"
+        ]
+      }
     }
   },
   "info": {

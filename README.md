@@ -104,6 +104,11 @@ Préfixe `/api/v1` ; détail et schémas dans Swagger (`/api/docs`) et `apps/api
 | `GET /organizer/tournaments/:slug/registrations` | admin        | inscriptions d'un tournoi du club                                  |
 | `GET /organizer/payments`                        | admin        | paiements en ligne du club (Stripe Connect)                        |
 | `POST /organizer/payments/onboarding`            | propriétaire | lien d'activation des paiements (vérification Stripe)              |
+| `GET /push/config`                               | public       | clé publique VAPID (null sans notifications)                       |
+| `PUT /push/subscriptions`                        | public       | abonner ce navigateur (suivis, préférences ; compte si connecté)   |
+| `POST /push/subscriptions/delete`                | public       | désabonner ce navigateur                                           |
+| `GET`, `PUT /me/follows`                         | connecté     | suivis du compte (tournois, équipes « slug/code »)                 |
+| `POST /me/follows/merge`                         | connecté     | ajouter les suivis de l'appareil à ceux du compte                  |
 | `POST /clubs`                                    | connecté     | créer un club (on en devient propriétaire)                         |
 | `GET /organizer/members`                         | bénévole     | membres du club et invitations en attente                          |
 | `POST /organizer/invitations`                    | admin        | inviter par email (lien de 7 jours, réservé à l'adresse)           |

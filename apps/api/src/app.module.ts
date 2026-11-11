@@ -9,6 +9,7 @@ import { MailModule } from './mail/mail.module.js';
 import { OrganizerModule } from './organizer/organizer.module.js';
 import { ClubsModule } from './clubs/clubs.module.js';
 import { RegistrationsModule } from './registrations/registrations.module.js';
+import { PushModule } from './push/push.module.js';
 import { PublicModule } from './public/public.module.js';
 import { ReporterModule } from './reporter/reporter.module.js';
 import { QueueModule } from './queue/queue.module.js';
@@ -26,6 +27,7 @@ import { QueueModule } from './queue/queue.module.js';
     OrganizerModule,
     ClubsModule,
     RegistrationsModule,
+    PushModule,
     ReporterModule,
   ],
   providers: [{ provide: Clock, useClass: SystemClock }],

@@ -6,6 +6,8 @@ import { createRedisClient } from './redis-connection.js';
 export const AUDIENCE_QUEUE = 'audience';
 /** File des emails (codes de connexion, invitations) : jamais envoyés dans la requête HTTP. */
 export const MAIL_QUEUE = 'mail';
+/** File des notifications web push (coup d'envoi, buts, résultats). */
+export const PUSH_QUEUE = 'push';
 
 /**
  * Files BullMQ (ADR-010). Sans REDIS_URL (tests, poste sans Redis), aucune
@@ -32,6 +34,15 @@ export class QueueModule {
           name: MAIL_QUEUE,
           defaultJobOptions: {
             attempts: 5,
+            backoff: { type: 'exponential', delay: 2000 },
+            removeOnComplete: 1000,
+            removeOnFail: 5000,
+          },
+        }),
+        BullModule.registerQueue({
+          name: PUSH_QUEUE,
+          defaultJobOptions: {
+            attempts: 3,
             backoff: { type: 'exponential', delay: 2000 },
             removeOnComplete: 1000,
             removeOnFail: 5000,
