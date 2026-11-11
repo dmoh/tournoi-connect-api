@@ -32,6 +32,9 @@ locals {
       SEED_DEMO        = var.seed_demo ? "true" : "false"
     },
     var.managed_database ? {} : { COMPOSE_PROFILES = "local-db" },
+    # Active le code fixe des comptes de test ; l'API refuse de démarrer si
+    # l'une de ces deux variables existe avec l'URL de production.
+    var.seed_demo ? { ALLOW_TEST_ACCOUNTS = "true" } : {},
   )
   secret_parameters = merge(
     {

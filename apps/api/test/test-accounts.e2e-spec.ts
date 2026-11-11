@@ -1,7 +1,7 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { createTestApp, mailbox } from './setup-app.js';
 
-/** Code fixe des comptes de test en préprod (TEST_ACCOUNTS_CODE). */
+/** Code fixe des comptes de test en préprod (TEST_ACCOUNTS_CODE et ALLOW_TEST_ACCOUNTS). */
 describe('Comptes de test (e2e)', () => {
   const CODE = '246810';
   let app: NestFastifyApplication;
@@ -9,6 +9,7 @@ describe('Comptes de test (e2e)', () => {
 
   beforeAll(async () => {
     process.env['TEST_ACCOUNTS_CODE'] = CODE;
+    process.env['ALLOW_TEST_ACCOUNTS'] = 'true';
     const ctx = await createTestApp();
     app = ctx.app;
     reset = ctx.reset;
@@ -16,6 +17,7 @@ describe('Comptes de test (e2e)', () => {
   beforeEach(() => reset());
   afterAll(async () => {
     delete process.env['TEST_ACCOUNTS_CODE'];
+    delete process.env['ALLOW_TEST_ACCOUNTS'];
     await app.close();
   });
 
