@@ -522,8 +522,9 @@ model Registration {
   id                String             @id @default(cuid(2))
   tournamentId      String             @map("tournament_id")
   tournament        Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  managerId         String             @map("manager_id")
-  manager           User               @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  /// Vide quand le compte du responsable a été supprimé (inscription anonymisée).
+  managerId         String?            @map("manager_id")
+  manager           User?              @relation(fields: [managerId], references: [id], onDelete: SetNull)
   teamName          String             @map("team_name")
   club              String
   managerName       String             @map("manager_name")

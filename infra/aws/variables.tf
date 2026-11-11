@@ -40,3 +40,13 @@ variable "instance_type" {
   type        = string
   default     = "t3a.small"
 }
+
+variable "alert_email" {
+  description = <<-EOT
+    Adresse qui reçoit les alertes de disponibilité. Elle n'est pas écrite
+    dans le dépôt : TF_VAR_alert_email au moment du plan. Vide, les alarmes
+    existent sans destinataire.
+  EOT
+  type        = string
+  default     = ""
+}

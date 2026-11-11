@@ -32,7 +32,8 @@ GitHub Actions ──OIDC──▶ rôle tournoi-connect-deploy-<env>
 | 2 × IPv4 publique (adresse élastique)         |        7 |
 | RDS db.t4g.micro + 20 Go gp3, sauvegardes 7 j |       16 |
 | Route 53 (zone + requêtes), S3, CloudFront    |        1 |
-| **Total**                                     | **≈ 60** |
+| 3 sondes Route 53 HTTPS, 3 alarmes CloudWatch |        5 |
+| **Total**                                     | **≈ 65** |
 
 Plus le domaine (≈ 15 $/an). Le budget AWS `tournoi-connect-mensuel` (85 $, filtré sur l'étiquette `Projet`) prévient par email à 50, 80 et 100 % et en cas de dépassement prévu.
 
@@ -55,6 +56,8 @@ terraform apply plan.tfplan
 - **Emails (SES)** : le domaine est vérifié par DKIM (`email.tf`). Tant que le compte est dans le bac à sable SES, seules les adresses vérifiées reçoivent les codes (`aws sesv2 create-email-identity --email-identity <adresse>`) ; sortir du bac à sable par la console SES (« Request production access », usage transactionnel : codes de connexion et invitations).
 - **Notifications web push** : générer une paire VAPID (`pnpm --filter api vapid:keys`) et la déposer dans SSM (`VAPID_PUBLIC_KEY` en String, `VAPID_PRIVATE_KEY` en SecureString), une paire par environnement, puis `deploy.sh config`. Changer de paire désabonne tous les navigateurs.
 - **Paiements (Stripe Connect)** : activer Connect sur le compte Stripe (Express), puis déposer dans SSM `STRIPE_SECRET_KEY` (clé `sk_test_…` en préprod, `sk_live_…` en prod) et `STRIPE_WEBHOOK_SECRET`. Le webhook se crée dans Stripe (Développeurs, Webhooks) sur `https://<app>/api/v1/payments/stripe/webhook`, pour les événements de la plateforme et des comptes connectés : `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.expired`, `account.updated`. Puis `deploy.sh config`.
+- **Alertes de disponibilité** (`monitoring.tf`) : Route 53 sonde l'API de prod et de préprod (`/health/ready`, base et Redis compris) et la PWA de prod ; après 3 minutes d'échec, une alarme CloudWatch (us-east-1) écrit au sujet SNS `tournoi-connect-alertes`, puis au retour. L'adresse destinataire n'est pas dans le dépôt : `TF_VAR_alert_email=<adresse> terraform plan`, puis cliquer le lien de confirmation envoyé par AWS.
+- **Purge des données** : le worker purge chaque nuit à 4 h (Paris) les codes de connexion, sessions, invitations, inscriptions jamais payées et abonnements push arrivés au bout de leur conservation (`apps/api/src/maintenance`).
 - **Connexion Google, Apple, Facebook** : créer l'application chez le fournisseur avec l'URL de retour `https://<app>/api/v1/auth/oauth/<google|apple|facebook>/callback`, puis déposer les identifiants dans SSM (`aws ssm put-parameter --type SecureString --name /tournoi-connect/<env>/GOOGLE_CLIENT_SECRET …`, mêmes noms que `.env.example` ; la clé Apple sur une ligne, sauts de ligne écrits `\n`) et lancer `deploy.sh config`. Sans identifiants, le bouton n'apparaît pas.
 
 ## Décisions (budget de 80 €/mois)

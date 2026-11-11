@@ -71,7 +71,8 @@ export const organizerRegistrationSchema = z.object({
   teamName: z.string(),
   club: z.string(),
   managerName: z.string(),
-  email: z.string(),
+  /** Vide quand le responsable a supprimé son compte. */
+  email: z.string().nullable(),
   phone: z.string(),
   players: z.number().int(),
   status: registrationStatusSchema,

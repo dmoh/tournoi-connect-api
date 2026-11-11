@@ -104,6 +104,40 @@ export interface paths {
         patch: operations["AuthController_updateMe_v1"];
         trace?: never;
     };
+    "/api/v1/me/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Télécharger mes données (JSON) */
+        get: operations["AccountController_export_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Supprimer mon compte (confirmé par la saisie de mon adresse) */
+        post: operations["AccountController_delete_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health/live": {
         parameters: {
             query?: never;
@@ -1021,6 +1055,158 @@ export interface operations {
                         platformAdmin: boolean;
                     };
                 };
+            };
+        };
+    };
+    AccountController_export_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        exportedAt: string;
+                        account: {
+                            id: string;
+                            email: string;
+                            firstName: string | null;
+                            lastName: string | null;
+                            locale: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        };
+                        identities: {
+                            /** @enum {string} */
+                            provider: "EMAIL" | "GOOGLE" | "APPLE" | "FACEBOOK" | "ECOCLUBSPORT";
+                            subject: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        sessions: {
+                            userAgent: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            lastUsedAt: string;
+                            /** Format: date-time */
+                            expiresAt: string;
+                            /** Format: date-time */
+                            revokedAt: string | null;
+                        }[];
+                        memberships: {
+                            organization: {
+                                slug: string;
+                                name: string;
+                            };
+                            /** @enum {string} */
+                            role: "OWNER" | "ADMIN" | "STAFF";
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        sponsorAccess: {
+                            sponsor: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        invitationsSent: {
+                            organization: string;
+                            email: string;
+                            /** @enum {string} */
+                            role: "OWNER" | "ADMIN" | "STAFF";
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            acceptedAt: string | null;
+                            /** Format: date-time */
+                            revokedAt: string | null;
+                        }[];
+                        registrations: {
+                            id: string;
+                            tournament: {
+                                slug: string;
+                                name: string;
+                            };
+                            teamName: string;
+                            club: string;
+                            managerName: string;
+                            phone: string;
+                            players: unknown;
+                            /** @enum {string} */
+                            status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
+                            totalCents: number;
+                            /** Format: date-time */
+                            paidAt: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        follows: {
+                            /** @enum {string} */
+                            kind: "TOURNAMENT" | "TEAM";
+                            target: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        pushSubscriptions: {
+                            service: string;
+                            tournaments: string[];
+                            teams: string[];
+                            kickoff: boolean;
+                            goals: boolean;
+                            results: boolean;
+                            /** Format: date-time */
+                            createdAt: string;
+                            /** Format: date-time */
+                            lastSentAt: string | null;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    AccountController_delete_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    email: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Compte supprimé, session fermée */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Adresse de confirmation différente */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Seul propriétaire d’un club, ou compte de test */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -2902,7 +3088,7 @@ export interface operations {
                         teamName: string;
                         club: string;
                         managerName: string;
-                        email: string;
+                        email: string | null;
                         phone: string;
                         players: number;
                         /** @enum {string} */
