@@ -96,6 +96,14 @@ Préfixe `/api/v1` ; détail et schémas dans Swagger (`/api/docs`) et `apps/api
 | `POST /public/posts/:postId/votes`               | public       | vote à un sondage                                                  |
 | `POST /public/audience`                          | public       | impression ou clic d'un sponsor, cumulé par heure                  |
 | `PUT /organizer/tournaments/:slug/schedule`      | admin        | publier le planning (terrain et heure des matchs à venir)          |
+| `GET /public/registrations/:code`                | public       | lien d'inscription : prix avec frais, places, paiements du club    |
+| `POST /tournaments/:code/registrations`          | connecté     | inscrire son équipe (Idempotency-Key) : payée, gratuite ou attente |
+| `GET /registrations`, `GET /registrations/:id`   | connecté     | mes équipes (responsable d'équipe)                                 |
+| `POST /registrations/:id/checkout`               | connecté     | reprendre un paiement expiré, s'il reste une place                 |
+| `POST /payments/stripe/webhook`                  | Stripe       | paiement reçu ou expiré, compte du club validé (signature)         |
+| `GET /organizer/tournaments/:slug/registrations` | admin        | inscriptions d'un tournoi du club                                  |
+| `GET /organizer/payments`                        | admin        | paiements en ligne du club (Stripe Connect)                        |
+| `POST /organizer/payments/onboarding`            | propriétaire | lien d'activation des paiements (vérification Stripe)              |
 | `POST /clubs`                                    | connecté     | créer un club (on en devient propriétaire)                         |
 | `GET /organizer/members`                         | bénévole     | membres du club et invitations en attente                          |
 | `POST /organizer/invitations`                    | admin        | inviter par email (lien de 7 jours, réservé à l'adresse)           |

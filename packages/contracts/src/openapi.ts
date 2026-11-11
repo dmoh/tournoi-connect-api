@@ -532,6 +532,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/registrations/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Écran 08 : tournoi, prix, places et paiements du lien */
+        get: operations["PublicRegistrationsController_invite_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tournaments/{code}/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inscrire son équipe : confirmée (gratuit), en attente de paiement (Stripe Checkout) ou en liste d’attente */
+        post: operations["RegistrationsController_register_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mes équipes : mes inscriptions, plus récentes en tête */
+        get: operations["RegistrationsController_mine_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registrations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Une de mes inscriptions (retour du paiement) */
+        get: operations["RegistrationsController_one_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registrations/{id}/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reprendre un paiement expiré, s’il reste une place */
+        post: operations["RegistrationsController_retry_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inscriptions d’un tournoi du club */
+        get: operations["OrganizerRegistrationsController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Paiements en ligne du club (Stripe Connect) */
+        get: operations["OrganizerRegistrationsController_payments_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/payments/onboarding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activer les paiements : lien vers la vérification Stripe */
+        post: operations["OrganizerRegistrationsController_onboarding_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2341,6 +2477,444 @@ export interface operations {
             };
             /** @description Compte d’une autre adresse */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicRegistrationsController_invite_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        tournament: {
+                            slug: string;
+                            name: string;
+                            /** @enum {string} */
+                            sport: "football" | "handball" | "basketball" | "volleyball" | "rugby";
+                            organizer: string;
+                            /** Format: date-time */
+                            startsAt: string;
+                            /** Format: date-time */
+                            endsAt: string;
+                            venue: {
+                                name: string;
+                                city: string;
+                                lat: number;
+                                lng: number;
+                                outdoor: boolean;
+                            };
+                            categories: string[];
+                            teamCount: number;
+                            maxTeams: number;
+                            feeCents: number;
+                            /** @enum {string} */
+                            status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED";
+                        };
+                        quote: {
+                            feeCents: number;
+                            serviceFeeCents: number;
+                            totalCents: number;
+                        };
+                        open: boolean;
+                        full: boolean;
+                        paymentsReady: boolean;
+                    };
+                };
+            };
+            /** @description Lien inconnu */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RegistrationsController_register_v1: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    teamName: string;
+                    /** @default  */
+                    club?: string;
+                    managerName: string;
+                    phone: string;
+                    players: {
+                        firstName: string;
+                        lastName: string;
+                        /** @default  */
+                        number?: string;
+                    }[];
+                    /** @enum {boolean} */
+                    acceptRules: true;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        orderId: string;
+                        code: string;
+                        tournamentSlug: string;
+                        tournamentName: string;
+                        /** Format: date-time */
+                        startsAt: string;
+                        teamName: string;
+                        /** @enum {string} */
+                        status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
+                        quote: {
+                            feeCents: number;
+                            serviceFeeCents: number;
+                            totalCents: number;
+                        };
+                        waitlistPosition?: number;
+                        /** Format: uri */
+                        checkoutUrl?: string;
+                        /** Format: date-time */
+                        expiresAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Inscriptions fermées */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Paiements du club non activés */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RegistrationsController_mine_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        orderId: string;
+                        code: string;
+                        tournamentSlug: string;
+                        tournamentName: string;
+                        /** Format: date-time */
+                        startsAt: string;
+                        teamName: string;
+                        /** @enum {string} */
+                        status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
+                        quote: {
+                            feeCents: number;
+                            serviceFeeCents: number;
+                            totalCents: number;
+                        };
+                        waitlistPosition?: number;
+                        /** Format: uri */
+                        checkoutUrl?: string;
+                        /** Format: date-time */
+                        expiresAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    }[];
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RegistrationsController_one_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        orderId: string;
+                        code: string;
+                        tournamentSlug: string;
+                        tournamentName: string;
+                        /** Format: date-time */
+                        startsAt: string;
+                        teamName: string;
+                        /** @enum {string} */
+                        status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
+                        quote: {
+                            feeCents: number;
+                            serviceFeeCents: number;
+                            totalCents: number;
+                        };
+                        waitlistPosition?: number;
+                        /** Format: uri */
+                        checkoutUrl?: string;
+                        /** Format: date-time */
+                        expiresAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Inscription introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RegistrationsController_retry_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        orderId: string;
+                        code: string;
+                        tournamentSlug: string;
+                        tournamentName: string;
+                        /** Format: date-time */
+                        startsAt: string;
+                        teamName: string;
+                        /** @enum {string} */
+                        status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
+                        quote: {
+                            feeCents: number;
+                            serviceFeeCents: number;
+                            totalCents: number;
+                        };
+                        waitlistPosition?: number;
+                        /** Format: uri */
+                        checkoutUrl?: string;
+                        /** Format: date-time */
+                        expiresAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Inscriptions fermées */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerRegistrationsController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        teamName: string;
+                        club: string;
+                        managerName: string;
+                        email: string;
+                        phone: string;
+                        players: number;
+                        /** @enum {string} */
+                        status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
+                        totalCents: number;
+                        /** Format: date-time */
+                        createdAt: string;
+                    }[];
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerRegistrationsController_payments_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        available: boolean;
+                        connected: boolean;
+                        chargesEnabled: boolean;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerRegistrationsController_onboarding_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uri */
+                        url: string;
+                    };
+                };
+            };
+            /** @description Stripe a refusé la demande */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Paiements non configurés */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

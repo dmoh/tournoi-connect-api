@@ -53,13 +53,19 @@ export const DEMO_NOW = new Date('2026-11-09T11:10:00+01:00');
  * Application complète sur la base de test (DATABASE_URL), horloge figée au
  * matin du tournoi de démonstration.
  */
-export async function createTestApp(): Promise<{
+export async function createTestApp(
+  overrides: { provide: symbol | string; useValue: unknown }[] = [],
+): Promise<{
   app: NestFastifyApplication;
   prisma: PrismaService;
   reset: () => Promise<void>;
 }> {
   process.env['AUTH_SECRET'] = AUTH_SECRET;
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+  let builder = Test.createTestingModule({ imports: [AppModule] });
+  for (const { provide, useValue } of overrides) {
+    builder = builder.overrideProvider(provide).useValue(useValue);
+  }
+  const moduleRef = await builder
     .overrideProvider(Clock)
     .useValue({ now: () => new Date(DEMO_NOW) })
     .overrideProvider(MailSender)
@@ -69,6 +75,7 @@ export async function createTestApp(): Promise<{
     .compile();
   const app = moduleRef.createNestApplication<NestFastifyApplication>(
     new FastifyAdapter(),
+    { rawBody: true },
   );
   await configureApp(app);
   await app.init();

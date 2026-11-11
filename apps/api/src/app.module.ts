@@ -8,6 +8,7 @@ import { HealthModule } from './health/health.module.js';
 import { MailModule } from './mail/mail.module.js';
 import { OrganizerModule } from './organizer/organizer.module.js';
 import { ClubsModule } from './clubs/clubs.module.js';
+import { RegistrationsModule } from './registrations/registrations.module.js';
 import { PublicModule } from './public/public.module.js';
 import { ReporterModule } from './reporter/reporter.module.js';
 import { QueueModule } from './queue/queue.module.js';
@@ -24,6 +25,7 @@ import { QueueModule } from './queue/queue.module.js';
     PublicModule,
     OrganizerModule,
     ClubsModule,
+    RegistrationsModule,
     ReporterModule,
   ],
   providers: [{ provide: Clock, useClass: SystemClock }],

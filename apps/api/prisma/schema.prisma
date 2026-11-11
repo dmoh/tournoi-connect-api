@@ -89,20 +89,24 @@ enum Placement {
 }
 
 model Organization {
-  id             String          @id @default(cuid(2))
-  slug           String          @unique
-  name           String
-  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz
-  venues         Venue[]
-  tournaments    Tournament[]
-  sponsors       Sponsor[]
-  members        Membership[]
-  invitations    Invitation[]
+  id                   String          @id @default(cuid(2))
+  slug                 String          @unique
+  name                 String
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  venues               Venue[]
+  tournaments          Tournament[]
+  sponsors             Sponsor[]
+  members              Membership[]
+  invitations          Invitation[]
+  /// Compte Stripe Connect (Express) du club : les inscriptions lui sont versées.
+  stripeAccountId      String?         @unique @map("stripe_account_id")
+  /// Paiements acceptés par Stripe (vérification du club terminée).
+  stripeChargesEnabled Boolean         @default(false) @map("stripe_charges_enabled")
   /// Ville du club (affichée avec son nom).
-  city           String?
+  city                 String?
   /// Club importé d'un service externe (connecteur EcoClubSport, plus tard).
-  externalSource ExternalSource? @map("external_source")
-  externalId     String?         @map("external_id")
+  externalSource       ExternalSource? @map("external_source")
+  externalId           String?         @map("external_id")
 
   @@unique([externalSource, externalId])
   @@map("organization")
@@ -151,6 +155,7 @@ model Tournament {
   posts                Post[]
   packages             SponsorPackage[]
   sponsors             TournamentSponsor[]
+  registrations        Registration[]
 
   @@index([status, startsAt])
   @@index([organizationId])
@@ -158,16 +163,17 @@ model Tournament {
 }
 
 model Team {
-  id           String     @id @default(cuid(2))
-  tournamentId String     @map("tournament_id")
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  id           String        @id @default(cuid(2))
+  tournamentId String        @map("tournament_id")
+  tournament   Tournament    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   /// Identifiant court stable dans le tournoi (ex. « eda »).
   code         String
   name         String
-  shortName    String     @map("short_name")
+  shortName    String        @map("short_name")
   club         String
   group        String?
   players      Player[]
+  registration Registration?
 
   @@unique([tournamentId, code])
   @@map("team")
@@ -401,6 +407,7 @@ model User {
   memberships     Membership[]
   sponsorAccess   SponsorAccess[]
   invitationsSent Invitation[]    @relation("InvitedBy")
+  registrations   Registration[]
 
   @@map("app_user")
 }
@@ -495,4 +502,49 @@ model Invitation {
   @@index([organizationId])
   @@index([email])
   @@map("invitation")
+}
+
+enum RegistrationStatus {
+  /// Place tenue pendant le paiement (Stripe Checkout, 30 minutes).
+  PENDING_PAYMENT
+  CONFIRMED
+  WAITLISTED
+  /// Paiement non abouti dans le délai : la place est rendue.
+  EXPIRED
+  CANCELLED
+}
+
+/// Inscription d'une équipe par son responsable (compte connecté). Confirmée,
+/// elle crée l'équipe du tournoi.
+model Registration {
+  id                String             @id @default(cuid(2))
+  tournamentId      String             @map("tournament_id")
+  tournament        Tournament         @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  managerId         String             @map("manager_id")
+  manager           User               @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  teamName          String             @map("team_name")
+  club              String
+  managerName       String             @map("manager_name")
+  phone             String
+  /// Effectif : [{ firstName, lastName, number }].
+  players           Json
+  status            RegistrationStatus
+  feeCents          Int                @map("fee_cents")
+  serviceFeeCents   Int                @map("service_fee_cents")
+  totalCents        Int                @map("total_cents")
+  /// Clé Idempotency-Key de la demande : un renvoi rend la même inscription.
+  idempotencyKey    String             @unique @map("idempotency_key")
+  checkoutSessionId String?            @unique @map("checkout_session_id")
+  checkoutUrl       String?            @map("checkout_url")
+  /// Fin de la place tenue pendant le paiement.
+  expiresAt         DateTime?          @map("expires_at") @db.Timestamptz
+  paymentIntentId   String?            @map("payment_intent_id")
+  paidAt            DateTime?          @map("paid_at") @db.Timestamptz
+  teamId            String?            @unique @map("team_id")
+  team              Team?              @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([tournamentId, status])
+  @@index([managerId])
+  @@map("registration")
 }
