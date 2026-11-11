@@ -1,14 +1,17 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   Injectable,
+  Logger,
   Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import type { Queue } from 'bullmq';
+import { createHash } from 'node:crypto';
 import { Clock } from '../common/clock.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { PUSH_QUEUE } from '../queue/queue.module.js';
-import { PushSender } from './push-sender.js';
+import { isPushEndpoint } from './push-hosts.js';
+import { PushSender, type PushOutcome } from './push-sender.js';
 import type {
   Follows,
   MatchNotification,
@@ -22,6 +25,9 @@ const PREFERENCE = {
   result: 'results',
 } as const;
 
+/** Envois simultanés vers les services push, par tranche. */
+export const PUSH_CONCURRENCY = 20;
+
 /**
  * Suivis des comptes et notifications web push. Un appareil abonné reçoit
  * les matchs des tournois et équipes qu'il suit, plus ceux du compte
@@ -29,6 +35,8 @@ const PREFERENCE = {
  */
 @Injectable()
 export class PushService {
+  private readonly logger = new Logger('Push');
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly sender: PushSender,
@@ -106,7 +114,10 @@ export class PushService {
       return;
     }
     if (this.queue) {
-      await this.queue.add('match', notification);
+      // Identifiant déterministe : un second dépôt du même événement est ignoré.
+      await this.queue.add('match', notification, {
+        jobId: notificationJobId(notification),
+      });
     } else {
       await this.deliver(notification);
     }
@@ -160,28 +171,75 @@ export class PushService {
         },
       },
     };
-    let sent = 0;
-    let gone = 0;
-    for (const target of targets) {
-      const outcome = await this.sender.send(target, payload);
-      if (outcome === 'gone') {
-        gone += 1;
-        await this.prisma.pushSubscription.deleteMany({
-          where: { id: target.id },
-        });
-      } else if (outcome === 'sent') {
-        sent += 1;
-        await this.prisma.pushSubscription.update({
-          where: { id: target.id },
+    // Adresses hors des services push connus (anciens abonnements) : jamais contactées.
+    const reachable = targets.filter((t) => isPushEndpoint(t.endpoint));
+    const goneIds = targets
+      .filter((t) => !isPushEndpoint(t.endpoint))
+      .map((t) => t.id);
+    const sentIds: string[] = [];
+    for (let start = 0; start < reachable.length; start += PUSH_CONCURRENCY) {
+      const batch = reachable.slice(start, start + PUSH_CONCURRENCY);
+      const outcomes = await Promise.allSettled(
+        batch.map((target) => this.sender.send(target, payload)),
+      );
+      outcomes.forEach((result, index) => {
+        const outcome: PushOutcome =
+          result.status === 'fulfilled' ? result.value : 'failed';
+        const id = batch[index]!.id;
+        if (outcome === 'sent') {
+          sentIds.push(id);
+        } else if (outcome === 'gone') {
+          goneIds.push(id);
+        }
+      });
+    }
+    // Les notifications sont parties : une erreur de suivi ne doit pas faire
+    // relancer la tâche, qui les renverrait à tout le monde.
+    try {
+      if (sentIds.length > 0) {
+        await this.prisma.pushSubscription.updateMany({
+          where: { id: { in: sentIds } },
           data: { lastSentAt: this.clock.now() },
         });
       }
+      if (goneIds.length > 0) {
+        await this.prisma.pushSubscription.deleteMany({
+          where: { id: { in: goneIds } },
+        });
+      }
+    } catch (error) {
+      this.logger.error(
+        `Suivi des envois push non enregistré : ${(error as Error).message}`,
+      );
     }
-    return { sent, gone };
+    return { sent: sentIds.length, gone: goneIds.length };
   }
 }
 
 const unique = (list: readonly string[]) => [...new Set(list)];
+
+/**
+ * Identifiant BullMQ de la notification (sans « : », interdit par BullMQ) :
+ * l'événement source s'il est connu, sinon le contenu de la notification.
+ */
+export function notificationJobId(notification: MatchNotification): string {
+  const source = notification.eventId ?? [
+    notification.kind,
+    notification.title,
+    notification.body,
+  ];
+  const digest = createHash('sha256')
+    .update(
+      JSON.stringify([
+        notification.tournamentSlug,
+        notification.matchCode,
+        source,
+      ]),
+    )
+    .digest('base64url')
+    .slice(0, 32);
+  return `match-${digest}`;
+}
 
 function rows(userId: string, follows: Follows) {
   return [

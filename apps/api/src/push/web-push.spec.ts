@@ -3,6 +3,7 @@ import { decodeJwt, decodeProtectedHeader } from 'jose';
 import {
   encryptPayload,
   generateVapidKeys,
+  VapidCache,
   vapidAuthorization,
 } from './web-push.js';
 
@@ -107,5 +108,62 @@ describe('Web Push', () => {
       exp: Math.floor(Date.parse('2026-11-11T22:00:00Z') / 1000),
     });
     expect(header.endsWith(keys.publicKey)).toBe(true);
+  });
+
+  describe('cache des en-têtes VAPID', () => {
+    const keys = {
+      ...generateVapidKeys(),
+      subject: 'https://app.tournoi-connect.com',
+    };
+    const at = (iso: string) => new Date(iso);
+
+    it('signe une seule fois pour N envois vers la même origine', async () => {
+      const sign = vi.fn(vapidAuthorization);
+      const cache = new VapidCache(sign);
+      const headers = await Promise.all(
+        Array.from({ length: 50 }, (_, i) =>
+          cache.authorization(
+            `https://fcm.googleapis.com/fcm/send/abonne-${i}`,
+            keys,
+            at('2026-11-11T10:00:00Z'),
+          ),
+        ),
+      );
+      expect(sign).toHaveBeenCalledTimes(1);
+      expect(new Set(headers).size).toBe(1);
+      const [, jwt] = /^vapid t=([^,]+), k=/.exec(headers[0]!)!;
+      expect(decodeJwt(jwt!).aud).toBe('https://fcm.googleapis.com');
+    });
+
+    it('signe à part chaque origine et renouvelle au bout de 11 heures', async () => {
+      const sign = vi.fn(vapidAuthorization);
+      const cache = new VapidCache(sign);
+      const fcm = 'https://fcm.googleapis.com/fcm/send/a';
+      const mozilla = 'https://updates.push.services.mozilla.com/wpush/v2/b';
+      await cache.authorization(fcm, keys, at('2026-11-11T10:00:00Z'));
+      await cache.authorization(mozilla, keys, at('2026-11-11T10:00:00Z'));
+      await cache.authorization(fcm, keys, at('2026-11-11T20:59:59Z'));
+      expect(sign).toHaveBeenCalledTimes(2);
+      await cache.authorization(fcm, keys, at('2026-11-11T21:00:00Z'));
+      expect(sign).toHaveBeenCalledTimes(3);
+      // Horloge revenue en arrière : on ne réutilise pas un JWT émis « plus tard ».
+      await cache.authorization(fcm, keys, at('2026-11-11T09:00:00Z'));
+      expect(sign).toHaveBeenCalledTimes(4);
+    });
+
+    it('ne garde pas une signature ratée', async () => {
+      const sign = vi
+        .fn(vapidAuthorization)
+        .mockRejectedValueOnce(new Error('clé illisible'));
+      const cache = new VapidCache(sign);
+      const fcm = 'https://fcm.googleapis.com/fcm/send/a';
+      await expect(
+        cache.authorization(fcm, keys, at('2026-11-11T10:00:00Z')),
+      ).rejects.toThrow('clé illisible');
+      await expect(
+        cache.authorization(fcm, keys, at('2026-11-11T10:00:01Z')),
+      ).resolves.toMatch(/^vapid t=/);
+      expect(sign).toHaveBeenCalledTimes(2);
+    });
   });
 });

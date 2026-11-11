@@ -590,5 +590,8 @@ model PushSubscription {
   lastSentAt  DateTime? @map("last_sent_at") @db.Timestamptz
 
   @@index([userId])
+  /// Ciblage des notifications (`has`, `hasSome` sur les tableaux).
+  @@index([tournaments], type: Gin)
+  @@index([teams], type: Gin)
   @@map("push_subscription")
 }
