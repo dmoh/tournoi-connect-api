@@ -17,6 +17,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { openApi } from '../common/openapi-schema.js';
+import { RateLimited } from '../common/rate-limit.js';
 import {
   audienceEventSchema,
   matchFeedSchema,
@@ -112,6 +113,7 @@ export class PublicController {
   }
 
   @Post('tournaments/:slug/matches/:matchId/reactions')
+  @RateLimited('reaction')
   @HttpCode(200)
   @ApiOperation({
     summary: 'Réaction anonyme d’un spectateur, une par appareil et par emoji',
@@ -128,6 +130,7 @@ export class PublicController {
   }
 
   @Post('posts/:postId/votes')
+  @RateLimited('vote')
   @HttpCode(200)
   @ApiOperation({ summary: 'Vote anonyme à un sondage du fil News' })
   @ApiBody({ schema: openApi(voteSchema) })
@@ -140,6 +143,7 @@ export class PublicController {
   }
 
   @Post('audience')
+  @RateLimited('audience')
   @HttpCode(204)
   @ApiOperation({
     summary: 'Impression ou clic d’un sponsor, cumulé par heure',

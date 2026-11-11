@@ -34,6 +34,7 @@ import { z } from 'zod';
 import { AuthGuard, CurrentUser, type AuthUser } from '../auth/auth.guard.js';
 import { Clock } from '../common/clock.js';
 import { openApi } from '../common/openapi-schema.js';
+import { RateLimited } from '../common/rate-limit.js';
 import type { Env } from '../config/env.js';
 import {
   OrganizerGuard,
@@ -85,6 +86,7 @@ export class RegistrationsController {
   constructor(private readonly registrations: RegistrationsService) {}
 
   @Post('tournaments/:code/registrations')
+  @RateLimited('registration')
   @ApiOperation({
     summary:
       'Inscrire son équipe : confirmée (gratuit), en attente de paiement (Stripe Checkout) ou en liste d’attente',
