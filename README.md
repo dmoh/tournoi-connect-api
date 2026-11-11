@@ -122,6 +122,26 @@ Préfixe `/api/v1` ; détail et schémas dans Swagger (`/api/docs`) et `apps/api
 | `PATCH /organizer/tournament-sponsors/:id`       | organisateur | marquer payé hors Stripe                                           |
 | `POST /organizer/tournaments/:slug/posts`        | organisateur | publier une annonce ou un sondage                                  |
 
+## Limites de débit
+
+`@fastify/rate-limit`, fenêtre fixe, valeurs dans `apps/api/src/common/rate-limit.ts` (`RATE_LIMITS`, posées par `@RateLimited` sur la route). Au-delà : `429` en `problem+json` avec `Retry-After` (secondes). L'IP est celle du client transmise par Caddy (`X-Forwarded-For` lu seulement depuis l'adresse locale ou le réseau privé Docker). Les limites métier (5 codes par adresse et par heure, 30 invitations par club et par heure) s'ajoutent à celles-ci.
+
+| Route                                                  | Limite                         | Clé             |
+| ------------------------------------------------------ | ------------------------------ | --------------- |
+| `POST /auth/code`                                      | 10 / min ; 5 / 10 min          | IP ; email      |
+| `POST /auth/verify`                                    | 10 / min                       | IP              |
+| `POST /auth/refresh`                                   | 30 / min                       | IP              |
+| `GET /auth/oauth/:provider/start`, `…/callback`        | 20 / min                       | IP              |
+| `POST /public/audience`                                | 300 / min                      | IP              |
+| `POST /public/posts/:postId/votes`                     | 60 / min                       | IP              |
+| `POST /public/tournaments/:slug/matches/:id/reactions` | 120 / min                      | IP              |
+| `PUT /push/subscriptions`                              | 30 / min                       | IP              |
+| `POST /tournaments/:code/registrations`                | 10 / 10 min                    | compte          |
+| `POST /reporter/:token/events`                         | 15 / 30 s (1 / 2 s, rafale 15) | lien rapporteur |
+| `POST /organizer/invitations`                          | 20 / min                       | IP              |
+
+Les tests e2e multiplient les limites par 1000 (`createTestApp`), sauf `rate-limit.e2e-spec.ts` qui vérifie les vraies.
+
 ## Décisions provisoires
 
 | Décision                                                                   | Pourquoi                                                              | Remplacée par                                            |
@@ -130,3 +150,4 @@ Préfixe `/api/v1` ; détail et schémas dans Swagger (`/api/docs`) et `apps/api
 | Dédoublonnage des impressions par session côté PWA                         | Redis ne sert encore qu'aux files BullMQ                              | Clé Redis par session et emplacement                     |
 | Sans `REDIS_URL`, les événements d'audience s'écrivent directement en base | Tests et poste local sans Redis                                       | Redis obligatoire hors tests                             |
 | Classements calculés à la lecture avec `computeStandings` du moteur        | Volume de démonstration                                               | Classements matérialisés à la validation d'un score (P4) |
+| Compteurs des limites de débit en mémoire                                  | Un seul serveur d'API                                                 | Store Redis de `@fastify/rate-limit`                     |

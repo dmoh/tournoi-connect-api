@@ -28,6 +28,7 @@ import {
 import { AuthGuard, CurrentUser, type AuthUser } from '../auth/auth.guard.js';
 import { meSchema, type Me } from '../auth/auth.schemas.js';
 import { openApi } from '../common/openapi-schema.js';
+import { RateLimited } from '../common/rate-limit.js';
 import {
   OrganizerGuard,
   OrganizerRole,
@@ -99,6 +100,7 @@ export class MembersController {
   }
 
   @Post('invitations')
+  @RateLimited('invitation')
   @ApiOperation({
     summary:
       'Inviter par email (admin ; propriétaire pour inviter un propriétaire)',

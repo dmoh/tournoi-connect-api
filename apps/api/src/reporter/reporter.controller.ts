@@ -7,6 +7,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { openApi } from '../common/openapi-schema.js';
+import { RateLimited } from '../common/rate-limit.js';
 import {
   reporterEventSchema,
   reporterMatchSchema,
@@ -37,6 +38,7 @@ export class ReporterController {
   }
 
   @Post(':token/events')
+  @RateLimited('reporterEvent')
   @HttpCode(200)
   @ApiOperation({
     summary:
