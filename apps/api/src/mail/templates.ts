@@ -63,3 +63,26 @@ export function invitationMail(
 </div></body></html>`;
   return { to, subject, text, html };
 }
+
+/** Inscription confirmée (tournoi gratuit, ou paiement reçu). */
+export function registrationConfirmedMail(
+  to: string,
+  info: { team: string; tournament: string; date: string; url: string },
+): MailMessage {
+  const subject = `${info.team} est inscrite au ${info.tournament}`;
+  const text = [
+    `L’inscription de ${info.team} au ${info.tournament} (${info.date}) est confirmée.`,
+    '',
+    `Suivre le tournoi : ${info.url}`,
+    '',
+    'Tournoi Connect',
+  ].join('\n');
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+<div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
+<p style="margin:0 0 8px;font-size:15px">Inscription confirmée</p>
+<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.team)}</p>
+<p style="margin:0 0 20px;font-size:14px;color:#5c6a7f">${escape(info.tournament)} · ${escape(info.date)}</p>
+<a href="${escape(info.url)}" style="display:inline-block;background:#1e3a8a;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 20px;border-radius:12px">Suivre le tournoi</a>
+</div></body></html>`;
+  return { to, subject, text, html };
+}

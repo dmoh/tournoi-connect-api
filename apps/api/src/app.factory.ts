@@ -28,6 +28,8 @@ export async function createApp(): Promise<NestFastifyApplication> {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({ bodyLimit: 1_048_576 }),
+    // Corps brut gardé : la signature des webhooks Stripe porte sur lui.
+    { rawBody: true },
   );
   return configureApp(app);
 }

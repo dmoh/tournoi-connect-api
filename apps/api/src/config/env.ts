@@ -35,6 +35,13 @@ export const envSchema = z.object({
       .regex(/^\d{6}$/, 'TEST_ACCOUNTS_CODE compte 6 chiffres.')
       .optional(),
   ),
+  /**
+   * Paiements des inscriptions (Stripe Connect). Sans clé, une inscription
+   * payante est refusée (503) ; les tournois gratuits restent ouverts.
+   */
+  STRIPE_SECRET_KEY: optionalSecret(20),
+  /** Secret de signature du webhook Stripe (whsec_…). */
+  STRIPE_WEBHOOK_SECRET: optionalSecret(20),
   /** Envoi des emails : SES en préprod et en prod, journal sinon. */
   MAIL_TRANSPORT: z.enum(['ses', 'log']).default('log'),
   MAIL_FROM: z
