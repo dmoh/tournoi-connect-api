@@ -58,6 +58,8 @@ export class OrganizerGuard implements CanActivate {
           : {}),
       },
       include: { organization: { select: { slug: true } } },
+      // Deux suffisent : au-delà d'un club, l'en-tête X-Organization est exigé.
+      take: 2,
     });
     if (typeof wanted !== 'string' && memberships.length > 1) {
       throw new BadRequestException(

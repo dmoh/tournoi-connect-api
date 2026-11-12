@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { pageSchema } from '../common/pagination.js';
 
 export const tierSchema = z.enum(['GOLD', 'SILVER', 'BRONZE', 'FIELD']);
 export const sponsorStatusSchema = z.enum(['PROSPECT', 'INVITED', 'PAID']);
@@ -147,6 +148,11 @@ export const createTournamentSchema = z
     message: 'La clôture doit précéder le tournoi.',
     path: ['registrationDeadline'],
   });
+
+/** Écran 01 paginé : les plus proches en premier (startsAt, id). */
+export const organizerTournamentPageSchema = pageSchema(
+  organizerTournamentSchema,
+);
 
 export type OrganizerTournament = z.infer<typeof organizerTournamentSchema>;
 export type CreateTournament = z.infer<typeof createTournamentSchema>;

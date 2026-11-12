@@ -7,10 +7,12 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
@@ -23,9 +25,13 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { z } from 'zod';
 import { Idempotent } from '../common/idempotency/idempotent.decorator.js';
 import { openApi } from '../common/openapi-schema.js';
+import {
+  pageQuerySchema,
+  type Page,
+  type PageQuery,
+} from '../common/pagination.js';
 import {
   OrganizerGuard,
   OrganizerRole,
@@ -33,6 +39,7 @@ import {
 } from './organizer.guard.js';
 import {
   createTournamentSchema,
+  organizerTournamentPageSchema,
   organizerTournamentSchema,
   type CreateTournament,
   type OrganizerTournament,
@@ -102,9 +109,13 @@ export class OrganizerController {
   @ApiOperation({
     summary: 'Écran 01 : les tournois de l’organisation (lecture dès bénévole)',
   })
-  @ApiOkResponse({ schema: openApi(z.array(organizerTournamentSchema)) })
-  tournaments(@Req() req: OrganizerRequest): Promise<OrganizerTournament[]> {
-    return this.service.tournaments(req.organizationSlug!);
+  @ApiOkResponse({ schema: openApi(organizerTournamentPageSchema) })
+  @ApiBadRequestResponse({ description: 'Limite ou curseur invalide' })
+  tournaments(
+    @Req() req: OrganizerRequest,
+    @Query({ schema: pageQuerySchema }) query: PageQuery,
+  ): Promise<Page<OrganizerTournament>> {
+    return this.service.tournaments(req.organizationSlug!, query);
   }
 
   @Post('tournaments')

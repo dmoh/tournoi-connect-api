@@ -234,12 +234,15 @@ describe('Inscriptions et paiements (e2e)', () => {
       url: '/api/v1/registrations',
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(mine.json()).toEqual([
-      expect.objectContaining({
-        teamName: 'Les Aigles d’Annecy',
-        status: 'CONFIRMED',
-      }),
-    ]);
+    expect(mine.json()).toEqual({
+      items: [
+        expect.objectContaining({
+          teamName: 'Les Aigles d’Annecy',
+          status: 'CONFIRMED',
+        }),
+      ],
+      nextCursor: null,
+    });
     const tournament = await prisma.tournament.findUniqueOrThrow({
       where: { slug: 'tournoi-11-novembre-u15' },
       include: {
@@ -337,14 +340,17 @@ describe('Inscriptions et paiements (e2e)', () => {
       url: '/api/v1/organizer/tournaments/tournoi-11-novembre-u15/registrations',
       headers: { authorization: `Bearer ${owner}`, ...club },
     });
-    expect(list.json()).toEqual([
-      expect.objectContaining({
-        teamName: 'Les Aigles d’Annecy',
-        email: 'lea@example.com',
-        players: 2,
-        status: 'PENDING_PAYMENT',
-      }),
-    ]);
+    expect(list.json()).toEqual({
+      items: [
+        expect.objectContaining({
+          teamName: 'Les Aigles d’Annecy',
+          email: 'lea@example.com',
+          players: 2,
+          status: 'PENDING_PAYMENT',
+        }),
+      ],
+      nextCursor: null,
+    });
 
     await prisma.organization.update({
       where: { slug: 'stade-du-mont-blanc' },

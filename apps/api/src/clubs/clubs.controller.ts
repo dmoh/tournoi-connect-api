@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -28,6 +29,7 @@ import {
 import { AuthGuard, CurrentUser, type AuthUser } from '../auth/auth.guard.js';
 import { meSchema, type Me } from '../auth/auth.schemas.js';
 import { openApi } from '../common/openapi-schema.js';
+import { pageQuerySchema, type PageQuery } from '../common/pagination.js';
 import { RateLimited } from '../common/rate-limit.js';
 import {
   OrganizerGuard,
@@ -89,13 +91,21 @@ export class MembersController {
 
   @Get('members')
   @OrganizerRole('STAFF')
-  @ApiOperation({ summary: 'Membres du club et invitations en attente' })
+  @ApiOperation({
+    summary:
+      'Membres du club (paginés, par rôle puis arrivée) et invitations en attente',
+  })
   @ApiOkResponse({ schema: openApi(membersSchema) })
-  members(@Req() req: OrganizerRequest): Promise<Members> {
+  @ApiBadRequestResponse({ description: 'Limite ou curseur invalide' })
+  members(
+    @Req() req: OrganizerRequest,
+    @Query({ schema: pageQuerySchema }) query: PageQuery,
+  ): Promise<Members> {
     return this.clubs.members(
       req.organizationSlug!,
       req.user!,
       req.memberRole!,
+      query,
     );
   }
 

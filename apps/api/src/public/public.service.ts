@@ -7,6 +7,16 @@ import {
   type AudienceJob,
 } from '../audience/audience-writer.js';
 import { Clock } from '../common/clock.js';
+import {
+  decodeCursor,
+  encodeCursor,
+  seekAfter,
+  seekOrder,
+  takePage,
+  type Page,
+  type PageQuery,
+} from '../common/pagination.js';
+import { parisDate, parisDateTime } from '../common/paris-time.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { Placement } from '../generated/prisma/enums.js';
@@ -21,10 +31,14 @@ import {
   toSummary,
 } from './public-mapping.js';
 import type {
+  DayMatches,
   NearbyTournament,
+  PublicMatch,
   SearchQuery,
   TournamentDetail,
 } from './public.schemas.js';
+import type { Match } from '../generated/prisma/client.js';
+import { z } from 'zod';
 import type {
   AudienceEvent,
   MatchFeed,
@@ -37,8 +51,31 @@ import type {
 } from './public-l5.schemas.js';
 
 const KM_PER_DEGREE_LAT = 111;
-const MAX_RESULTS = 50;
 const MAX_ROTATION = 6;
+
+/**
+ * Bornes des listes non paginées d'un tournoi (naturellement petites) :
+ * 128 équipes au plus (maxTeams), quelques centaines de matchs, des
+ * dizaines d'événements par match, des sponsors limités par les packs.
+ */
+export const MAX_TEAMS = 128;
+export const MAX_MATCHES = 1000;
+export const MAX_MATCH_EVENTS = 1000;
+export const MAX_PAID_SPONSORS = 100;
+/** Journées d'un tournoi lues pour les ancres `?day=`. */
+const MAX_DAYS = 60;
+
+const explorerCursor = z.tuple([
+  z.number().nonnegative(),
+  z.iso.datetime({ offset: true }),
+  z.string().min(1).max(64),
+]);
+const newsCursor = z.tuple([
+  z.iso.datetime({ offset: true }).transform((v) => new Date(v)),
+  z.string().min(1).max(64),
+  /** Cartes sponsorisées déjà montrées : la rotation continue. */
+  z.number().int().nonnegative().max(1_000_000),
+]);
 
 @Injectable()
 export class PublicService {
@@ -52,19 +89,25 @@ export class PublicService {
   ) {}
 
   /**
-   * Tournois en cours ou à venir dans le rayon, triés par distance puis date.
-   * Distance haversine en SQL, préfiltrée par une boîte lat/lng indexée ;
-   * PostGIS (ST_DWithin, GiST) remplacera ce calcul (plan, section 4).
+   * Tournois en cours ou à venir dans le rayon, triés par distance, date
+   * puis id, paginés par curseur sur ce triplet. Distance haversine en SQL,
+   * préfiltrée par une boîte lat/lng indexée ; PostGIS (ST_DWithin, GiST)
+   * remplacera ce calcul (plan, section 4). La distance est recalculée à
+   * l'identique d'une page à l'autre (mêmes paramètres, float8 rendu et
+   * relu sans perte) : le curseur la compare exactement.
    */
-  async search(query: SearchQuery): Promise<NearbyTournament[]> {
+  async search(query: SearchQuery): Promise<Page<NearbyTournament>> {
+    const after = query.cursor
+      ? decodeCursor(query.cursor, 'explorer', explorerCursor)
+      : null;
     const dLat = query.radiusKm / KM_PER_DEGREE_LAT;
     const dLng =
       query.radiusKm /
       (KM_PER_DEGREE_LAT * Math.cos((query.lat * Math.PI) / 180));
     const rows = await this.prisma.$queryRaw<
-      { id: string; distance_km: number }[]
+      { id: string; starts_at: Date; distance_km: number }[]
     >`
-      SELECT t.id, d.distance_km
+      SELECT t.id, t.starts_at, d.distance_km
       FROM tournament t
       JOIN venue v ON v.id = t.venue_id
       CROSS JOIN LATERAL (
@@ -80,20 +123,36 @@ export class PublicService {
         AND v.lng BETWEEN ${query.lng - dLng} AND ${query.lng + dLng}
         AND (${query.sport ?? null}::text IS NULL OR t.sport::text = ${query.sport ?? null})
         AND d.distance_km <= ${query.radiusKm}
-      ORDER BY d.distance_km, t.starts_at
-      LIMIT ${MAX_RESULTS}`;
+        ${
+          after
+            ? Prisma.sql`AND (d.distance_km, t.starts_at, t.id) > (${after[0]}::float8, ${after[1]}::timestamptz, ${after[2]}::text)`
+            : Prisma.empty
+        }
+      ORDER BY d.distance_km, t.starts_at, t.id
+      LIMIT ${query.limit + 1}`;
 
+    const page = takePage(rows, query.limit, (row) =>
+      encodeCursor('explorer', [
+        Number(row.distance_km),
+        row.starts_at.toISOString(),
+        row.id,
+      ]),
+    );
     const tournaments = await this.prisma.tournament.findMany({
-      where: { id: { in: rows.map((row) => row.id) } },
+      where: { id: { in: page.rows.map((row) => row.id) } },
       include: { venue: true, organization: true },
+      take: query.limit,
     });
     const byId = new Map(tournaments.map((t) => [t.id, t]));
-    return rows.flatMap((row) => {
-      const tournament = byId.get(row.id);
-      return tournament
-        ? [{ ...toSummary(tournament), distanceKm: Number(row.distance_km) }]
-        : [];
-    });
+    return {
+      items: page.rows.flatMap((row) => {
+        const tournament = byId.get(row.id);
+        return tournament
+          ? [{ ...toSummary(tournament), distanceKm: Number(row.distance_km) }]
+          : [];
+      }),
+      nextCursor: page.nextCursor,
+    };
   }
 
   async detail(slug: string): Promise<TournamentDetail> {
@@ -102,8 +161,14 @@ export class PublicService {
       include: {
         venue: true,
         organization: true,
-        teams: { orderBy: [{ group: 'asc' }, { name: 'asc' }] },
-        matches: { orderBy: [{ startsAt: 'asc' }, { field: 'asc' }] },
+        teams: {
+          orderBy: [{ group: 'asc' }, { name: 'asc' }],
+          take: MAX_TEAMS,
+        },
+        matches: {
+          orderBy: [{ startsAt: 'asc' }, { field: 'asc' }],
+          take: MAX_MATCHES,
+        },
       },
     });
     if (!t) {
@@ -134,39 +199,118 @@ export class PublicService {
         club: team.club,
         ...(team.group ? { group: team.group } : {}),
       })),
-      matches: t.matches.map((m) => ({
-        id: m.code,
-        phase: toPublicPhase(m.phase),
-        ...(m.group ? { group: m.group } : {}),
-        field: m.field,
-        startsAt: toIso(m.startsAt),
-        homeTeamId: m.homeTeamCode,
-        awayTeamId: m.awayTeamCode,
-        ...(m.homePlaceholder ? { homePlaceholder: m.homePlaceholder } : {}),
-        ...(m.awayPlaceholder ? { awayPlaceholder: m.awayPlaceholder } : {}),
-        scoreHome: m.scoreHome,
-        scoreAway: m.scoreAway,
-        status: m.status,
-        ...(m.minute === null ? {} : { minute: m.minute }),
-      })),
+      matches: t.matches.map(toPublicMatch),
       standings,
     };
   }
 
-  /** Fil News : posts du plus récent au plus ancien, cartes sponsorisées intercalées. */
-  async news(slug: string): Promise<NewsItem[]> {
+  /**
+   * Matchs d'une journée (heure de Paris), regroupés par créneau puis par
+   * phase, avec les journées du tournoi pour naviguer. Sans `day` : la
+   * journée en cours, sinon la prochaine, sinon la dernière. Une journée
+   * sans match rend des créneaux vides (l'ancre reste valable).
+   */
+  async matchesByDay(slug: string, day?: string): Promise<DayMatches> {
     const tournamentId = await this.publicTournamentId(slug);
-    const [posts, sponsors] = await Promise.all([
+    const days = (
+      await this.prisma.$queryRaw<{ day: string }[]>`
+        SELECT DISTINCT to_char(starts_at AT TIME ZONE 'Europe/Paris', 'YYYY-MM-DD') AS day
+        FROM match
+        WHERE tournament_id = ${tournamentId}
+        ORDER BY day
+        LIMIT ${MAX_DAYS}`
+    ).map((row) => row.day);
+    const today = parisDate(this.clock.now());
+    const chosen =
+      day ??
+      (days.includes(today)
+        ? today
+        : (days.find((d) => d > today) ?? days.at(-1) ?? today));
+    const matches = await this.prisma.match.findMany({
+      where: {
+        tournamentId,
+        startsAt: {
+          gte: parisDateTime(chosen, '00:00'),
+          lt: parisDateTime(nextDate(chosen), '00:00'),
+        },
+      },
+      orderBy: [
+        { startsAt: 'asc' },
+        { phase: 'asc' },
+        { group: 'asc' },
+        { field: 'asc' },
+        { code: 'asc' },
+      ],
+      take: MAX_MATCHES,
+    });
+    const slots: DayMatches['slots'] = [];
+    for (const match of matches) {
+      const startsAt = toIso(match.startsAt);
+      let slot = slots.at(-1);
+      if (slot?.startsAt !== startsAt) {
+        slot = { startsAt, phases: [] };
+        slots.push(slot);
+      }
+      const phase = toPublicPhase(match.phase);
+      let group = slot.phases.at(-1);
+      if (group?.phase !== phase) {
+        group = { phase, matches: [] };
+        slot.phases.push(group);
+      }
+      group.matches.push(toPublicMatch(match));
+    }
+    return {
+      day: chosen,
+      days,
+      previousDay: days.findLast((d) => d < chosen) ?? null,
+      nextDay: days.find((d) => d > chosen) ?? null,
+      slots,
+    };
+  }
+
+  /**
+   * Fil News paginé : posts du plus récent au plus ancien (publishedAt, id),
+   * cartes sponsorisées intercalées ; la rotation des sponsors continue
+   * d'une page à l'autre (son rang est dans le curseur).
+   */
+  async news(slug: string, query: PageQuery): Promise<Page<NewsItem>> {
+    const after = query.cursor
+      ? decodeCursor(query.cursor, 'news', newsCursor)
+      : null;
+    const tournamentId = await this.publicTournamentId(slug);
+    const [rows, sponsors] = await Promise.all([
       this.prisma.post.findMany({
-        where: { tournamentId },
-        orderBy: { publishedAt: 'desc' },
-        take: 50,
+        where: {
+          tournamentId,
+          ...seekAfter(
+            'publishedAt',
+            'id',
+            'desc',
+            after ? { value: after[0], id: after[1] } : null,
+          ),
+        },
+        orderBy: seekOrder('publishedAt', 'id', 'desc'),
+        take: query.limit + 1,
         include: { options: { orderBy: { position: 'asc' } } },
       }),
       this.paidSponsors(tournamentId),
     ]);
     const feedSponsors = sponsors.filter((s) => s.tier !== 'FIELD');
-    return composeFeed(posts, feedSponsors).map((item): NewsItem => {
+    const rotation = after?.[2] ?? 0;
+    const feed = composeFeed(
+      rows.slice(0, query.limit),
+      feedSponsors,
+      rotation,
+    );
+    const shown = feed.filter((item) => item.type === 'sponsored').length;
+    const page = takePage(rows, query.limit, (post) =>
+      encodeCursor('news', [
+        post.publishedAt.toISOString(),
+        post.id,
+        rotation + shown,
+      ]),
+    );
+    const items = feed.map((item): NewsItem => {
       if (item.type === 'sponsored') {
         return { type: 'sponsored', sponsor: card(item.sponsor) };
       }
@@ -197,6 +341,7 @@ export class PublicService {
           : {}),
       };
     });
+    return { items, nextCursor: page.nextCursor };
   }
 
   /** Sponsors affichés : bannière exclusive (Or), bandeau partagé (6 au plus), terrains. */
@@ -211,9 +356,13 @@ export class PublicService {
         .filter((s) => s.tier === 'SILVER' || s.tier === 'BRONZE')
         .slice(0, MAX_ROTATION)
         .map(card),
+      // Par terrain (« Terrain 2 » avant « Terrain 10 ») : ordre stable.
       fields: sponsors
         .filter((s) => s.tier === 'FIELD' && s.field)
-        .map((s) => ({ field: s.field!, sponsor: card(s) })),
+        .map((s) => ({ field: s.field!, sponsor: card(s) }))
+        .sort((a, b) =>
+          a.field.localeCompare(b.field, 'fr', { numeric: true }),
+        ),
     };
   }
 
@@ -286,6 +435,7 @@ export class PublicService {
       this.prisma.matchEvent.findMany({
         where: { matchId },
         orderBy: { seq: 'asc' },
+        take: MAX_MATCH_EVENTS,
       }),
       this.reactionCounts(matchId),
     ]);
@@ -353,7 +503,8 @@ export class PublicService {
     return this.prisma.tournamentSponsor.findMany({
       where: { tournamentId, status: 'PAID' },
       include: { sponsor: true },
-      orderBy: { paidAt: 'asc' },
+      orderBy: [{ paidAt: 'asc' }, { id: 'asc' }],
+      take: MAX_PAID_SPONSORS,
     });
   }
 }
@@ -369,4 +520,31 @@ function card(s: {
     tier: s.tier as SponsorCard['tier'],
     ...(s.sponsor.website ? { website: s.sponsor.website } : {}),
   };
+}
+
+/** Match du contrat public (identifiants courts, phase en kebab-case). */
+function toPublicMatch(m: Match): PublicMatch {
+  return {
+    id: m.code,
+    phase: toPublicPhase(m.phase),
+    ...(m.group ? { group: m.group } : {}),
+    field: m.field,
+    startsAt: toIso(m.startsAt),
+    homeTeamId: m.homeTeamCode,
+    awayTeamId: m.awayTeamCode,
+    ...(m.homePlaceholder ? { homePlaceholder: m.homePlaceholder } : {}),
+    ...(m.awayPlaceholder ? { awayPlaceholder: m.awayPlaceholder } : {}),
+    scoreHome: m.scoreHome,
+    scoreAway: m.scoreAway,
+    status: m.status,
+    ...(m.minute === null ? {} : { minute: m.minute }),
+  };
+}
+
+/** Lendemain d'une journée (« 2026-11-09 » → « 2026-11-10 »). */
+function nextDate(day: string): string {
+  const [year, month, date] = day.split('-').map(Number);
+  return new Date(Date.UTC(year!, month! - 1, date! + 1))
+    .toISOString()
+    .slice(0, 10);
 }

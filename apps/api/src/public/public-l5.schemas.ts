@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { pageSchema } from '../common/pagination.js';
 
 /** Sponsor affiché au public : jamais son e-mail ni son prix. */
 export const sponsorCardSchema = z.object({
@@ -42,7 +43,11 @@ export const newsItemSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('sponsored'), sponsor: sponsorCardSchema }),
 ]);
 
-export const newsSchema = z.array(newsItemSchema);
+/**
+ * Page du fil News : `limit` compte les posts, les cartes sponsorisées
+ * s'intercalent en plus (une après chaque bloc de trois posts).
+ */
+export const newsSchema = pageSchema(newsItemSchema);
 
 export const voteSchema = z.object({ optionId: z.string().min(1) });
 
