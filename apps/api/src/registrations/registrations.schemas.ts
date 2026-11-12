@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { pageQuerySchema, pageSchema } from '../common/pagination.js';
 import { tournamentSummarySchema } from '../public/public.schemas.js';
 
 export const playerSchema = z.object({
@@ -80,6 +81,31 @@ export const organizerRegistrationSchema = z.object({
   createdAt: z.iso.datetime({ offset: true }),
 });
 
+/** Mes équipes, plus récentes en tête (createdAt, id). */
+export const registrationPageSchema = pageSchema(registrationSchema);
+
+/** Tris du tableau des inscriptions ; « - » en tête : ordre décroissant. */
+export const ORGANIZER_REGISTRATION_SORTS = [
+  'createdAt',
+  '-createdAt',
+  'teamName',
+  '-teamName',
+] as const;
+
+/**
+ * Tableau des inscriptions (desktop) : tri et filtre de statut côté serveur,
+ * dans l'URL. Le statut filtré est celui affiché (EXPIRED comprend les
+ * paiements dont la place a expiré).
+ */
+export const organizerRegistrationsQuerySchema = pageQuerySchema.extend({
+  sort: z.enum(ORGANIZER_REGISTRATION_SORTS).default('createdAt'),
+  status: registrationStatusSchema.optional(),
+});
+
+export const organizerRegistrationPageSchema = pageSchema(
+  organizerRegistrationSchema,
+);
+
 export const paymentsStatusSchema = z.object({
   /** Paiements configurés sur la plateforme (clé Stripe). */
   available: z.boolean(),
@@ -96,4 +122,7 @@ export type Quote = z.infer<typeof quoteSchema>;
 export type RegistrationInvite = z.infer<typeof registrationInviteSchema>;
 export type RegistrationView = z.infer<typeof registrationSchema>;
 export type OrganizerRegistration = z.infer<typeof organizerRegistrationSchema>;
+export type OrganizerRegistrationsQuery = z.infer<
+  typeof organizerRegistrationsQuerySchema
+>;
 export type PaymentsStatus = z.infer<typeof paymentsStatusSchema>;

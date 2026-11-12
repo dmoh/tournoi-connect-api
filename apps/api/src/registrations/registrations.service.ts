@@ -1,7 +1,7 @@
 import {
+  BadGatewayException,
   ConflictException,
   HttpException,
-  HttpStatus,
   Inject,
   Injectable,
   Logger,
@@ -11,14 +11,27 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { AuthUser } from '../auth/auth.guard.js';
 import { Clock } from '../common/clock.js';
+import {
+  keyset,
+  takePage,
+  type Page,
+  type PageQuery,
+} from '../common/pagination.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { Registration, Tournament } from '../generated/prisma/client.js';
 import { Mailer } from '../mail/mailer.js';
-import { registrationConfirmedMail } from '../mail/templates.js';
+import {
+  registrationConfirmedMail,
+  registrationRefundedMail,
+} from '../mail/templates.js';
 import { toSummary } from '../public/public-mapping.js';
-import { StripeClient, StripeError } from '../payments/stripe-client.js';
+import {
+  CURRENCY,
+  StripeClient,
+  StripeError,
+} from '../payments/stripe-client.js';
 import {
   HOLD_MINUTES,
   registrationQuote,
@@ -27,6 +40,7 @@ import {
 } from './pricing.js';
 import type {
   OrganizerRegistration,
+  OrganizerRegistrationsQuery,
   PaymentsStatus,
   Register,
   RegistrationInvite,
@@ -36,6 +50,34 @@ import { STRIPE } from './registrations.tokens.js';
 
 type Tx = Prisma.TransactionClient;
 type StoredPlayer = { firstName: string; lastName: string; number: string };
+
+/** Événement du webhook Stripe, signature vérifiée. */
+export interface StripeEvent {
+  id: string;
+  type: string;
+  /** Création chez Stripe (secondes Unix), si fournie. */
+  created: number | null;
+  object: Record<string, unknown>;
+}
+
+/** Session Checkout payée, telle que Stripe la décrit. */
+interface PaidSession {
+  id: string;
+  paymentIntent: string | null;
+  amountTotal: unknown;
+  currency: unknown;
+  livemode: unknown;
+  /** Métadonnée « registration » posée à la création de la session. */
+  registrationId: string | null;
+}
+
+const text = (v: unknown): string | null =>
+  typeof v === 'string' && v.length > 0 ? v : null;
+
+const EURO_FORMAT = new Intl.NumberFormat('fr-FR', {
+  style: 'currency',
+  currency: 'EUR',
+});
 
 const DAY_FORMAT = new Intl.DateTimeFormat('fr-FR', {
   timeZone: 'Europe/Paris',
@@ -182,13 +224,31 @@ export class RegistrationsService {
     return this.view(registration.id, user.id);
   }
 
-  async mine(userId: string): Promise<RegistrationView[]> {
+  /** Mes équipes, plus récentes en tête, paginées sur (createdAt, id). */
+  async mine(
+    userId: string,
+    query: PageQuery,
+  ): Promise<Page<RegistrationView>> {
+    const page = keyset(
+      {
+        scope: 'registrations:mine',
+        key: 'createdAt',
+        kind: 'date',
+        direction: 'desc',
+      },
+      query,
+    );
     const rows = await this.prisma.registration.findMany({
-      where: { managerId: userId },
-      orderBy: { createdAt: 'desc' },
-      select: { id: true },
+      where: { managerId: userId, ...page.where },
+      orderBy: page.orderBy,
+      take: page.take,
+      include: { tournament: true },
     });
-    return Promise.all(rows.map((r) => this.view(r.id, userId)));
+    const result = page.finish(rows, (row) => row);
+    return {
+      items: await Promise.all(result.items.map((r) => this.toView(r))),
+      nextCursor: result.nextCursor,
+    };
   }
 
   async view(id: string, userId: string): Promise<RegistrationView> {
@@ -199,6 +259,12 @@ export class RegistrationsService {
     if (!registration) {
       throw new NotFoundException('Inscription introuvable.');
     }
+    return this.toView(registration);
+  }
+
+  private async toView(
+    registration: Registration & { tournament: Tournament },
+  ): Promise<RegistrationView> {
     const now = this.clock.now();
     const status =
       registration.status === 'PENDING_PAYMENT' &&
@@ -298,45 +364,243 @@ export class RegistrationsService {
     return this.view(id, userId);
   }
 
-  /** Paiement reçu (webhook checkout.session.completed). */
-  async confirmPayment(
-    sessionId: string,
-    paymentIntentId: string | null,
-  ): Promise<void> {
-    const confirmed = await this.prisma.$transaction(async (tx) => {
-      const registration = await tx.registration.findUnique({
-        where: { checkoutSessionId: sessionId },
+  /**
+   * Événement Stripe signé. Il est enregistré dans la même transaction que
+   * son effet : un renvoi du même identifiant (relance de Stripe, rejeu dans
+   * la fenêtre de signature) est sans effet. Les appels à Stripe et les
+   * emails partent après la validation ; s'ils échouent, l'événement est
+   * oublié pour que la relance de Stripe les refasse (clés d'idempotence).
+   */
+  async handleStripeEvent(event: StripeEvent): Promise<void> {
+    const object = event.object;
+    const objectId = text(object['id']);
+    const followUp = await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.stripeEvent.createMany({
+        data: {
+          id: event.id,
+          type: event.type,
+          objectId,
+          stripeCreatedAt:
+            event.created === null ? null : new Date(event.created * 1000),
+          receivedAt: this.clock.now(),
+        },
+        skipDuplicates: true,
       });
-      if (!registration || registration.status === 'CONFIRMED') {
+      if (count === 0 || !objectId) {
         return null;
       }
-      await tx.$queryRaw`SELECT id FROM tournament WHERE id = ${registration.tournamentId} FOR UPDATE`;
-      const tournament = await tx.tournament.findUniqueOrThrow({
-        where: { id: registration.tournamentId },
-      });
-      const updated = await tx.registration.update({
-        where: { id: registration.id },
-        data: {
-          status: 'CONFIRMED',
-          paidAt: this.clock.now(),
-          paymentIntentId,
-          checkoutUrl: null,
-        },
-      });
-      await this.createTeam(tx, tournament, updated);
-      return updated;
+      switch (event.type) {
+        case 'checkout.session.completed':
+        case 'checkout.session.async_payment_succeeded':
+          // « unpaid » : paiement différé (SEPA), son issue arrive plus tard.
+          return object['payment_status'] === 'paid'
+            ? this.settlePayment(tx, {
+                id: objectId,
+                paymentIntent: text(object['payment_intent']),
+                amountTotal: object['amount_total'],
+                currency: object['currency'],
+                livemode: object['livemode'],
+                registrationId: text(
+                  (object['metadata'] as Record<string, unknown> | undefined)?.[
+                    'registration'
+                  ],
+                ),
+              })
+            : null;
+        case 'checkout.session.expired':
+        case 'checkout.session.async_payment_failed':
+          await this.releaseHold(tx, objectId);
+          return null;
+        case 'account.updated':
+          await this.accountEvent(tx, event, objectId);
+          return null;
+        default:
+          return null;
+      }
     });
-    if (confirmed) {
-      await this.mailConfirmation(confirmed.id);
+    if (!followUp) {
+      return;
+    }
+    try {
+      await followUp();
+    } catch (error) {
+      await this.prisma.stripeEvent.deleteMany({ where: { id: event.id } });
+      throw error;
     }
   }
 
-  /** Session de paiement expirée : la place est rendue. */
-  async expireCheckout(sessionId: string): Promise<void> {
-    await this.prisma.registration.updateMany({
+  /**
+   * Paiement reçu : sous le verrou du tournoi, la place est confirmée s'il en
+   * reste une ; sinon (place reprise après expiration, inscription déjà
+   * payée, liste d'attente) le paiement est remboursé. Rend la suite à lancer
+   * après la validation.
+   */
+  private async settlePayment(
+    tx: Tx,
+    session: PaidSession,
+  ): Promise<(() => Promise<void>) | null> {
+    const found =
+      (await tx.registration.findUnique({
+        where: { checkoutSessionId: session.id },
+      })) ??
+      // Session remplacée par une reprise du paiement : l'inscription reste dans les métadonnées.
+      (session.registrationId
+        ? await tx.registration.findUnique({
+            where: { id: session.registrationId },
+          })
+        : null);
+    if (!found) {
+      this.logger.error(
+        `Alerte paiement : session ${session.id} payée sans inscription connue.`,
+      );
+      return null;
+    }
+    if (
+      session.amountTotal !== found.totalCents ||
+      session.currency !== CURRENCY ||
+      session.livemode !== this.stripe.livemode
+    ) {
+      this.logger.error(
+        `Alerte paiement : session ${session.id} (inscription ${found.id}) non confirmée, ` +
+          `reçu ${String(session.amountTotal)} ${String(session.currency)} livemode=${String(session.livemode)}, ` +
+          `attendu ${found.totalCents} ${CURRENCY} livemode=${this.stripe.livemode}.`,
+      );
+      return null;
+    }
+    await tx.$queryRaw`SELECT id FROM tournament WHERE id = ${found.tournamentId} FOR UPDATE`;
+    const tournament = await tx.tournament.findUniqueOrThrow({
+      where: { id: found.tournamentId },
+    });
+    const registration = await tx.registration.findUniqueOrThrow({
+      where: { id: found.id },
+    });
+    const now = this.clock.now();
+    const samePayment =
+      session.paymentIntent !== null &&
+      registration.paymentIntentId === session.paymentIntent;
+    if (registration.status === 'CONFIRMED' && samePayment) {
+      return null;
+    }
+    if (registration.status === 'CANCELLED' && samePayment) {
+      // Remboursement interrompu : la relance le refait (même clé d'idempotence).
+      return () => this.refund(registration, session, 'full');
+    }
+    if (
+      registration.status !== 'PENDING_PAYMENT' &&
+      registration.status !== 'EXPIRED'
+    ) {
+      this.logger.warn(
+        `Paiement ${session.id} reçu pour l'inscription ${registration.id} (${registration.status}) : remboursé.`,
+      );
+      // Déjà payée par une autre session : doublon ; liste d'attente ou annulée : pas de place.
+      return () =>
+        this.refund(
+          registration,
+          session,
+          registration.status === 'CONFIRMED' ? 'duplicate' : 'full',
+        );
+    }
+    const taken = await this.occupied(
+      tx,
+      tournament.id,
+      tournament.teamCount,
+      now,
+      registration.id,
+    );
+    if (taken >= tournament.maxTeams) {
+      const cancelled = await tx.registration.update({
+        where: { id: registration.id },
+        data: {
+          status: 'CANCELLED',
+          paidAt: now,
+          paymentIntentId: session.paymentIntent,
+          expiresAt: null,
+          checkoutUrl: null,
+        },
+      });
+      this.logger.warn(
+        `Tournoi ${tournament.slug} complet à la réception du paiement ${session.id} : inscription ${registration.id} remboursée.`,
+      );
+      return () => this.refund(cancelled, session, 'full');
+    }
+    const confirmed = await tx.registration.update({
+      where: { id: registration.id },
+      data: {
+        status: 'CONFIRMED',
+        paidAt: now,
+        paymentIntentId: session.paymentIntent,
+        expiresAt: null,
+        checkoutUrl: null,
+      },
+    });
+    await this.createTeam(tx, tournament, confirmed);
+    return () => this.mailConfirmation(confirmed.id);
+  }
+
+  /** Session expirée ou paiement différé refusé : la place est rendue. */
+  private async releaseHold(tx: Tx, sessionId: string): Promise<void> {
+    await tx.registration.updateMany({
       where: { checkoutSessionId: sessionId, status: 'PENDING_PAYMENT' },
       data: { status: 'EXPIRED', checkoutUrl: null },
     });
+  }
+
+  /** account.updated : appliqué sauf si un événement plus récent du compte l'a été. */
+  private async accountEvent(
+    tx: Tx,
+    event: StripeEvent,
+    accountId: string,
+  ): Promise<void> {
+    // Verrou du club : deux account.updated simultanés s'appliquent l'un après l'autre.
+    await tx.$queryRaw`SELECT id FROM organization WHERE stripe_account_id = ${accountId} FOR UPDATE`;
+    if (event.created !== null) {
+      const newer = await tx.stripeEvent.count({
+        where: {
+          type: 'account.updated',
+          objectId: accountId,
+          id: { not: event.id },
+          stripeCreatedAt: { gt: new Date(event.created * 1000) },
+        },
+      });
+      if (newer > 0) {
+        return;
+      }
+    }
+    await tx.organization.updateMany({
+      where: { stripeAccountId: accountId },
+      data: { stripeChargesEnabled: event.object['charges_enabled'] === true },
+    });
+  }
+
+  /** Remboursement intégral (Stripe d'abord, email ensuite). */
+  private async refund(
+    registration: Registration,
+    session: PaidSession,
+    reason: 'full' | 'duplicate',
+  ): Promise<void> {
+    if (!session.paymentIntent) {
+      this.logger.error(
+        `Alerte paiement : session ${session.id} sans paiement, remboursement manuel de l'inscription ${registration.id}.`,
+      );
+      return;
+    }
+    try {
+      await this.stripe.createRefund({
+        paymentIntent: session.paymentIntent,
+        metadata: { registration: registration.id, session: session.id },
+        idempotencyKey: `refund-${session.paymentIntent}`,
+      });
+    } catch (error) {
+      if (!(
+        error instanceof StripeError && error.code === 'charge_already_refunded'
+      )) {
+        this.logger.error(
+          `Remboursement de ${session.paymentIntent} (inscription ${registration.id}) impossible : ${(error as Error).message}`,
+        );
+        throw error;
+      }
+    }
+    await this.mailRefund(registration.id, reason);
   }
 
   /** Compte Stripe mis à jour (webhook account.updated). */
@@ -350,10 +614,16 @@ export class RegistrationsService {
     });
   }
 
+  /**
+   * Tableau des inscriptions d'un tournoi du club : tri (date d'inscription
+   * ou nom d'équipe, dans les deux sens, départagé par id) et filtre de
+   * statut côté serveur, paginé par curseur.
+   */
   async organizerRegistrations(
     organizationSlug: string,
     slug: string,
-  ): Promise<OrganizerRegistration[]> {
+    query: OrganizerRegistrationsQuery,
+  ): Promise<Page<OrganizerRegistration>> {
     const tournament = await this.prisma.tournament.findFirst({
       where: { slug, organization: { slug: organizationSlug } },
     });
@@ -361,12 +631,28 @@ export class RegistrationsService {
       throw new NotFoundException('Tournoi introuvable.');
     }
     const now = this.clock.now();
+    const direction = query.sort.startsWith('-') ? 'desc' : 'asc';
+    const key = query.sort.replace('-', '') as 'createdAt' | 'teamName';
+    const scope = `registrations:organizer:${query.sort}`;
+    const page =
+      key === 'createdAt'
+        ? keyset({ scope, key: 'createdAt', kind: 'date', direction }, query)
+        : keyset({ scope, key: 'teamName', kind: 'text', direction }, query);
     const rows = await this.prisma.registration.findMany({
-      where: { tournamentId: tournament.id },
+      where: {
+        tournamentId: tournament.id,
+        AND: [page.where, this.displayedStatus(query.status, now)],
+      },
       include: { manager: { select: { email: true } } },
-      orderBy: { createdAt: 'asc' },
+      orderBy: page.orderBy,
+      take: page.take,
     });
-    return rows.map((r) => ({
+    const { rows: kept, nextCursor } = takePage(
+      rows,
+      query.limit,
+      page.cursorOf,
+    );
+    const items = kept.map((r): OrganizerRegistration => ({
       id: r.id,
       teamName: r.teamName,
       club: r.club,
@@ -381,6 +667,34 @@ export class RegistrationsService {
       totalCents: r.totalCents,
       createdAt: r.createdAt.toISOString(),
     }));
+    return { items, nextCursor };
+  }
+
+  /**
+   * Filtre du statut affiché : une place tenue dont le paiement a expiré
+   * s'affiche EXPIRED avant que la tâche de maintenance ne l'écrive.
+   */
+  private displayedStatus(
+    status: OrganizerRegistrationsQuery['status'],
+    now: Date,
+  ): Prisma.RegistrationWhereInput {
+    const lapsed = {
+      status: 'PENDING_PAYMENT' as const,
+      expiresAt: { lte: now },
+    };
+    switch (status) {
+      case undefined:
+        return {};
+      case 'EXPIRED':
+        return { OR: [{ status: 'EXPIRED' }, lapsed] };
+      case 'PENDING_PAYMENT':
+        return {
+          status: 'PENDING_PAYMENT',
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        };
+      default:
+        return { status };
+    }
   }
 
   async paymentsStatus(organizationSlug: string): Promise<PaymentsStatus> {
@@ -505,18 +819,20 @@ export class RegistrationsService {
     }
   }
 
-  /** Places prises : équipes inscrites et paiements en cours non expirés. */
+  /** Places prises : équipes inscrites et paiements en cours non expirés (sauf `excludeId`). */
   private async occupied(
     db: Tx | PrismaService,
     tournamentId: string,
     teamCount: number,
     now: Date,
+    excludeId?: string,
   ): Promise<number> {
     const holding = await db.registration.count({
       where: {
         tournamentId,
         status: 'PENDING_PAYMENT',
         expiresAt: { gt: now },
+        ...(excludeId ? { id: { not: excludeId } } : {}),
       },
     });
     return teamCount + holding;
@@ -605,16 +921,39 @@ export class RegistrationsService {
     );
   }
 
-  private stripeFailure(error: unknown): HttpException {
-    if (error instanceof StripeError) {
-      return new HttpException(
-        `Paiement indisponible : ${error.message}`,
-        error.status === 503
-          ? HttpStatus.SERVICE_UNAVAILABLE
-          : HttpStatus.BAD_GATEWAY,
-      );
+  private async mailRefund(
+    registrationId: string,
+    reason: 'full' | 'duplicate',
+  ): Promise<void> {
+    const registration = await this.prisma.registration.findUniqueOrThrow({
+      where: { id: registrationId },
+      include: { tournament: true, manager: true },
+    });
+    if (!registration.manager) {
+      return;
     }
-    return new HttpException('Paiement indisponible.', HttpStatus.BAD_GATEWAY);
+    await this.mailer.send(
+      registrationRefundedMail(registration.manager.email, {
+        team: registration.teamName,
+        tournament: registration.tournament.name,
+        amount: EURO_FORMAT.format(registration.totalCents / 100),
+        reason,
+      }),
+    );
+  }
+
+  /** Le détail de Stripe reste dans le journal ; le client lit un message générique. */
+  private stripeFailure(error: unknown): HttpException {
+    const detail =
+      error instanceof StripeError
+        ? `${error.status} ${error.code ?? ''} ${error.message}`
+        : String(error);
+    this.logger.error(`Appel Stripe en échec : ${detail}`);
+    const message =
+      'Le paiement en ligne est momentanément indisponible. Réessayez dans quelques minutes.';
+    return error instanceof StripeError && error.status === 503
+      ? new ServiceUnavailableException(message)
+      : new BadGatewayException(message);
   }
 
   private appUrl(path: string): string {

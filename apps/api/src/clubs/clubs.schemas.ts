@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { pageSchema } from '../common/pagination.js';
 
 const role = z.enum(['OWNER', 'ADMIN', 'STAFF']);
 const email = z.string().trim().toLowerCase().pipe(z.email().max(254));
@@ -27,7 +28,16 @@ export const pendingInvitationSchema = z.object({
   invitedBy: z.string().nullable(),
 });
 
-export const membersSchema = z.object({
+/** Invitations en attente rendues avec les membres (les plus récentes). */
+export const MAX_PENDING_INVITATIONS = 50;
+
+/**
+ * Écran des membres : une page de membres (`items`, `nextCursor`, triés par
+ * rôle — propriétaires, admins, bénévoles — puis date d'arrivée et id),
+ * avec le club, le rôle de la personne connectée et les invitations en
+ * attente (les 50 plus récentes, identiques à chaque page).
+ */
+export const membersSchema = pageSchema(memberSchema).extend({
   organization: z.object({
     slug: z.string(),
     name: z.string(),
@@ -35,7 +45,6 @@ export const membersSchema = z.object({
   }),
   /** Rôle de la personne connectée dans ce club. */
   yourRole: role,
-  members: z.array(memberSchema),
   invitations: z.array(pendingInvitationSchema),
 });
 

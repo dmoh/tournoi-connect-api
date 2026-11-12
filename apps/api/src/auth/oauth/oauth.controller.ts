@@ -16,6 +16,7 @@ import { ApiExcludeController } from '@nestjs/swagger';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { SignJWT, jwtVerify } from 'jose';
 import { Clock } from '../../common/clock.js';
+import { RateLimited } from '../../common/rate-limit.js';
 import type { Env } from '../../config/env.js';
 import { AuthKeys, SESSION_TTL_MS } from '../auth-keys.js';
 import { AuthService } from '../auth.service.js';
@@ -68,6 +69,7 @@ export class OAuthController {
   ) {}
 
   @Get(':provider/start')
+  @RateLimited('oauth')
   async start(
     @Param('provider') raw: string,
     @Query('returnTo') returnTo: unknown,
@@ -104,6 +106,7 @@ export class OAuthController {
   }
 
   @Get(':provider/callback')
+  @RateLimited('oauth')
   callbackGet(
     @Param('provider') raw: string,
     @Query() query: Record<string, unknown>,
@@ -114,6 +117,7 @@ export class OAuthController {
   }
 
   @Post(':provider/callback')
+  @RateLimited('oauth')
   @HttpCode(302)
   callbackPost(
     @Param('provider') raw: string,

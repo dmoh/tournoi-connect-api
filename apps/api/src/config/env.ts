@@ -5,11 +5,24 @@ const optional = () => z.preprocess(empty, z.string().min(1).optional());
 const optionalSecret = (min: number) =>
   z.preprocess(empty, z.string().min(min).optional());
 
-/**
- * Variables d'environnement validées au démarrage : l'application refuse de
- * démarrer si l'une d'elles manque ou est mal formée.
- */
-export const envSchema = z.object({
+/** Origine de la PWA de production : aucun compte de test n'y est permis. */
+export const PRODUCTION_APP_ORIGIN = 'https://app.tournoi-connect.com';
+
+// URL.parse : null si PUBLIC_APP_URL est mal formée (erreur déjà signalée).
+const isProductionApp = (url: string) =>
+  URL.parse(url)?.origin === PRODUCTION_APP_ORIGIN;
+
+/** PWA servie en https hors du poste local (préprod, prod). */
+const isPublicHttps = (url: string) => {
+  const parsed = URL.parse(url);
+  return (
+    parsed?.protocol === 'https:' &&
+    !['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname) &&
+    !parsed.hostname.endsWith('.localhost')
+  );
+};
+
+const envVariables = z.object({
   NODE_ENV: z
     .enum(['development', 'test', 'production'])
     .default('development'),
@@ -26,7 +39,7 @@ export const envSchema = z.object({
   /**
    * Préprod uniquement : code fixe à 6 chiffres des comptes de test
    * (adresses @example.org de seedDemo, qui ne reçoivent pas d'email).
-   * Jamais en production.
+   * Ignoré sans ALLOW_TEST_ACCOUNTS=true ; refusé au démarrage en production.
    */
   TEST_ACCOUNTS_CODE: z.preprocess(
     empty,
@@ -34,6 +47,11 @@ export const envSchema = z.object({
       .string()
       .regex(/^\d{6}$/, 'TEST_ACCOUNTS_CODE compte 6 chiffres.')
       .optional(),
+  ),
+  /** Active le code fixe des comptes de test (préprod) : « true » seulement. */
+  ALLOW_TEST_ACCOUNTS: z.preprocess(
+    empty,
+    z.enum(['true', 'false']).optional(),
   ),
   /**
    * Paiements des inscriptions (Stripe Connect). Sans clé, une inscription
@@ -48,7 +66,11 @@ export const envSchema = z.object({
    */
   VAPID_PUBLIC_KEY: optional(),
   VAPID_PRIVATE_KEY: optionalSecret(40),
-  /** Envoi des emails : SES en préprod et en prod, journal sinon. */
+  /**
+   * Envoi des emails : SES en préprod et en prod, journal sur le poste local
+   * (refusé quand la PWA est en https hors localhost : codes et liens
+   * finiraient dans les journaux).
+   */
   MAIL_TRANSPORT: z.enum(['ses', 'log']).default('log'),
   MAIL_FROM: z
     .string()
@@ -69,6 +91,48 @@ export const envSchema = z.object({
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
     .default('info'),
 });
+
+/**
+ * Variables d'environnement validées au démarrage : l'application refuse de
+ * démarrer si l'une d'elles manque ou est mal formée, ou si la combinaison est
+ * dangereuse (comptes de test en production, emails au journal en ligne).
+ */
+export const envSchema = envVariables
+  .superRefine((env, ctx) => {
+    if (
+      isProductionApp(env.PUBLIC_APP_URL) &&
+      (env.TEST_ACCOUNTS_CODE !== undefined ||
+        env.ALLOW_TEST_ACCOUNTS !== undefined)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['TEST_ACCOUNTS_CODE'],
+        message:
+          'TEST_ACCOUNTS_CODE et ALLOW_TEST_ACCOUNTS sont interdits en production.',
+      });
+    }
+    if (env.ALLOW_TEST_ACCOUNTS === 'true' && !env.TEST_ACCOUNTS_CODE) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['ALLOW_TEST_ACCOUNTS'],
+        message: 'ALLOW_TEST_ACCOUNTS=true exige TEST_ACCOUNTS_CODE.',
+      });
+    }
+    if (env.MAIL_TRANSPORT === 'log' && isPublicHttps(env.PUBLIC_APP_URL)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['MAIL_TRANSPORT'],
+        message:
+          'MAIL_TRANSPORT=log est réservé au poste local : choisir ses (PWA en https).',
+      });
+    }
+  })
+  // Sans le drapeau explicite, le code fixe ne sert à rien.
+  .transform((env) => ({
+    ...env,
+    TEST_ACCOUNTS_CODE:
+      env.ALLOW_TEST_ACCOUNTS === 'true' ? env.TEST_ACCOUNTS_CODE : undefined,
+  }));
 
 export type Env = z.infer<typeof envSchema>;
 

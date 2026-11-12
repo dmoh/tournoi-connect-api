@@ -98,6 +98,7 @@ model Organization {
   sponsors             Sponsor[]
   members              Membership[]
   invitations          Invitation[]
+  reporterLinks        ReporterLink[]
   /// Compte Stripe Connect (Express) du club : les inscriptions lui sont versées.
   stripeAccountId      String?         @unique @map("stripe_account_id")
   /// Paiements acceptés par Stripe (vérification du club terminée).
@@ -159,6 +160,8 @@ model Tournament {
 
   @@index([status, startsAt])
   @@index([organizationId])
+  /// Écran 01 paginé : (startsAt, id) dans le club.
+  @@index([organizationId, startsAt, id])
   @@map("tournament")
 }
 
@@ -213,6 +216,7 @@ model Match {
   version         Int             @default(0)
   events          MatchEvent[]
   reactions       MatchReaction[]
+  reporterLinks   ReporterLink[]
 
   @@unique([tournamentId, code])
   @@index([tournamentId, startsAt])
@@ -265,6 +269,26 @@ model MatchEvent {
   @@map("match_event")
 }
 
+/// Lien de la table de marque : son identifiant est signé dans le jeton ; il
+/// se révoque (match, membre retiré du club) et expire au bout de 24 heures.
+model ReporterLink {
+  id             String       @id @default(cuid(2))
+  matchId        String       @map("match_id")
+  match          Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Membre qui l'a émis ; la suppression de son compte supprime ses liens.
+  issuedById     String       @map("issued_by_id")
+  issuedBy       User         @relation(fields: [issuedById], references: [id], onDelete: Cascade)
+  expiresAt      DateTime     @map("expires_at") @db.Timestamptz
+  revokedAt      DateTime?    @map("revoked_at") @db.Timestamptz
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([matchId])
+  @@index([issuedById, organizationId])
+  @@map("reporter_link")
+}
+
 /// Réaction anonyme d'un spectateur : une par appareil et par emoji.
 model MatchReaction {
   matchId   String       @map("match_id")
@@ -289,6 +313,8 @@ model Post {
   options      PollOption[]
 
   @@index([tournamentId, publishedAt])
+  /// Fil News paginé : (publishedAt, id) décroissants.
+  @@index([tournamentId, publishedAt, id])
   @@map("post")
 }
 
@@ -410,6 +436,8 @@ model User {
   registrations     Registration[]
   follows           Follow[]
   pushSubscriptions PushSubscription[]
+  idempotencyKeys   IdempotencyKey[]
+  reporterLinks     ReporterLink[]
 
   @@map("app_user")
 }
@@ -469,6 +497,8 @@ model Membership {
 
   @@id([userId, organizationId])
   @@index([organizationId])
+  /// Écran des membres paginé : (rôle, arrivée, compte).
+  @@index([organizationId, role, createdAt, userId])
   @@map("membership")
 }
 
@@ -503,6 +533,8 @@ model Invitation {
 
   @@index([organizationId])
   @@index([email])
+  /// Invitations en attente, les plus récentes d'abord.
+  @@index([organizationId, createdAt])
   @@map("invitation")
 }
 
@@ -549,6 +581,11 @@ model Registration {
 
   @@index([tournamentId, status])
   @@index([managerId])
+  /// Mes équipes paginées : (createdAt, id) décroissants.
+  @@index([managerId, createdAt, id])
+  /// Tableau organisateur : tri par date ou par nom d'équipe, puis id.
+  @@index([tournamentId, createdAt, id])
+  @@index([tournamentId, teamName, id])
   @@map("registration")
 }
 
@@ -590,5 +627,47 @@ model PushSubscription {
   lastSentAt  DateTime? @map("last_sent_at") @db.Timestamptz
 
   @@index([userId])
+  /// Ciblage des notifications (`has`, `hasSome` sur les tableaux).
+  @@index([tournaments], type: Gin)
+  @@index([teams], type: Gin)
   @@map("push_subscription")
+}
+
+/// Écriture rejouable par sa clé Idempotency-Key pendant 24 heures : même
+/// compte, même portée et même clé rendent la réponse enregistrée. La
+/// contrainte unique fait qu'une seule requête s'exécute ; une ligne sans
+/// statut est une requête encore en cours.
+model IdempotencyKey {
+  id          String   @id @default(cuid(2))
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Club, méthode et chemin : « etoile-de-l-arve POST /api/v1/organizer/tournaments ».
+  scope       String
+  key         String
+  /// SHA-256 du corps de la requête : la même clé sur un autre corps est refusée.
+  fingerprint String
+  /// Statut HTTP de la réponse ; vide tant que la requête est en cours.
+  status      Int?
+  response    Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([userId, scope, key])
+  @@index([createdAt])
+  @@map("idempotency_key")
+}
+
+/// Événement Stripe (webhook) déjà traité : un renvoi du même identifiant
+/// est sans effet, et un account.updated plus ancien n'écrase pas l'état.
+model StripeEvent {
+  /// Identifiant Stripe de l'événement (evt_…).
+  id              String    @id
+  type            String
+  /// Objet concerné (compte, session) : ordre des account.updated.
+  objectId        String?   @map("object_id")
+  /// Date de création de l'événement chez Stripe (champ created).
+  stripeCreatedAt DateTime? @map("stripe_created_at") @db.Timestamptz
+  receivedAt      DateTime  @default(now()) @map("received_at") @db.Timestamptz
+
+  @@index([objectId, type])
+  @@map("stripe_event")
 }

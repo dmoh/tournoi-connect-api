@@ -6,8 +6,10 @@ import {
   Headers,
   HttpCode,
   Inject,
+  Logger,
   Param,
   Post,
+  Query,
   Req,
   UnauthorizedException,
   UseGuards,
@@ -34,6 +36,12 @@ import { z } from 'zod';
 import { AuthGuard, CurrentUser, type AuthUser } from '../auth/auth.guard.js';
 import { Clock } from '../common/clock.js';
 import { openApi } from '../common/openapi-schema.js';
+import {
+  pageQuerySchema,
+  type Page,
+  type PageQuery,
+} from '../common/pagination.js';
+import { RateLimited } from '../common/rate-limit.js';
 import type { Env } from '../config/env.js';
 import {
   OrganizerGuard,
@@ -43,12 +51,15 @@ import {
 import { verifyStripeSignature } from '../payments/stripe-signature.js';
 import {
   onboardingSchema,
-  organizerRegistrationSchema,
+  organizerRegistrationPageSchema,
+  organizerRegistrationsQuerySchema,
   paymentsStatusSchema,
   registerSchema,
   registrationInviteSchema,
+  registrationPageSchema,
   registrationSchema,
   type OrganizerRegistration,
+  type OrganizerRegistrationsQuery,
   type PaymentsStatus,
   type Register,
   type RegistrationInvite,
@@ -57,6 +68,14 @@ import {
 import { RegistrationsService } from './registrations.service.js';
 
 const IDEMPOTENCY = /^[\w-]{8,100}$/;
+
+/** Enveloppe d'un événement Stripe ; l'objet est lu par type dans le service. */
+const stripeEventSchema = z.object({
+  id: z.string().min(1).max(255),
+  type: z.string().min(1).max(255),
+  created: z.number().int().optional(),
+  data: z.object({ object: z.record(z.string(), z.unknown()) }),
+});
 
 /** Lien d'inscription d'un tournoi, lisible sans connexion. */
 @ApiTags('registrations')
@@ -85,6 +104,7 @@ export class RegistrationsController {
   constructor(private readonly registrations: RegistrationsService) {}
 
   @Post('tournaments/:code/registrations')
+  @RateLimited('registration')
   @ApiOperation({
     summary:
       'Inscrire son équipe : confirmée (gratuit), en attente de paiement (Stripe Checkout) ou en liste d’attente',
@@ -112,9 +132,13 @@ export class RegistrationsController {
   @ApiOperation({
     summary: 'Mes équipes : mes inscriptions, plus récentes en tête',
   })
-  @ApiOkResponse({ schema: openApi(z.array(registrationSchema)) })
-  mine(@CurrentUser() user: AuthUser): Promise<RegistrationView[]> {
-    return this.registrations.mine(user.id);
+  @ApiOkResponse({ schema: openApi(registrationPageSchema) })
+  @ApiBadRequestResponse({ description: 'Limite ou curseur invalide' })
+  mine(
+    @CurrentUser() user: AuthUser,
+    @Query({ schema: pageQuerySchema }) query: PageQuery,
+  ): Promise<Page<RegistrationView>> {
+    return this.registrations.mine(user.id, query);
   }
 
   @Get('registrations/:id')
@@ -146,6 +170,8 @@ export class RegistrationsController {
 /** Événements Stripe, authentifiés par la signature du corps brut. */
 @Controller('payments/stripe')
 export class StripeWebhookController {
+  private readonly logger = new Logger('Stripe');
+
   constructor(
     private readonly registrations: RegistrationsService,
     private readonly config: ConfigService<Env, true>,
@@ -161,44 +187,32 @@ export class StripeWebhookController {
   ): Promise<{ received: true }> {
     const secret = this.config.get('STRIPE_WEBHOOK_SECRET', { infer: true });
     const raw = req.rawBody?.toString('utf8') ?? '';
+    if (!secret) {
+      this.logger.error('Webhook reçu sans STRIPE_WEBHOOK_SECRET : refusé.');
+    }
     if (
       !secret ||
       !verifyStripeSignature(raw, signature, secret, this.clock.now())
     ) {
       throw new UnauthorizedException('Signature Stripe invalide.');
     }
-    const event = JSON.parse(raw) as {
-      type: string;
-      data: { object: Record<string, unknown> };
-    };
-    const object = event.data.object;
-    const text = (v: unknown) => (typeof v === 'string' ? v : null);
-    switch (event.type) {
-      case 'checkout.session.completed':
-      case 'checkout.session.async_payment_succeeded':
-        if (object['payment_status'] === 'paid' && text(object['id'])) {
-          await this.registrations.confirmPayment(
-            text(object['id'])!,
-            text(object['payment_intent']),
-          );
-        }
-        break;
-      case 'checkout.session.expired':
-        if (text(object['id'])) {
-          await this.registrations.expireCheckout(text(object['id'])!);
-        }
-        break;
-      case 'account.updated':
-        if (text(object['id'])) {
-          await this.registrations.accountUpdated(
-            text(object['id'])!,
-            object['charges_enabled'] === true,
-          );
-        }
-        break;
-      default:
-        break;
+    let event: unknown;
+    try {
+      event = JSON.parse(raw);
+    } catch {
+      throw new BadRequestException('Événement Stripe illisible.');
     }
+    const parsed = stripeEventSchema.safeParse(event);
+    if (!parsed.success) {
+      throw new BadRequestException('Événement Stripe illisible.');
+    }
+    // Types non gérés : acceptés (200) sans effet, Stripe ne les renvoie pas.
+    await this.registrations.handleStripeEvent({
+      id: parsed.data.id,
+      type: parsed.data.type,
+      created: parsed.data.created ?? null,
+      object: parsed.data.data.object,
+    });
     return { received: true };
   }
 }
@@ -221,16 +235,25 @@ export class OrganizerRegistrationsController {
   ) {}
 
   @Get('tournaments/:slug/registrations')
-  @ApiOperation({ summary: 'Inscriptions d’un tournoi du club' })
-  @ApiOkResponse({ schema: openApi(z.array(organizerRegistrationSchema)) })
+  @ApiOperation({
+    summary:
+      'Inscriptions d’un tournoi du club : tri, filtre de statut, pagination',
+  })
+  @ApiOkResponse({ schema: openApi(organizerRegistrationPageSchema) })
+  @ApiBadRequestResponse({
+    description: 'Tri, statut, limite ou curseur invalide',
+  })
   @ApiNotFoundResponse({ description: 'Tournoi hors du club' })
   list(
     @Req() req: OrganizerRequest,
     @Param('slug') slug: string,
-  ): Promise<OrganizerRegistration[]> {
+    @Query({ schema: organizerRegistrationsQuerySchema })
+    query: OrganizerRegistrationsQuery,
+  ): Promise<Page<OrganizerRegistration>> {
     return this.registrations.organizerRegistrations(
       req.organizationSlug!,
       slug,
+      query,
     );
   }
 

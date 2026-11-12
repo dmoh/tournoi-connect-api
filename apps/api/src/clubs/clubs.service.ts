@@ -11,14 +11,25 @@ import type { AuthUser } from '../auth/auth.guard.js';
 import type { Me } from '../auth/auth.schemas.js';
 import { AuthService } from '../auth/auth.service.js';
 import { Clock } from '../common/clock.js';
+import {
+  DEFAULT_PAGE_SIZE,
+  decodeCursor,
+  encodeCursor,
+  seekAfter,
+  takePage,
+  type PageQuery,
+} from '../common/pagination.js';
+import { insertWithUniqueSlug, slugify } from '../common/slug.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type { MemberRole } from '../generated/prisma/enums.js';
 import { Mailer } from '../mail/mailer.js';
 import { invitationMail } from '../mail/templates.js';
-import { slugify } from '../organizer/organizer.service.js';
-import type {
-  CreateClub,
+import { revokeLinksIssuedBy } from '../reporter/reporter-link.js';
+import { z } from 'zod';
+import {
+  MAX_PENDING_INVITATIONS,
+  type CreateClub,
   InviteMember,
   Members,
   PublicInvitation,
@@ -34,6 +45,13 @@ import {
 } from './invitation-token.js';
 
 const RANK: Record<MemberRole, number> = { STAFF: 1, ADMIN: 2, OWNER: 3 };
+/** Ordre de l'écran des membres (celui de l'enum en base). */
+const ROLE_ORDER: MemberRole[] = ['OWNER', 'ADMIN', 'STAFF'];
+const membersCursor = z.tuple([
+  z.enum(['OWNER', 'ADMIN', 'STAFF']),
+  z.iso.datetime({ offset: true }).transform((v) => new Date(v)),
+  z.string().min(1).max(64),
+]);
 const fullName = (u: { firstName: string | null; lastName: string | null }) =>
   [u.firstName, u.lastName].filter(Boolean).join(' ') || null;
 
@@ -62,40 +80,65 @@ export class ClubsService {
       );
     }
     const base = slugify(input.name) || 'club';
-    const taken = new Set(
-      (
-        await this.prisma.organization.findMany({
-          where: { slug: { startsWith: base } },
-          select: { slug: true },
-        })
-      ).map((o) => o.slug),
-    );
-    let slug = base;
-    for (let n = 2; taken.has(slug); n += 1) {
-      slug = `${base}-${n}`;
-    }
-    await this.prisma.organization.create({
-      data: {
-        slug,
-        name: input.name,
-        city: input.city ?? null,
-        members: { create: { userId: user.id, role: 'OWNER' } },
-      },
+    const taken = await this.prisma.organization.findMany({
+      where: { slug: { startsWith: base } },
+      select: { slug: true },
     });
+    await insertWithUniqueSlug(
+      base,
+      taken.map((o) => o.slug),
+      (slug) =>
+        this.prisma.organization.create({
+          data: {
+            slug,
+            name: input.name,
+            city: input.city ?? null,
+            members: { create: { userId: user.id, role: 'OWNER' } },
+          },
+        }),
+    );
     return this.auth.me(user.id);
   }
 
+  /**
+   * Une page de membres, triés par rôle (propriétaires d'abord), date
+   * d'arrivée puis id, avec les invitations en attente. Les écritures
+   * (invitation, changement de rôle) rendent la première page.
+   */
   async members(
     slug: string,
     user: AuthUser,
     yourRole: MemberRole,
+    query: PageQuery = { limit: DEFAULT_PAGE_SIZE },
   ): Promise<Members> {
+    const after = query.cursor
+      ? decodeCursor(query.cursor, 'members', membersCursor)
+      : null;
+    // Après (rôle, date, id) : rôle suivant, ou même rôle et (date, id) après.
+    const seek = after
+      ? {
+          OR: [
+            {
+              role: { in: ROLE_ORDER.slice(ROLE_ORDER.indexOf(after[0]) + 1) },
+            },
+            {
+              role: after[0],
+              ...seekAfter('createdAt', 'userId', 'asc', {
+                value: after[1],
+                id: after[2],
+              }),
+            },
+          ],
+        }
+      : {};
     const organization = await this.prisma.organization.findUniqueOrThrow({
       where: { slug },
       include: {
         members: {
+          where: seek,
           include: { user: true },
-          orderBy: { createdAt: 'asc' },
+          orderBy: [{ role: 'asc' }, { createdAt: 'asc' }, { userId: 'asc' }],
+          take: query.limit + 1,
         },
         invitations: {
           where: {
@@ -104,10 +147,14 @@ export class ClubsService {
             expiresAt: { gt: this.clock.now() },
           },
           include: { invitedBy: true },
-          orderBy: { createdAt: 'desc' },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: MAX_PENDING_INVITATIONS,
         },
       },
     });
+    const page = takePage(organization.members, query.limit, (m) =>
+      encodeCursor('members', [m.role, m.createdAt.toISOString(), m.userId]),
+    );
     return {
       organization: {
         slug: organization.slug,
@@ -115,17 +162,16 @@ export class ClubsService {
         city: organization.city,
       },
       yourRole,
-      members: organization.members
-        .map((m) => ({
-          userId: m.userId,
-          firstName: m.user.firstName,
-          lastName: m.user.lastName,
-          email: m.user.email,
-          role: m.role,
-          joinedAt: m.createdAt.toISOString(),
-          you: m.userId === user.id,
-        }))
-        .sort((a, b) => RANK[b.role] - RANK[a.role]),
+      items: page.rows.map((m) => ({
+        userId: m.userId,
+        firstName: m.user.firstName,
+        lastName: m.user.lastName,
+        email: m.user.email,
+        role: m.role,
+        joinedAt: m.createdAt.toISOString(),
+        you: m.userId === user.id,
+      })),
+      nextCursor: page.nextCursor,
       invitations: organization.invitations.map((i) => ({
         id: i.id,
         email: i.email,
@@ -271,13 +317,22 @@ export class ClubsService {
     if (membership.role === 'OWNER') {
       await this.keepAnOwner(membership.organizationId);
     }
-    await this.prisma.membership.delete({
-      where: {
-        userId_organizationId: {
-          userId,
-          organizationId: membership.organizationId,
+    // Ses liens de table de marque cessent de fonctionner avec son départ.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.membership.delete({
+        where: {
+          userId_organizationId: {
+            userId,
+            organizationId: membership.organizationId,
+          },
         },
-      },
+      });
+      await revokeLinksIssuedBy(
+        tx,
+        userId,
+        membership.organizationId,
+        this.clock.now(),
+      );
     });
   }
 

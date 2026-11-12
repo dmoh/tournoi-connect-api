@@ -68,7 +68,9 @@ Créés par `seedDemo` (poste local, tests e2e, préprod). Connexion par code :
 - **en local**, le code s'affiche dans le journal de l'API (`MAIL_TRANSPORT=log`) ;
 - **en préprod**, aucun email ne part vers ces adresses ; le code fixe se lit dans SSM :
   `aws ssm get-parameter --with-decryption --name /tournoi-connect/preprod/TEST_ACCOUNTS_CODE --query Parameter.Value --output text`.
-  Il faut toujours demander un code avant de le saisir, et les limites (5 essais, 5 codes par heure) s'appliquent.
+  Il faut toujours demander un code avant de le saisir, et les limites (5 essais par code, 5 codes par heure, 20 essais ratés par adresse sur 24 heures) s'appliquent.
+
+Le code fixe n'est actif qu'avec `ALLOW_TEST_ACCOUNTS=true` (posé par Terraform en préprod, avec `seed_demo`) ; sans ce drapeau, `TEST_ACCOUNTS_CODE` est ignoré et les comptes de test reçoivent un code ordinaire. L'API refuse de démarrer si `TEST_ACCOUNTS_CODE` ou `ALLOW_TEST_ACCOUNTS` est renseigné avec `PUBLIC_APP_URL=https://app.tournoi-connect.com`, et si `MAIL_TRANSPORT=log` (valeur par défaut) est gardé avec une PWA en https hors localhost.
 
 | Adresse                  | Personne       | Rôle                                                                           |
 | ------------------------ | -------------- | ------------------------------------------------------------------------------ |
@@ -86,41 +88,96 @@ Toute autre adresse crée un compte neuf au premier code (prénom et nom demand�
 
 Préfixe `/api/v1` ; détail et schémas dans Swagger (`/api/docs`) et `apps/api/openapi.json`.
 
-| Route                                            | Accès        | Rôle                                                               |
-| ------------------------------------------------ | ------------ | ------------------------------------------------------------------ |
-| `GET /health/live`, `GET /health/ready`          | public       | sondes (ready vérifie Postgres)                                    |
-| `GET /public/tournaments?lat&lng&radiusKm&sport` | public       | tournois en cours ou à venir dans le rayon, par distance puis date |
-| `GET /public/tournaments/:slug`                  | public       | page publique : équipes, matchs, classements (moteur)              |
-| `GET /public/tournaments/:slug/news`             | public       | fil News, une carte sponsorisée au plus pour quatre éléments       |
-| `GET /public/tournaments/:slug/sponsors`         | public       | bannière Or, bandeau partagé (6 au plus), sponsors de terrain      |
-| `POST /public/posts/:postId/votes`               | public       | vote à un sondage                                                  |
-| `POST /public/audience`                          | public       | impression ou clic d'un sponsor, cumulé par heure                  |
-| `PUT /organizer/tournaments/:slug/schedule`      | admin        | publier le planning (terrain et heure des matchs à venir)          |
-| `GET /public/registrations/:code`                | public       | lien d'inscription : prix avec frais, places, paiements du club    |
-| `POST /tournaments/:code/registrations`          | connecté     | inscrire son équipe (Idempotency-Key) : payée, gratuite ou attente |
-| `GET /registrations`, `GET /registrations/:id`   | connecté     | mes équipes (responsable d'équipe)                                 |
-| `POST /registrations/:id/checkout`               | connecté     | reprendre un paiement expiré, s'il reste une place                 |
-| `POST /payments/stripe/webhook`                  | Stripe       | paiement reçu ou expiré, compte du club validé (signature)         |
-| `GET /organizer/tournaments/:slug/registrations` | admin        | inscriptions d'un tournoi du club                                  |
-| `GET /organizer/payments`                        | admin        | paiements en ligne du club (Stripe Connect)                        |
-| `POST /organizer/payments/onboarding`            | propriétaire | lien d'activation des paiements (vérification Stripe)              |
-| `GET /push/config`                               | public       | clé publique VAPID (null sans notifications)                       |
-| `PUT /push/subscriptions`                        | public       | abonner ce navigateur (suivis, préférences ; compte si connecté)   |
-| `POST /push/subscriptions/delete`                | public       | désabonner ce navigateur                                           |
-| `GET`, `PUT /me/follows`                         | connecté     | suivis du compte (tournois, équipes « slug/code »)                 |
-| `POST /me/follows/merge`                         | connecté     | ajouter les suivis de l'appareil à ceux du compte                  |
-| `POST /clubs`                                    | connecté     | créer un club (on en devient propriétaire)                         |
-| `GET /organizer/members`                         | bénévole     | membres du club et invitations en attente                          |
-| `POST /organizer/invitations`                    | admin        | inviter par email (lien de 7 jours, réservé à l'adresse)           |
-| `DELETE /organizer/invitations/:id`              | admin        | annuler une invitation                                             |
-| `PATCH /organizer/members/:userId`               | propriétaire | changer un rôle (toujours un propriétaire au moins)                |
-| `DELETE /organizer/members/:userId`              | bénévole     | quitter le club, ou retirer un membre de rôle inférieur            |
-| `GET /invitations/:token`                        | public       | invitation lue par son lien (adresse masquée)                      |
-| `POST /invitations/:token/accept`                | connecté     | rejoindre le club, avec le compte de l'adresse invitée             |
-| `GET /organizer/tournaments/:slug/sponsors`      | organisateur | packs, sponsors et audience, prospects du club                     |
-| `POST /organizer/tournaments/:slug/sponsors`     | organisateur | inviter un sponsor (pack épuisé : 409)                             |
-| `PATCH /organizer/tournament-sponsors/:id`       | organisateur | marquer payé hors Stripe                                           |
-| `POST /organizer/tournaments/:slug/posts`        | organisateur | publier une annonce ou un sondage                                  |
+| Route                                                                     | Accès        | Rôle                                                                     |
+| ------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------ |
+| `GET /health/live`, `GET /health/ready`                                   | public       | sondes (ready vérifie Postgres)                                          |
+| `GET /public/tournaments?lat&lng&radiusKm&sport&cursor&limit`             | public       | tournois en cours ou à venir dans le rayon, paginés (distance, date, id) |
+| `GET /public/tournaments/:slug`                                           | public       | page publique : équipes, matchs, classements (moteur)                    |
+| `GET /public/tournaments/:slug/matches?day`                               | public       | matchs d'une journée de Paris, par créneau puis phase ; journées         |
+| `GET /public/tournaments/:slug/news?cursor&limit`                         | public       | fil News paginé, une carte sponsorisée au plus pour quatre éléments      |
+| `GET /public/tournaments/:slug/sponsors`                                  | public       | bannière Or, bandeau partagé (6 au plus), sponsors de terrain            |
+| `POST /public/posts/:postId/votes`                                        | public       | vote à un sondage                                                        |
+| `POST /public/audience`                                                   | public       | impression ou clic d'un sponsor, cumulé par heure                        |
+| `PUT /organizer/tournaments/:slug/schedule`                               | admin        | publier le planning (terrain et heure des matchs à venir)                |
+| `DELETE /organizer/tournaments/:slug/matches/:matchId/reporter-links`     | bénévole     | révoquer les liens de la table de marque d'un match                      |
+| `GET /public/registrations/:code`                                         | public       | lien d'inscription : prix avec frais, places, paiements du club          |
+| `POST /tournaments/:code/registrations`                                   | connecté     | inscrire son équipe (Idempotency-Key) : payée, gratuite ou attente       |
+| `GET /registrations?cursor&limit`, `GET /registrations/:id`               | connecté     | mes équipes (responsable d'équipe), paginées                             |
+| `POST /registrations/:id/checkout`                                        | connecté     | reprendre un paiement expiré, s'il reste une place                       |
+| `POST /payments/stripe/webhook`                                           | Stripe       | paiement confirmé ou remboursé, expiré, compte validé (signature)        |
+| `GET /organizer/tournaments/:slug/registrations?cursor&limit&sort&status` | admin        | inscriptions d'un tournoi du club : tri, filtre de statut, paginées      |
+| `GET /organizer/payments`                                                 | admin        | paiements en ligne du club (Stripe Connect)                              |
+| `POST /organizer/payments/onboarding`                                     | propriétaire | lien d'activation des paiements (vérification Stripe)                    |
+| `GET /push/config`                                                        | public       | clé publique VAPID (null sans notifications)                             |
+| `PUT /push/subscriptions`                                                 | public       | abonner ce navigateur (suivis, préférences ; compte si connecté)         |
+| `POST /push/subscriptions/delete`                                         | public       | désabonner ce navigateur                                                 |
+| `GET`, `PUT /me/follows`                                                  | connecté     | suivis du compte (tournois, équipes « slug/code »)                       |
+| `POST /me/follows/merge`                                                  | connecté     | ajouter les suivis de l'appareil à ceux du compte                        |
+| `POST /clubs`                                                             | connecté     | créer un club (on en devient propriétaire)                               |
+| `GET /organizer/tournaments?cursor&limit`                                 | bénévole     | tournois du club, les plus proches en premier, paginés                   |
+| `GET /organizer/members?cursor&limit`                                     | bénévole     | membres du club (paginés) et invitations en attente                      |
+| `POST /organizer/invitations`                                             | admin        | inviter par email (lien de 7 jours, réservé à l'adresse)                 |
+| `DELETE /organizer/invitations/:id`                                       | admin        | annuler une invitation                                                   |
+| `PATCH /organizer/members/:userId`                                        | propriétaire | changer un rôle (toujours un propriétaire au moins)                      |
+| `DELETE /organizer/members/:userId`                                       | bénévole     | quitter le club, ou retirer un membre de rôle inférieur                  |
+| `GET /invitations/:token`                                                 | public       | invitation lue par son lien (adresse masquée)                            |
+| `POST /invitations/:token/accept`                                         | connecté     | rejoindre le club, avec le compte de l'adresse invitée                   |
+| `GET /organizer/tournaments/:slug/sponsors`                               | organisateur | packs, sponsors et audience, prospects du club                           |
+| `POST /organizer/tournaments/:slug/sponsors`                              | organisateur | inviter un sponsor (pack épuisé : 409)                                   |
+| `PATCH /organizer/tournament-sponsors/:id`                                | organisateur | marquer payé hors Stripe                                                 |
+| `POST /organizer/tournaments/:slug/posts`                                 | organisateur | publier une annonce ou un sondage                                        |
+
+## Pagination
+
+Toutes les listes qui grandissent avec l'usage sont paginées par curseur (`apps/api/src/common/pagination.ts`) ; les autres ont une borne explicite (`take`). Aucune lecture sans limite d'une table qui grandit.
+
+- Requête : `?cursor=<nextCursor de la page précédente>&limit=<1 à 50, 20 par défaut>`.
+- Réponse : `{ items: T[], nextCursor: string | null }` ; `nextCursor` est nul sur la dernière page.
+- Tri stable sur une clé composée terminée par l'id (deux dates égales se départagent par l'id) ; lecture de `limit + 1` lignes pour savoir s'il reste une page.
+- Curseur opaque (base64url) lié à sa liste et à son tri : illisible, falsifié, d'une autre liste ou d'un autre tri → `400` problem+json, comme une limite hors bornes. Le curseur se renvoie tel quel, avec les mêmes filtres.
+- Index : chaque tri (clé, id) a son index (migration `20261111170000_pagination_indexes`).
+
+| Route                                            | Tri (clé du curseur)                                                          | Paramètres en plus                                                                                                                                                                                       |
+| ------------------------------------------------ | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /public/tournaments` (Explorer)             | distance, début, id (croissants)                                              | `lat`, `lng`, `radiusKm`, `sport` : les mêmes d'une page à l'autre                                                                                                                                       |
+| `GET /public/tournaments/:slug/news`             | publishedAt, id (décroissants)                                                | `limit` compte les posts ; les cartes sponsorisées s'ajoutent, la rotation continue d'une page à l'autre                                                                                                 |
+| `GET /registrations`                             | createdAt, id (décroissants)                                                  |                                                                                                                                                                                                          |
+| `GET /organizer/tournaments`                     | startsAt, id (croissants), archivés exclus                                    |                                                                                                                                                                                                          |
+| `GET /organizer/tournaments/:slug/registrations` | `sort` : `createdAt` (défaut), `-createdAt`, `teamName`, `-teamName`, puis id | `status` : statut affiché (`EXPIRED` comprend les places dont le paiement a expiré)                                                                                                                      |
+| `GET /organizer/members`                         | rôle (propriétaire, admin, bénévole), arrivée, id du compte                   | la réponse garde `organization`, `yourRole` et `invitations` (50 plus récentes, identiques à chaque page) ; `POST /organizer/invitations` et `PATCH /organizer/members/:userId` rendent la première page |
+
+Listes volontairement non paginées, bornées :
+
+| Route ou lecture                                  | Borne                                                                      |
+| ------------------------------------------------- | -------------------------------------------------------------------------- |
+| `GET /public/tournaments/:slug` (équipes, matchs) | 128 équipes (maxTeams), 1000 matchs                                        |
+| `GET /public/tournaments/:slug/matches?day=`      | une journée (1000 matchs au plus), 60 journées listées                     |
+| `GET /public/tournaments/:slug/matches/:id/feed`  | 1000 événements (un match)                                                 |
+| `GET /public/tournaments/:slug/sponsors`          | 100 sponsors payés (limités par les packs)                                 |
+| `GET /organizer/tournaments/:slug/sponsors`       | 4 packs, 200 sponsors du tournoi, 200 prospects ; audience cumulée en base |
+| `GET /organizer/payments`                         | pas une liste (état du compte Stripe)                                      |
+| `GET /me/follows`                                 | ensemble synchronisé : 200 tournois et 200 équipes, les plus récents       |
+| Notifications push (worker)                       | abonnements lus par lots de 500 (curseur sur l'id)                         |
+
+## Limites de débit
+
+`@fastify/rate-limit`, fenêtre fixe, valeurs dans `apps/api/src/common/rate-limit.ts` (`RATE_LIMITS`, posées par `@RateLimited` sur la route). Au-delà : `429` en `problem+json` avec `Retry-After` (secondes). L'IP est celle du client transmise par Caddy (`X-Forwarded-For` lu seulement depuis l'adresse locale ou le réseau privé Docker). Les limites métier (5 codes par adresse et par heure, 30 invitations par club et par heure) s'ajoutent à celles-ci.
+
+| Route                                                  | Limite                         | Clé             |
+| ------------------------------------------------------ | ------------------------------ | --------------- |
+| `POST /auth/code`                                      | 10 / min ; 5 / 10 min          | IP ; email      |
+| `POST /auth/verify`                                    | 10 / min                       | IP              |
+| `POST /auth/refresh`                                   | 30 / min                       | IP              |
+| `GET /auth/oauth/:provider/start`, `…/callback`        | 20 / min                       | IP              |
+| `POST /public/audience`                                | 300 / min                      | IP              |
+| `POST /public/posts/:postId/votes`                     | 60 / min                       | IP              |
+| `POST /public/tournaments/:slug/matches/:id/reactions` | 120 / min                      | IP              |
+| `PUT /push/subscriptions`                              | 30 / min                       | IP              |
+| `POST /tournaments/:code/registrations`                | 10 / 10 min                    | compte          |
+| `POST /reporter/:token/events`                         | 15 / 30 s (1 / 2 s, rafale 15) | lien rapporteur |
+| `POST /organizer/invitations`                          | 20 / min                       | IP              |
+
+Les tests e2e multiplient les limites par 1000 (`createTestApp`), sauf `rate-limit.e2e-spec.ts` qui vérifie les vraies.
 
 ## Décisions provisoires
 
@@ -130,3 +187,4 @@ Préfixe `/api/v1` ; détail et schémas dans Swagger (`/api/docs`) et `apps/api
 | Dédoublonnage des impressions par session côté PWA                         | Redis ne sert encore qu'aux files BullMQ                              | Clé Redis par session et emplacement                     |
 | Sans `REDIS_URL`, les événements d'audience s'écrivent directement en base | Tests et poste local sans Redis                                       | Redis obligatoire hors tests                             |
 | Classements calculés à la lecture avec `computeStandings` du moteur        | Volume de démonstration                                               | Classements matérialisés à la validation d'un score (P4) |
+| Compteurs des limites de débit en mémoire                                  | Un seul serveur d'API                                                 | Store Redis de `@fastify/rate-limit`                     |

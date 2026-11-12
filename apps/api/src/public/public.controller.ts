@@ -8,6 +8,7 @@ import {
   Query,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBody,
   ApiNoContentResponse,
   ApiNotFoundResponse,
@@ -17,6 +18,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { openApi } from '../common/openapi-schema.js';
+import {
+  pageQuerySchema,
+  type Page,
+  type PageQuery,
+} from '../common/pagination.js';
+import { RateLimited } from '../common/rate-limit.js';
 import {
   audienceEventSchema,
   matchFeedSchema,
@@ -35,9 +42,13 @@ import {
   type PublicSponsors,
 } from './public-l5.schemas.js';
 import {
-  nearbyTournamentSchema,
+  dayMatchesSchema,
+  dayQuerySchema,
+  nearbyPageSchema,
   searchQuerySchema,
   tournamentDetailSchema,
+  type DayMatches,
+  type DayQuery,
   type NearbyTournament,
   type SearchQuery,
   type TournamentDetail,
@@ -54,7 +65,10 @@ export class PublicController {
   constructor(private readonly service: PublicService) {}
 
   @Get('tournaments')
-  @ApiOperation({ summary: 'Tournois en cours ou à venir autour d’un point' })
+  @ApiOperation({
+    summary:
+      'Tournois en cours ou à venir autour d’un point, par distance, date puis id (paginé)',
+  })
   @ApiQuery({ name: 'lat', type: Number })
   @ApiQuery({ name: 'lng', type: Number })
   @ApiQuery({ name: 'radiusKm', type: Number, required: false })
@@ -63,10 +77,13 @@ export class PublicController {
     enum: ['football', 'handball', 'basketball', 'volleyball', 'rugby'],
     required: false,
   })
-  @ApiOkResponse({ schema: openApi(nearbyTournamentSchema.array()) })
+  @ApiOkResponse({ schema: openApi(nearbyPageSchema) })
+  @ApiBadRequestResponse({
+    description: 'Paramètre, limite ou curseur invalide',
+  })
   search(
     @Query({ schema: searchQuerySchema }) query: SearchQuery,
-  ): Promise<NearbyTournament[]> {
+  ): Promise<Page<NearbyTournament>> {
     return this.service.search(query);
   }
 
@@ -80,13 +97,34 @@ export class PublicController {
     return this.service.detail(slug);
   }
 
+  @Get('tournaments/:slug/matches')
+  @ApiOperation({
+    summary:
+      'Matchs d’une journée (heure de Paris), par créneau puis par phase, et journées du tournoi',
+  })
+  @ApiOkResponse({ schema: openApi(dayMatchesSchema) })
+  @ApiBadRequestResponse({ description: 'Journée mal formée (AAAA-MM-JJ)' })
+  @ApiNotFoundResponse({ description: 'Tournoi inconnu ou non publié' })
+  matches(
+    @Param('slug') slug: string,
+    @Query({ schema: dayQuerySchema }) query: DayQuery,
+  ): Promise<DayMatches> {
+    return this.service.matchesByDay(slug, query.day);
+  }
+
   @Get('tournaments/:slug/news')
   @ApiOperation({
-    summary: 'Fil News, une carte sponsorisée au plus pour quatre éléments',
+    summary:
+      'Fil News paginé, plus récent en tête ; une carte sponsorisée au plus pour quatre éléments',
   })
   @ApiOkResponse({ schema: openApi(newsSchema) })
-  news(@Param('slug') slug: string): Promise<NewsItem[]> {
-    return this.service.news(slug);
+  @ApiBadRequestResponse({ description: 'Limite ou curseur invalide' })
+  @ApiNotFoundResponse({ description: 'Tournoi inconnu ou non publié' })
+  news(
+    @Param('slug') slug: string,
+    @Query({ schema: pageQuerySchema }) query: PageQuery,
+  ): Promise<Page<NewsItem>> {
+    return this.service.news(slug, query);
   }
 
   @Get('tournaments/:slug/sponsors')
@@ -112,6 +150,7 @@ export class PublicController {
   }
 
   @Post('tournaments/:slug/matches/:matchId/reactions')
+  @RateLimited('reaction')
   @HttpCode(200)
   @ApiOperation({
     summary: 'Réaction anonyme d’un spectateur, une par appareil et par emoji',
@@ -128,6 +167,7 @@ export class PublicController {
   }
 
   @Post('posts/:postId/votes')
+  @RateLimited('vote')
   @HttpCode(200)
   @ApiOperation({ summary: 'Vote anonyme à un sondage du fil News' })
   @ApiBody({ schema: openApi(voteSchema) })
@@ -140,6 +180,7 @@ export class PublicController {
   }
 
   @Post('audience')
+  @RateLimited('audience')
   @HttpCode(204)
   @ApiOperation({
     summary: 'Impression ou clic d’un sponsor, cumulé par heure',
