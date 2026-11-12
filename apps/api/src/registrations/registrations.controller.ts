@@ -159,11 +159,18 @@ export class StripeWebhookController {
     @Req() req: RawBodyRequest<FastifyRequest>,
     @Headers('stripe-signature') signature: string | undefined,
   ): Promise<{ received: true }> {
-    const secret = this.config.get('STRIPE_WEBHOOK_SECRET', { infer: true });
+    // Deux points de réception chez Stripe, un secret chacun : la plateforme
+    // (paiements) et les comptes connectés des clubs (account.updated).
+    const secrets = [
+      this.config.get('STRIPE_WEBHOOK_SECRET', { infer: true }),
+      this.config.get('STRIPE_CONNECT_WEBHOOK_SECRET', { infer: true }),
+    ].filter((s): s is string => Boolean(s));
     const raw = req.rawBody?.toString('utf8') ?? '';
+    const now = this.clock.now();
     if (
-      !secret ||
-      !verifyStripeSignature(raw, signature, secret, this.clock.now())
+      !secrets.some((secret) =>
+        verifyStripeSignature(raw, signature, secret, now),
+      )
     ) {
       throw new UnauthorizedException('Signature Stripe invalide.');
     }

@@ -23,6 +23,7 @@ import {
 import type {
   NearbyTournament,
   SearchQuery,
+  Sitemap,
   TournamentDetail,
 } from './public.schemas.js';
 import type {
@@ -75,6 +76,7 @@ export class PublicService {
         )) AS distance_km
       ) d
       WHERE t.status::text IN (${Prisma.join([...DISCOVERABLE_STATUSES])})
+        AND t.hidden_at IS NULL
         AND t.ends_at >= ${this.clock.now()}
         AND v.lat BETWEEN ${query.lat - dLat} AND ${query.lat + dLat}
         AND v.lng BETWEEN ${query.lng - dLng} AND ${query.lng + dLng}
@@ -96,9 +98,25 @@ export class PublicService {
     });
   }
 
+  /** Tournois publiés et non masqués, les plus récents d'abord (50 000 au plus). */
+  async sitemap(): Promise<Sitemap> {
+    const tournaments = await this.prisma.tournament.findMany({
+      where: { status: { in: [...PUBLIC_STATUSES] }, hiddenAt: null },
+      select: { slug: true, endsAt: true },
+      orderBy: { startsAt: 'desc' },
+      take: 50_000,
+    });
+    return {
+      tournaments: tournaments.map((t) => ({
+        slug: t.slug,
+        endsAt: t.endsAt.toISOString(),
+      })),
+    };
+  }
+
   async detail(slug: string): Promise<TournamentDetail> {
     const t = await this.prisma.tournament.findFirst({
-      where: { slug, status: { in: [...PUBLIC_STATUSES] } },
+      where: { slug, status: { in: [...PUBLIC_STATUSES] }, hiddenAt: null },
       include: {
         venue: true,
         organization: true,
@@ -158,7 +176,7 @@ export class PublicService {
     const tournamentId = await this.publicTournamentId(slug);
     const [posts, sponsors] = await Promise.all([
       this.prisma.post.findMany({
-        where: { tournamentId },
+        where: { tournamentId, hiddenAt: null },
         orderBy: { publishedAt: 'desc' },
         take: 50,
         include: { options: { orderBy: { position: 'asc' } } },
@@ -225,7 +243,8 @@ export class PublicService {
         postId,
         post: {
           kind: 'POLL',
-          tournament: { status: { in: [...PUBLIC_STATUSES] } },
+          hiddenAt: null,
+          tournament: { status: { in: [...PUBLIC_STATUSES] }, hiddenAt: null },
         },
       },
     });
@@ -328,7 +347,11 @@ export class PublicService {
     const match = await this.prisma.match.findFirst({
       where: {
         code,
-        tournament: { slug, status: { in: [...PUBLIC_STATUSES] } },
+        tournament: {
+          slug,
+          status: { in: [...PUBLIC_STATUSES] },
+          hiddenAt: null,
+        },
       },
       select: { id: true },
     });
@@ -340,7 +363,7 @@ export class PublicService {
 
   private async publicTournamentId(slug: string): Promise<string> {
     const t = await this.prisma.tournament.findFirst({
-      where: { slug, status: { in: [...PUBLIC_STATUSES] } },
+      where: { slug, status: { in: [...PUBLIC_STATUSES] }, hiddenAt: null },
       select: { id: true },
     });
     if (!t) {

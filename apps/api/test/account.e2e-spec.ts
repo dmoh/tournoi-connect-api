@@ -286,6 +286,25 @@ describe('Mes données : export, suppression, purge (e2e)', () => {
         updatedAt: ago(200),
       },
     });
+    await prisma.report.createMany({
+      data: [
+        {
+          tournamentId: tournament.id,
+          reason: 'SPAM',
+          details: 'ancien',
+          contactEmail: 'temoin@example.com',
+          status: 'DISMISSED',
+          resolvedAt: ago(400),
+        },
+        {
+          tournamentId: tournament.id,
+          reason: 'SPAM',
+          details: 'récent',
+          status: 'DISMISSED',
+          resolvedAt: ago(10),
+        },
+      ],
+    });
     const kept = {
       sessions: await prisma.session.count(),
       invitations: await prisma.invitation.count(),
@@ -298,7 +317,14 @@ describe('Mes données : export, suppression, purge (e2e)', () => {
       invitations: expect.any(Number),
       registrations: 1,
       pushSubscriptions: 1,
+      reports: expect.any(Number),
     });
+    expect(
+      await prisma.report.findMany({
+        where: { tournamentId: tournament.id },
+        select: { details: true },
+      }),
+    ).toEqual([{ details: 'récent' }]);
     expect(
       await prisma.loginCode.count({ where: { email: 'x@example.com' } }),
     ).toBe(0);

@@ -1612,6 +1612,55 @@
         ]
       }
     },
+    "/api/v1/public/sitemap": {
+      "get": {
+        "operationId": "PublicController_sitemap_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tournaments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "slug": {
+                            "type": "string"
+                          },
+                          "endsAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
+                        },
+                        "required": [
+                          "slug",
+                          "endsAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "tournaments"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "summary": "Tournois publiés à référencer (sitemap)",
+        "tags": [
+          "public"
+        ]
+      }
+    },
     "/api/v1/public/tournaments/{slug}": {
       "get": {
         "operationId": "PublicController_detail_v1",
@@ -6460,6 +6509,465 @@
         "summary": "Ajouter les suivis de l’appareil à ceux du compte (connexion)",
         "tags": [
           "push"
+        ]
+      }
+    },
+    "/api/v1/public/tournaments/{slug}/reports": {
+      "post": {
+        "operationId": "PublicReportsController_report_v1",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "postId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "reason": {
+                    "type": "string",
+                    "enum": [
+                      "ILLEGAL",
+                      "ABUSE",
+                      "PRIVACY",
+                      "SPAM",
+                      "OTHER"
+                    ]
+                  },
+                  "details": {
+                    "default": "",
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "contactEmail": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tournoi ou actualité introuvable"
+          },
+          "429": {
+            "description": "Trop de signalements en une heure"
+          }
+        },
+        "summary": "Signaler la page d’un tournoi ou l’une de ses actualités",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/v1/platform/overview": {
+      "get": {
+        "operationId": "PlatformController_overview_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "accounts": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "clubs": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "tournaments": {
+                          "type": "object",
+                          "properties": {
+                            "published": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "inProgress": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "drafts": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "published",
+                            "inProgress",
+                            "drafts"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "confirmedRegistrations": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "paidCents": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "serviceFeeCents": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "openReports": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "accounts",
+                        "clubs",
+                        "tournaments",
+                        "confirmedRegistrations",
+                        "paidCents",
+                        "serviceFeeCents",
+                        "openReports"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "services": {
+                      "type": "object",
+                      "properties": {
+                        "mail": {
+                          "type": "boolean"
+                        },
+                        "payments": {
+                          "type": "object",
+                          "properties": {
+                            "secretKey": {
+                              "type": "boolean"
+                            },
+                            "webhook": {
+                              "type": "boolean"
+                            },
+                            "connectWebhook": {
+                              "type": "boolean"
+                            },
+                            "testMode": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "secretKey",
+                            "webhook",
+                            "connectWebhook",
+                            "testMode"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "push": {
+                          "type": "boolean"
+                        },
+                        "oauth": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "GOOGLE",
+                              "APPLE",
+                              "FACEBOOK"
+                            ]
+                          }
+                        },
+                        "queues": {
+                          "type": "boolean"
+                        },
+                        "testAccounts": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "mail",
+                        "payments",
+                        "push",
+                        "oauth",
+                        "queues",
+                        "testAccounts"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "counts",
+                    "services"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Réservé aux admins de la plateforme"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Indicateurs et état des services",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/v1/platform/reports": {
+      "get": {
+        "operationId": "PlatformController_reports_v1",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "OPEN",
+                "HIDDEN",
+                "DISMISSED"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "OPEN",
+                          "HIDDEN",
+                          "DISMISSED"
+                        ]
+                      },
+                      "reason": {
+                        "type": "string",
+                        "enum": [
+                          "ILLEGAL",
+                          "ABUSE",
+                          "PRIVACY",
+                          "SPAM",
+                          "OTHER"
+                        ]
+                      },
+                      "details": {
+                        "type": "string"
+                      },
+                      "contactEmail": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "tournament": {
+                        "type": "object",
+                        "properties": {
+                          "slug": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "organization": {
+                            "type": "string"
+                          },
+                          "hidden": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "slug",
+                          "name",
+                          "organization",
+                          "hidden"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "post": {
+                        "nullable": true,
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "body": {
+                            "type": "string"
+                          },
+                          "hidden": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "body",
+                          "hidden"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "status",
+                      "reason",
+                      "details",
+                      "contactEmail",
+                      "createdAt",
+                      "tournament",
+                      "post"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Réservé aux admins de la plateforme"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Signalements (ouverts par défaut)",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/v1/platform/reports/{id}/hide": {
+      "post": {
+        "operationId": "PlatformController_hide_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "404": {
+            "description": "Réservé aux admins de la plateforme"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Masquer le contenu signalé et prévenir le club",
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/v1/platform/reports/{id}/dismiss": {
+      "post": {
+        "operationId": "PlatformController_dismiss_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "404": {
+            "description": "Réservé aux admins de la plateforme"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Écarter le signalement (rien à retirer)",
+        "tags": [
+          "platform"
         ]
       }
     }

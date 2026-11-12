@@ -189,6 +189,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/sitemap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tournois publiés à référencer (sitemap) */
+        get: operations["PublicController_sitemap_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/tournaments/{slug}": {
         parameters: {
             query?: never;
@@ -782,6 +799,91 @@ export interface paths {
         put?: never;
         /** Ajouter les suivis de l’appareil à ceux du compte (connexion) */
         post: operations["FollowsController_merge_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/tournaments/{slug}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Signaler la page d’un tournoi ou l’une de ses actualités */
+        post: operations["PublicReportsController_report_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Indicateurs et état des services */
+        get: operations["PlatformController_overview_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Signalements (ouverts par défaut) */
+        get: operations["PlatformController_reports_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/reports/{id}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Masquer le contenu signalé et prévenir le club */
+        post: operations["PlatformController_hide_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/reports/{id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Écarter le signalement (rien à retirer) */
+        post: operations["PlatformController_dismiss_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1419,6 +1521,31 @@ export interface operations {
                         status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED";
                         distanceKm: number;
                     }[];
+                };
+            };
+        };
+    };
+    PublicController_sitemap_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        tournaments: {
+                            slug: string;
+                            /** Format: date-time */
+                            endsAt: string;
+                        }[];
+                    };
                 };
             };
         };
@@ -3377,6 +3504,209 @@ export interface operations {
             };
             /** @description Connexion requise */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicReportsController_report_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    postId?: string;
+                    /** @enum {string} */
+                    reason: "ILLEGAL" | "ABUSE" | "PRIVACY" | "SPAM" | "OTHER";
+                    /** @default  */
+                    details?: string;
+                    contactEmail?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Tournoi ou actualité introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Trop de signalements en une heure */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlatformController_overview_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        counts: {
+                            accounts: number;
+                            clubs: number;
+                            tournaments: {
+                                published: number;
+                                inProgress: number;
+                                drafts: number;
+                            };
+                            confirmedRegistrations: number;
+                            paidCents: number;
+                            serviceFeeCents: number;
+                            openReports: number;
+                        };
+                        services: {
+                            mail: boolean;
+                            payments: {
+                                secretKey: boolean;
+                                webhook: boolean;
+                                connectWebhook: boolean;
+                                testMode: boolean;
+                            };
+                            push: boolean;
+                            oauth: ("GOOGLE" | "APPLE" | "FACEBOOK")[];
+                            queues: boolean;
+                            testAccounts: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Réservé aux admins de la plateforme */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlatformController_reports_v1: {
+        parameters: {
+            query?: {
+                status?: "OPEN" | "HIDDEN" | "DISMISSED";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** @enum {string} */
+                        status: "OPEN" | "HIDDEN" | "DISMISSED";
+                        /** @enum {string} */
+                        reason: "ILLEGAL" | "ABUSE" | "PRIVACY" | "SPAM" | "OTHER";
+                        details: string;
+                        contactEmail: string | null;
+                        /** Format: date-time */
+                        createdAt: string;
+                        tournament: {
+                            slug: string;
+                            name: string;
+                            organization: string;
+                            hidden: boolean;
+                        };
+                        post: {
+                            id: string;
+                            title: string;
+                            body: string;
+                            hidden: boolean;
+                        } | null;
+                    }[];
+                };
+            };
+            /** @description Réservé aux admins de la plateforme */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlatformController_hide_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Réservé aux admins de la plateforme */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlatformController_dismiss_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Réservé aux admins de la plateforme */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
