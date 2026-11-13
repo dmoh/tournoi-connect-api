@@ -16,6 +16,8 @@ export const platformOverviewSchema = z.object({
     /** Frais de service perçus par la plateforme, en centimes. */
     serviceFeeCents: z.number().int(),
     openReports: z.number().int(),
+    /** Clubs créés par un lien de parrainage. */
+    referredClubs: z.number().int(),
   }),
   /** Ce qui manque ici empêche une fonction de marcher en production. */
   services: z.object({

@@ -6,6 +6,8 @@ const email = z.string().trim().toLowerCase().pipe(z.email().max(254));
 export const createClubSchema = z.object({
   name: z.string().trim().min(2).max(80),
   city: z.string().trim().min(1).max(80).optional(),
+  /** Code de parrainage du lien suivi (inconnu : ignoré). */
+  referralCode: z.string().trim().max(20).optional(),
 });
 
 export const memberSchema = z.object({

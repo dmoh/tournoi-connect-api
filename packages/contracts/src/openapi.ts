@@ -890,6 +890,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizer/referral": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lien de parrainage du club et clubs parrainés */
+        get: operations["OrganizerReferralController_referral_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/referrals/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Club qui a partagé ce lien de parrainage */
+        get: operations["PublicReferralController_lookup_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2439,6 +2473,7 @@ export interface operations {
                 "application/json": {
                     name: string;
                     city?: string;
+                    referralCode?: string;
                 };
             };
         };
@@ -3586,6 +3621,7 @@ export interface operations {
                             paidCents: number;
                             serviceFeeCents: number;
                             openReports: number;
+                            referredClubs: number;
                         };
                         services: {
                             mail: boolean;
@@ -3706,6 +3742,78 @@ export interface operations {
                 content?: never;
             };
             /** @description Réservé aux admins de la plateforme */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerReferralController_referral_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        url: string;
+                        clubs: {
+                            name: string;
+                            city: string | null;
+                            /** Format: date-time */
+                            joinedAt: string;
+                            active: boolean;
+                        }[];
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicReferralController_lookup_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        club: {
+                            name: string;
+                            city: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Code inconnu */
             404: {
                 headers: {
                     [name: string]: unknown;
