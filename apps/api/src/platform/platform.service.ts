@@ -23,6 +23,7 @@ export class PlatformService {
       drafts,
       confirmed,
       openReports,
+      referredClubs,
     ] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.organization.count(),
@@ -37,6 +38,9 @@ export class PlatformService {
         _sum: { totalCents: true, serviceFeeCents: true },
       }),
       this.prisma.report.count({ where: { status: 'OPEN' } }),
+      this.prisma.organization.count({
+        where: { referredById: { not: null } },
+      }),
     ]);
     const has = (key: keyof Env) =>
       Boolean(this.config.get(key, { infer: true }));
@@ -50,6 +54,7 @@ export class PlatformService {
         paidCents: confirmed._sum.totalCents ?? 0,
         serviceFeeCents: confirmed._sum.serviceFeeCents ?? 0,
         openReports,
+        referredClubs,
       },
       services: {
         mail: this.config.get('MAIL_TRANSPORT', { infer: true }) === 'ses',

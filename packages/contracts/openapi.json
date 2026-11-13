@@ -4049,6 +4049,10 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 80
+                  },
+                  "referralCode": {
+                    "type": "string",
+                    "maxLength": 20
                   }
                 },
                 "required": [
@@ -6666,6 +6670,11 @@
                           "type": "integer",
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
+                        },
+                        "referredClubs": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
                         }
                       },
                       "required": [
@@ -6675,7 +6684,8 @@
                         "confirmedRegistrations",
                         "paidCents",
                         "serviceFeeCents",
-                        "openReports"
+                        "openReports",
+                        "referredClubs"
                       ],
                       "additionalProperties": false
                     },
@@ -6968,6 +6978,147 @@
         "summary": "Écarter le signalement (rien à retirer)",
         "tags": [
           "platform"
+        ]
+      }
+    },
+    "/api/v1/organizer/referral": {
+      "get": {
+        "operationId": "OrganizerReferralController_referral_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "clubs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "city": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "joinedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "active": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "city",
+                          "joinedAt",
+                          "active"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "url",
+                    "clubs"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lien de parrainage du club et clubs parrainés",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/public/referrals/{code}": {
+      "get": {
+        "operationId": "PublicReferralController_lookup_v1",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "club": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "city"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "club"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Code inconnu"
+          }
+        },
+        "summary": "Club qui a partagé ce lien de parrainage",
+        "tags": [
+          "public"
         ]
       }
     }

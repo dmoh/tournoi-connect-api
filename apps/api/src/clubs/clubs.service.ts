@@ -17,6 +17,7 @@ import type { MemberRole } from '../generated/prisma/enums.js';
 import { Mailer } from '../mail/mailer.js';
 import { invitationMail } from '../mail/templates.js';
 import { slugify } from '../organizer/organizer.service.js';
+import { ReferralsService } from '../referrals/referrals.service.js';
 import type {
   CreateClub,
   InviteMember,
@@ -50,6 +51,7 @@ export class ClubsService {
     private readonly mailer: Mailer,
     private readonly auth: AuthService,
     private readonly config: ConfigService<Env, true>,
+    private readonly referrals: ReferralsService,
   ) {}
 
   async create(user: AuthUser, input: CreateClub): Promise<Me> {
@@ -74,11 +76,13 @@ export class ClubsService {
     for (let n = 2; taken.has(slug); n += 1) {
       slug = `${base}-${n}`;
     }
+    const referredById = await this.referrals.referrerId(input.referralCode);
     await this.prisma.organization.create({
       data: {
         slug,
         name: input.name,
         city: input.city ?? null,
+        referredById,
         members: { create: { userId: user.id, role: 'OWNER' } },
       },
     });

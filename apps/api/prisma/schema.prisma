@@ -107,6 +107,12 @@ model Organization {
   /// Club importé d'un service externe (connecteur EcoClubSport, plus tard).
   externalSource       ExternalSource? @map("external_source")
   externalId           String?         @map("external_id")
+  /// Code de parrainage du club (lien « /clubs/new?parrain=… »), créé au premier partage.
+  referralCode         String?         @unique @map("referral_code")
+  /// Club qui a parrainé celui-ci (suivi seulement : aucun avantage pour l'instant).
+  referredById         String?         @map("referred_by_id")
+  referredBy           Organization?   @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals            Organization[]  @relation("Referrals")
 
   @@unique([externalSource, externalId])
   @@map("organization")
