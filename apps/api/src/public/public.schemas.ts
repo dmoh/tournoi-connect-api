@@ -103,7 +103,15 @@ export const searchQuerySchema = z.object({
   sport: sportSchema.optional(),
 });
 
+/** Pages de tournoi à référencer (sitemap.xml de la PWA). */
+export const sitemapSchema = z.object({
+  tournaments: z.array(
+    z.object({ slug: z.string(), endsAt: z.iso.datetime({ offset: true }) }),
+  ),
+});
+
 export type SearchQuery = z.infer<typeof searchQuerySchema>;
+export type Sitemap = z.infer<typeof sitemapSchema>;
 export type TournamentSummary = z.infer<typeof tournamentSummarySchema>;
 export type NearbyTournament = z.infer<typeof nearbyTournamentSchema>;
 export type TournamentDetail = z.infer<typeof tournamentDetailSchema>;

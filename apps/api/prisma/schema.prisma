@@ -150,6 +150,9 @@ model Tournament {
   matchMinutes         Int                 @default(15) @map("match_minutes")
   breakMinutes         Int                 @default(5) @map("break_minutes")
   registrationDeadline DateTime?           @map("registration_deadline") @db.Date
+  /// Masqué par la modération de la plateforme : la page publique répond 404.
+  hiddenAt             DateTime?           @map("hidden_at") @db.Timestamptz
+  reports              Report[]
   teams                Team[]
   matches              Match[]
   posts                Post[]
@@ -286,6 +289,8 @@ model Post {
   body         String
   matchCode    String?      @map("match_code")
   publishedAt  DateTime     @default(now()) @map("published_at") @db.Timestamptz
+  /// Masqué par la modération de la plateforme (signalement) : plus affiché.
+  hiddenAt     DateTime?    @map("hidden_at") @db.Timestamptz
   options      PollOption[]
 
   @@index([tournamentId, publishedAt])
@@ -591,4 +596,47 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscription")
+}
+
+enum ReportReason {
+  /// Contenu manifestement illicite.
+  ILLEGAL
+  /// Propos injurieux, harcèlement, discrimination.
+  ABUSE
+  /// Atteinte à la vie privée (photo, nom d'un mineur…).
+  PRIVACY
+  /// Publicité abusive, arnaque.
+  SPAM
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  /// Contenu masqué par la modération.
+  HIDDEN
+  /// Signalement écarté : rien à retirer.
+  DISMISSED
+}
+
+/// Signalement d'un contenu public (tournoi ou actualité), par un compte ou
+/// anonymement : traité par les admins de la plateforme (LCEN, retrait prompt
+/// d'un contenu manifestement illicite).
+model Report {
+  id           String       @id @default(cuid(2))
+  tournamentId String       @map("tournament_id")
+  tournament   Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  /// Actualité signalée ; vide : la page du tournoi elle-même.
+  postId       String?      @map("post_id")
+  reason       ReportReason
+  details      String       @default("")
+  /// Adresse laissée pour être recontacté (facultative).
+  contactEmail String?      @map("contact_email")
+  status       ReportStatus @default(OPEN)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  resolvedAt   DateTime?    @map("resolved_at") @db.Timestamptz
+  resolvedById String?      @map("resolved_by_id")
+
+  @@index([status, createdAt])
+  @@index([tournamentId])
+  @@map("report")
 }

@@ -25,6 +25,7 @@ x-api: &api
     # vides, les inscriptions payantes sont fermées.
     STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
     STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+    STRIPE_CONNECT_WEBHOOK_SECRET: ${STRIPE_CONNECT_WEBHOOK_SECRET:-}
     # Connexion en un clic : renseignées dans SSM quand l'application du
     # fournisseur existe ; vides, le bouton n'apparaît pas.
     GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}

@@ -48,6 +48,8 @@ class FakeStripe {
 
 describe('Inscriptions et paiements (e2e)', () => {
   const WEBHOOK_SECRET = `whsec_${randomBytes(16).toString('hex')}`;
+  /** Second point de réception : les comptes connectés des clubs. */
+  const CONNECT_SECRET = `whsec_${randomBytes(16).toString('hex')}`;
   const stripe = new FakeStripe();
   let app: NestFastifyApplication;
   let prisma: PrismaService;
@@ -55,6 +57,7 @@ describe('Inscriptions et paiements (e2e)', () => {
 
   beforeAll(async () => {
     process.env['STRIPE_WEBHOOK_SECRET'] = WEBHOOK_SECRET;
+    process.env['STRIPE_CONNECT_WEBHOOK_SECRET'] = CONNECT_SECRET;
     const ctx = await createTestApp([{ provide: STRIPE, useValue: stripe }]);
     app = ctx.app;
     prisma = ctx.prisma;
@@ -71,6 +74,7 @@ describe('Inscriptions et paiements (e2e)', () => {
   });
   afterAll(async () => {
     delete process.env['STRIPE_WEBHOOK_SECRET'];
+    delete process.env['STRIPE_CONNECT_WEBHOOK_SECRET'];
     await app.close();
   });
 
@@ -329,10 +333,15 @@ describe('Inscriptions et paiements (e2e)', () => {
     expect(onboarding.json()).toEqual({
       url: 'https://connect.stripe.test/onboarding',
     });
-    await webhook({
-      type: 'account.updated',
-      data: { object: { id: 'acct_club_test', charges_enabled: true } },
-    });
+    // Événement des comptes connectés : signé par le second secret.
+    const updated = await webhook(
+      {
+        type: 'account.updated',
+        data: { object: { id: 'acct_club_test', charges_enabled: true } },
+      },
+      CONNECT_SECRET,
+    );
+    expect(updated.statusCode).toBe(200);
     expect(
       (
         await prisma.organization.findUniqueOrThrow({
