@@ -90,6 +90,27 @@ export class StripeClient {
     }>('GET', `/accounts/${encodeURIComponent(id)}`);
   }
 
+  /** Solde du compte connecté du club, par devise (centimes). */
+  balance(account: string) {
+    return this.request<{
+      available: { amount: number; currency: string }[];
+      pending: { amount: number; currency: string }[];
+    }>('GET', '/balance', undefined, undefined, account);
+  }
+
+  /** Derniers versements du compte connecté vers la banque du club. */
+  payouts(account: string, limit = 5) {
+    return this.request<{
+      data: {
+        id: string;
+        amount: number;
+        currency: string;
+        arrival_date: number;
+        status: string;
+      }[];
+    }>('GET', `/payouts?limit=${limit}`, undefined, undefined, account);
+  }
+
   createCheckoutSession(input: CheckoutSessionInput) {
     return this.post<{ id: string; url: string }>(
       '/checkout/sessions',
@@ -132,6 +153,8 @@ export class StripeClient {
     path: string,
     body?: unknown,
     idempotencyKey?: string,
+    /** Compte connecté visé (en-tête Stripe-Account). */
+    account?: string,
   ): Promise<T> {
     if (!this.secretKey) {
       throw new StripeError('Paiements non configurés.', 503);
@@ -144,6 +167,7 @@ export class StripeClient {
           ? { 'Content-Type': 'application/x-www-form-urlencoded' }
           : {}),
         ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+        ...(account ? { 'Stripe-Account': account } : {}),
       },
       ...(body ? { body: formEncode(body).join('&') } : {}),
       signal: AbortSignal.timeout(15_000),

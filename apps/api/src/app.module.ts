@@ -8,6 +8,7 @@ import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
 import { MailModule } from './mail/mail.module.js';
 import { MaintenanceModule } from './maintenance/maintenance.module.js';
+import { DashboardModule } from './dashboard/dashboard.module.js';
 import { PlatformModule } from './platform/platform.module.js';
 import { ReferralsModule } from './referrals/referrals.module.js';
 import { OrganizerModule } from './organizer/organizer.module.js';
@@ -37,6 +38,7 @@ import { QueueModule } from './queue/queue.module.js';
     MaintenanceModule,
     PlatformModule,
     ReferralsModule,
+    DashboardModule,
   ],
   providers: [{ provide: Clock, useClass: SystemClock }],
   exports: [Clock],

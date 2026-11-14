@@ -924,6 +924,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizer/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tableau de bord : remplissage, encaissements, audience, versements */
+        get: operations["DashboardController_get_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/export/registrations.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inscriptions du tournoi (CSV, Excel) */
+        get: operations["DashboardController_registrations_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/export/players.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Effectifs des équipes du tournoi (CSV, Excel) */
+        get: operations["DashboardController_players_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3814,6 +3865,148 @@ export interface operations {
                 };
             };
             /** @description Code inconnu */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DashboardController_get_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        tournaments: {
+                            slug: string;
+                            name: string;
+                            /** @enum {string} */
+                            status: "DRAFT" | "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED";
+                            /** Format: date-time */
+                            startsAt: string;
+                            teamCount: number;
+                            maxTeams: number;
+                            registrations: {
+                                confirmed: number;
+                                pending: number;
+                                waitlisted: number;
+                            };
+                            collectedCents: number;
+                            serviceFeeCents: number;
+                            audience: {
+                                impressions: number;
+                                clicks: number;
+                            };
+                        }[];
+                        totals: {
+                            tournaments: number;
+                            teams: number;
+                            collectedCents: number;
+                            impressions: number;
+                            clicks: number;
+                        };
+                        payouts: {
+                            availableCents: number;
+                            pendingCents: number;
+                            recent: {
+                                amountCents: number;
+                                /** Format: date-time */
+                                arrivalDate: string;
+                                status: string;
+                            }[];
+                        } | null;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DashboardController_registrations_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fichier CSV (séparateur « ; », UTF-8) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DashboardController_players_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fichier CSV (séparateur « ; », UTF-8) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi hors du club */
             404: {
                 headers: {
                     [name: string]: unknown;
