@@ -4,13 +4,15 @@ Terraform pour la préprod, la prod et le site vitrine de Tournoi Connect, dans 
 
 ## Ce qui tourne
 
-| Adresse                                 | Service                    | Où                                                   |
-| --------------------------------------- | -------------------------- | ---------------------------------------------------- |
-| https://tournoi-connect.com             | site vitrine statique      | S3 privé + CloudFront, certificat ACM (us-east-1)    |
-| https://app.tournoi-connect.com         | PWA (SSR Angular), prod    | serveur `tournoi-connect-prod-host`                  |
-| https://api.tournoi-connect.com         | API NestJS + worker BullMQ | même serveur, base RDS `tournoi-connect-prod`        |
-| https://preprod.tournoi-connect.com     | PWA, préprod (non indexée) | serveur `tournoi-connect-preprod-host`               |
-| https://api.preprod.tournoi-connect.com | API + worker, préprod      | même serveur, Postgres en conteneur, données de démo |
+| Adresse                                   | Service                    | Où                                                   |
+| ----------------------------------------- | -------------------------- | ---------------------------------------------------- |
+| https://tournoi-connect.com               | site vitrine statique      | S3 privé + CloudFront, certificat ACM (us-east-1)    |
+| https://app.tournoi-connect.com           | PWA (SSR Angular), prod    | serveur `tournoi-connect-prod-host`                  |
+| https://api.tournoi-connect.com           | API NestJS + worker BullMQ | même serveur, base RDS `tournoi-connect-prod`        |
+| https://preprod.tournoi-connect.com       | PWA, préprod (non indexée) | serveur `tournoi-connect-preprod-host`               |
+| https://api.preprod.tournoi-connect.com   | API + worker, préprod      | même serveur, Postgres en conteneur, données de démo |
+| https://media.tournoi-connect.com         | photos des tournois, prod  | S3 privé + CloudFront (module `media`)               |
+| https://media.preprod.tournoi-connect.com | photos, préprod            | S3 privé + CloudFront (module `media`)               |
 
 Chaque serveur (EC2 `t3a.small`, Amazon Linux 2023, crédits CPU plafonnés) fait tourner `host/compose.yml` : Caddy (HTTPS Let's Encrypt automatique), front, API, worker, Redis (AOF, `noeviction` pour BullMQ) et, en préprod, Postgres. Aucun port SSH : l'accès se fait par SSM.
 
@@ -53,6 +55,7 @@ terraform apply plan.tfplan
 - **Journaux** : `docker compose logs` sur le serveur (rotation 3 × 10 Mo par conteneur).
 - **Serveur remplacé** : `terraform apply -replace=module.<env>.aws_instance.host` ; au démarrage, il recharge les dernières images de S3.
 - **Retour arrière** : redéployer un commit antérieur (les archives précédentes restent 30 jours, versions S3).
+- **Photos** (`modules/media`) : la PWA envoie directement au bucket privé par une URL signée de l'API (PUT, type et taille fixés, CORS limité à l'application) ; CloudFront les sert avec une heure de cache au plus, pour qu'une photo retirée ou masquée disparaisse vite sans invalidation. Le worker efface les fichiers.
 - **Emails (SES)** : le domaine est vérifié par DKIM (`email.tf`). Tant que le compte est dans le bac à sable SES, seules les adresses vérifiées reçoivent les codes (`aws sesv2 create-email-identity --email-identity <adresse>`) ; sortir du bac à sable par la console SES (« Request production access », usage transactionnel : codes de connexion et invitations).
 - **Notifications web push** : générer une paire VAPID (`pnpm --filter api vapid:keys`) et la déposer dans SSM (`VAPID_PUBLIC_KEY` en String, `VAPID_PRIVATE_KEY` en SecureString), une paire par environnement, puis `deploy.sh config`. Changer de paire désabonne tous les navigateurs.
 - **Paiements (Stripe Connect)** : activer Connect sur le compte Stripe (Express), puis déposer dans SSM `STRIPE_SECRET_KEY` (clé `sk_test_…` en préprod, `sk_live_…` en prod) puis créer dans Stripe (Développeurs, Webhooks) deux points de réception sur `https://<app>/api/v1/payments/stripe/webhook` : un pour le compte (`checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.expired`), son secret dans `STRIPE_WEBHOOK_SECRET` ; un pour les comptes connectés (`account.updated`), son secret dans `STRIPE_CONNECT_WEBHOOK_SECRET`. Puis `deploy.sh config`.

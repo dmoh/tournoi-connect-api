@@ -9,6 +9,7 @@ import { isDemoAccount } from '../database/demo-data.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { accountDeletedMail } from '../mail/templates.js';
 import { Mailer } from '../mail/mailer.js';
+import { MediaService, VISIBLE_PHOTO } from '../media/media.service.js';
 import type { AccountExport } from './account.schemas.js';
 
 /** Nom laissé sur une inscription confirmée dont le responsable est parti. */
@@ -27,6 +28,7 @@ export class AccountService {
     private readonly prisma: PrismaService,
     private readonly clock: Clock,
     private readonly mailer: Mailer,
+    private readonly media: MediaService,
   ) {}
 
   async export(userId: string): Promise<AccountExport> {
@@ -53,6 +55,11 @@ export class AccountService {
         },
         follows: { orderBy: { createdAt: 'asc' } },
         pushSubscriptions: { orderBy: { createdAt: 'asc' } },
+        photos: {
+          where: VISIBLE_PHOTO,
+          include: { tournament: { select: { slug: true } } },
+          orderBy: { createdAt: 'asc' },
+        },
       },
     });
     if (!user) {
@@ -125,6 +132,12 @@ export class AccountService {
         createdAt: iso(p.createdAt),
         lastSentAt: isoOrNull(p.lastSentAt),
       })),
+      photos: user.photos.map((p) => ({
+        tournament: p.tournament.slug,
+        url: this.media.url(p.storageKey),
+        caption: p.caption,
+        createdAt: iso(p.createdAt),
+      })),
     };
   }
 
@@ -192,10 +205,16 @@ export class AccountService {
         data: { managerName: DELETED_MANAGER, phone: '' },
       });
       await tx.pushSubscription.deleteMany({ where: { userId } });
+      // Ses photos sont retirées ; le worker efface les fichiers.
+      await tx.photo.updateMany({
+        where: { uploadedById: userId, deletedAt: null },
+        data: { deletedAt: this.clock.now() },
+      });
       await tx.loginCode.deleteMany({ where: { email: user.email } });
       // Identités, sessions, rôles, accès sponsor et suivis partent en cascade.
       await tx.user.delete({ where: { id: userId } });
     });
+    await this.media.scheduleCleanup();
     await this.mailer.send(accountDeletedMail(user.email));
   }
 }

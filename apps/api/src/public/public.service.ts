@@ -10,6 +10,7 @@ import { Clock } from '../common/clock.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { Placement } from '../generated/prisma/enums.js';
+import { MediaService, VISIBLE_PHOTO } from '../media/media.service.js';
 import { AUDIENCE_QUEUE } from '../queue/queue.module.js';
 import { composeFeed } from './feed.js';
 import { replayFeed } from './match-feed.js';
@@ -47,6 +48,7 @@ export class PublicService {
     private readonly prisma: PrismaService,
     private readonly clock: Clock,
     private readonly audienceWriter: AudienceWriter,
+    private readonly media: MediaService,
     @Optional()
     @InjectQueue(AUDIENCE_QUEUE)
     private readonly audienceQueue?: Queue<AudienceJob>,
@@ -309,8 +311,33 @@ export class PublicService {
       this.reactionCounts(matchId),
     ]);
     const last = events.at(-1);
+    const photoIds = events.flatMap((e) => (e.photoId ? [e.photoId] : []));
+    const photos = new Map(
+      photoIds.length === 0
+        ? []
+        : (
+            await this.prisma.photo.findMany({
+              where: { id: { in: photoIds }, matchId, ...VISIBLE_PHOTO },
+            })
+          ).map((p) => [
+            p.id,
+            {
+              id: p.id,
+              url: this.media.url(p.storageKey),
+              width: p.width,
+              height: p.height,
+            },
+          ]),
+    );
     return {
-      events: replayFeed(events),
+      // Un événement dont la photo est retirée ou masquée disparaît du fil.
+      events: replayFeed(events).flatMap(({ photoId, ...event }) => {
+        if (!photoId) {
+          return [event];
+        }
+        const photo = photos.get(photoId);
+        return photo ? [{ ...event, photo }] : [];
+      }),
       reactions,
       updatedAt: last ? toIso(last.createdAt) : null,
     };
