@@ -185,7 +185,7 @@ describe('Pilotage du club (e2e)', () => {
       `attachment; filename="inscriptions-${SLUG}.csv"`,
     );
     const lines = res.body.split('\r\n');
-    expect(lines[0]).toMatch(/^﻿Équipe;Club;Responsable;Email;/);
+    expect(lines[0]).toMatch(/^\uFEFFÉquipe;Club;Responsable;Email;/);
     expect(lines[1]).toBe(
       `'=Les Aigles;"FC Annecy; section U13";Léa Martin;orga@example.org;'+33 6 12 34 56 78;1;Confirmée;60,00;4,70;64,70;09/11/2026 11:10;09/11/2026 11:10`,
     );
@@ -200,7 +200,7 @@ describe('Pilotage du club (e2e)', () => {
     });
     expect(res.statusCode).toBe(200);
     const lines = res.body.trimEnd().split('\r\n');
-    expect(lines[0]).toBe('﻿Équipe;Club;Numéro;Nom;Prénom');
+    expect(lines[0]).toBe('\uFEFFÉquipe;Club;Numéro;Nom;Prénom');
     // 8 équipes de 8 joueurs dans les données de démonstration.
     expect(lines).toHaveLength(1 + 64);
   });

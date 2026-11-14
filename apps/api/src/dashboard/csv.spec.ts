@@ -22,6 +22,6 @@ describe('CSV', () => {
 
   it('écrit un fichier lisible par Excel', () => {
     const csv = toCsv(['Équipe', 'Total'], [['Les Aigles', euros(1250)]]);
-    expect(csv).toBe('﻿Équipe;Total\r\nLes Aigles;12,50\r\n');
+    expect(csv).toBe('\uFEFFÉquipe;Total\r\nLes Aigles;12,50\r\n');
   });
 });
