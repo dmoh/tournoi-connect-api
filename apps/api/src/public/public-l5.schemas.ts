@@ -89,6 +89,15 @@ export const matchFeedSchema = z.object({
       player: z.string().optional(),
       assist: z.string().optional(),
       caption: z.string().optional(),
+      /** Photo d'un événement PHOTO (servie par CloudFront). */
+      photo: z
+        .object({
+          id: z.string(),
+          url: z.url(),
+          width: z.number().int(),
+          height: z.number().int(),
+        })
+        .optional(),
       /** Score juste après l'événement. */
       score: z.object({ home: z.number().int(), away: z.number().int() }),
     }),

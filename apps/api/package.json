@@ -25,7 +25,9 @@
     "vapid:keys": "node -e \"const c=require('node:crypto').createECDH('prime256v1');c.generateKeys();console.log('VAPID_PUBLIC_KEY='+c.getPublicKey('base64url'));console.log('VAPID_PRIVATE_KEY='+c.getPrivateKey('base64url'))\""
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1160.0",
     "@aws-sdk/client-sesv2": "3.1160.0",
+    "@aws-sdk/s3-request-presigner": "3.1160.0",
     "@dmoh/tournoi-connect-engine": "workspace:*",
     "@fastify/helmet": "^13.2.0",
     "@fastify/static": "^10.1.10",

@@ -1,6 +1,76 @@
 // Fichier généré par `pnpm openapi` — ne pas modifier à la main.
 
 export interface paths {
+    "/api/v1/organizer/tournaments/{slug}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Photos publiées du tournoi */
+        get: operations["ClubPhotosController_list_v1"];
+        put?: never;
+        /** URL d’envoi signée d’une photo (JPEG ou WebP, 2 Mo au plus, sans métadonnées) */
+        post: operations["ClubPhotosController_upload_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/photos/{photoId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publie la photo une fois envoyée et vérifiée */
+        post: operations["ClubPhotosController_confirm_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/photos/{photoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retire une photo (un bénévole : seulement les siennes) */
+        delete: operations["ClubPhotosController_remove_v1"];
+        options?: never;
+        head?: never;
+        /** Temps fort (mise en avant) ou légende */
+        patch: operations["ClubPhotosController_update_v1"];
+        trace?: never;
+    };
+    "/api/v1/public/tournaments/{slug}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Photos du tournoi ou d’un match, les plus récentes d’abord */
+        get: operations["PublicPhotosController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/providers": {
         parameters: {
             query?: never;
@@ -457,6 +527,40 @@ export interface paths {
         put?: never;
         /** Saisie du rapporteur (but, carton, arrêt, photo, période, annulation) */
         post: operations["ReporterController_record_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reporter/{token}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** URL d’envoi signée d’une photo du match (JPEG ou WebP, 2 Mo au plus, sans métadonnées) */
+        post: operations["ReporterController_requestPhoto_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reporter/{token}/photos/{photoId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publie la photo une fois envoyée et vérifiée (à joindre ensuite à un événement PHOTO) */
+        post: operations["ReporterController_confirmPhoto_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -987,6 +1091,341 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ClubPhotosController_list_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** Format: uri */
+                        url: string;
+                        width: number;
+                        height: number;
+                        caption: string | null;
+                        matchCode: string | null;
+                        highlight: boolean;
+                        /** @enum {string} */
+                        source: "reporter" | "club";
+                        /** Format: date-time */
+                        createdAt: string;
+                        uploadedBy: string | null;
+                    }[];
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou photo hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClubPhotosController_upload_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    contentType: "image/jpeg" | "image/webp";
+                    bytes: number;
+                    width: number;
+                    height: number;
+                    caption?: string;
+                    /** @enum {boolean} */
+                    consent: true;
+                    matchCode?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        photoId: string;
+                        /** Format: uri */
+                        uploadUrl: string;
+                        headers: {
+                            [key: string]: string;
+                        };
+                        /** Format: date-time */
+                        expiresAt: string;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou photo hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Limite de photos atteinte */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Stockage non configuré */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClubPhotosController_confirm_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+                photoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** Format: uri */
+                        url: string;
+                        width: number;
+                        height: number;
+                        caption: string | null;
+                        matchCode: string | null;
+                        highlight: boolean;
+                        /** @enum {string} */
+                        source: "reporter" | "club";
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou photo hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Fichier pas encore arrivé */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Fichier non conforme */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClubPhotosController_remove_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+                photoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Photo retirée */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou photo hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClubPhotosController_update_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+                photoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    highlight?: boolean;
+                    caption?: string | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** Format: uri */
+                        url: string;
+                        width: number;
+                        height: number;
+                        caption: string | null;
+                        matchCode: string | null;
+                        highlight: boolean;
+                        /** @enum {string} */
+                        source: "reporter" | "club";
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou photo hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicPhotosController_list_v1: {
+        parameters: {
+            query?: {
+                match?: string;
+                highlights?: "true" | "false";
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** Format: uri */
+                        url: string;
+                        width: number;
+                        height: number;
+                        caption: string | null;
+                        matchCode: string | null;
+                        highlight: boolean;
+                        /** @enum {string} */
+                        source: "reporter" | "club";
+                        /** Format: date-time */
+                        createdAt: string;
+                    }[];
+                };
+            };
+            /** @description Tournoi introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     AuthController_providers_v1: {
         parameters: {
             query?: never;
@@ -1353,6 +1792,13 @@ export interface operations {
                             createdAt: string;
                             /** Format: date-time */
                             lastSentAt: string | null;
+                        }[];
+                        photos: {
+                            tournament: string;
+                            url: string;
+                            caption: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
                         }[];
                     };
                 };
@@ -1851,6 +2297,13 @@ export interface operations {
                             player?: string;
                             assist?: string;
                             caption?: string;
+                            photo?: {
+                                id: string;
+                                /** Format: uri */
+                                url: string;
+                                width: number;
+                                height: number;
+                            };
                             score: {
                                 home: number;
                                 away: number;
@@ -2483,6 +2936,7 @@ export interface operations {
                     player?: string;
                     assist?: string;
                     caption?: string;
+                    photoId?: string;
                     cancels?: string;
                 };
             };
@@ -2505,6 +2959,126 @@ export interface operations {
             };
             /** @description Lien invalide ou expiré */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReporterController_requestPhoto_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    contentType: "image/jpeg" | "image/webp";
+                    bytes: number;
+                    width: number;
+                    height: number;
+                    caption?: string;
+                    /** @enum {boolean} */
+                    consent: true;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        photoId: string;
+                        /** Format: uri */
+                        uploadUrl: string;
+                        headers: {
+                            [key: string]: string;
+                        };
+                        /** Format: date-time */
+                        expiresAt: string;
+                    };
+                };
+            };
+            /** @description Lien invalide ou expiré */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Limite de photos du match */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Stockage non configuré */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReporterController_confirmPhoto_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+                photoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** Format: uri */
+                        url: string;
+                        width: number;
+                        height: number;
+                        caption: string | null;
+                        matchCode: string | null;
+                        highlight: boolean;
+                        /** @enum {string} */
+                        source: "reporter" | "club";
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Lien invalide ou expiré */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Fichier pas encore arrivé */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Fichier non conforme */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3610,6 +4184,7 @@ export interface operations {
             content: {
                 "application/json": {
                     postId?: string;
+                    photoId?: string;
                     /** @enum {string} */
                     reason: "ILLEGAL" | "ABUSE" | "PRIVACY" | "SPAM" | "OTHER";
                     /** @default  */
@@ -3735,6 +4310,13 @@ export interface operations {
                             id: string;
                             title: string;
                             body: string;
+                            hidden: boolean;
+                        } | null;
+                        photo: {
+                            id: string;
+                            /** Format: uri */
+                            url: string | null;
+                            caption: string | null;
                             hidden: boolean;
                         } | null;
                     }[];

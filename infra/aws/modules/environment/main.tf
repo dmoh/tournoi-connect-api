@@ -98,6 +98,11 @@ data "aws_iam_policy_document" "host" {
     resources = [var.ses_identity_arn]
   }
   statement {
+    sid       = "GererLesPhotos"
+    actions   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+    resources = ["${var.media.bucket_arn}/photos/*"]
+  }
+  statement {
     sid       = "DechiffrerSesSecrets"
     actions   = ["kms:Decrypt"]
     resources = ["*"]

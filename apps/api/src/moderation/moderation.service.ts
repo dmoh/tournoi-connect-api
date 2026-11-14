@@ -10,6 +10,7 @@ import type { Env } from '../config/env.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { contentHiddenMail, reportReceivedMail } from '../mail/templates.js';
 import { Mailer } from '../mail/mailer.js';
+import { MediaService, VISIBLE_PHOTO } from '../media/media.service.js';
 import { PUBLIC_STATUSES } from '../public/public-mapping.js';
 import type {
   CreateReport,
@@ -32,6 +33,7 @@ export class ModerationService {
     private readonly clock: Clock,
     private readonly mailer: Mailer,
     private readonly config: ConfigService<Env, true>,
+    private readonly media: MediaService,
   ) {}
 
   async report(slug: string, input: CreateReport): Promise<{ id: string }> {
@@ -55,6 +57,19 @@ export class ModerationService {
         throw new NotFoundException('Actualité introuvable.');
       }
     }
+    if (input.photoId) {
+      const photo = await this.prisma.photo.findFirst({
+        where: {
+          id: input.photoId,
+          tournamentId: tournament.id,
+          ...VISIBLE_PHOTO,
+        },
+        select: { id: true },
+      });
+      if (!photo) {
+        throw new NotFoundException('Photo introuvable.');
+      }
+    }
     const now = this.clock.now();
     const recent = await this.prisma.report.count({
       where: {
@@ -72,6 +87,7 @@ export class ModerationService {
       data: {
         tournamentId: tournament.id,
         postId: input.postId ?? null,
+        photoId: input.photoId ?? null,
         reason: input.reason,
         details: input.details,
         contactEmail: input.contactEmail ?? null,
@@ -106,8 +122,15 @@ export class ModerationService {
         (p) => [p.id, p],
       ),
     );
+    const photoIds = reports.flatMap((r) => (r.photoId ? [r.photoId] : []));
+    const photos = new Map(
+      (
+        await this.prisma.photo.findMany({ where: { id: { in: photoIds } } })
+      ).map((p) => [p.id, p]),
+    );
     return reports.map((r) => {
       const post = r.postId ? posts.get(r.postId) : undefined;
+      const photo = r.photoId ? photos.get(r.photoId) : undefined;
       return {
         id: r.id,
         status: r.status,
@@ -129,6 +152,18 @@ export class ModerationService {
               hidden: post.hiddenAt !== null,
             }
           : null,
+        photo: r.photoId
+          ? {
+              id: r.photoId,
+              url:
+                photo && !photo.removedAt
+                  ? this.media.url(photo.storageKey)
+                  : null,
+              caption: photo?.caption ?? null,
+              hidden:
+                !photo || photo.hiddenAt !== null || photo.deletedAt !== null,
+            }
+          : null,
       };
     });
   }
@@ -140,11 +175,18 @@ export class ModerationService {
   async hide(id: string, adminId: string): Promise<void> {
     const report = await this.openReport(id);
     const now = this.clock.now();
-    const target = report.postId
-      ? { postId: report.postId }
-      : { tournamentId: report.tournamentId, postId: null };
+    const target = report.photoId
+      ? { photoId: report.photoId }
+      : report.postId
+        ? { postId: report.postId }
+        : { tournamentId: report.tournamentId, postId: null, photoId: null };
     const tournament = await this.prisma.$transaction(async (tx) => {
-      if (report.postId) {
+      if (report.photoId) {
+        await tx.photo.updateMany({
+          where: { id: report.photoId, hiddenAt: null },
+          data: { hiddenAt: now },
+        });
+      } else if (report.postId) {
         await tx.post.updateMany({
           where: { id: report.postId, hiddenAt: null },
           data: { hiddenAt: now },
@@ -173,6 +215,10 @@ export class ModerationService {
         },
       });
     });
+    if (report.photoId) {
+      // L'objet est effacé du stockage : la photo ne s'affiche plus nulle part.
+      await this.media.scheduleCleanup();
+    }
     const post = report.postId
       ? await this.prisma.post.findUnique({ where: { id: report.postId } })
       : null;
@@ -181,7 +227,11 @@ export class ModerationService {
         contentHiddenMail(owner.user.email, {
           club: tournament.organization.name,
           tournament: tournament.name,
-          what: post ? `l’actualité « ${post.title} »` : 'la page du tournoi',
+          what: report.photoId
+            ? 'une photo'
+            : post
+              ? `l’actualité « ${post.title} »`
+              : 'la page du tournoi',
         }),
       );
     }

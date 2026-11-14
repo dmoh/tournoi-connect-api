@@ -5,6 +5,12 @@ import { ConfigService } from '@nestjs/config';
 import { Clock } from '../common/clock.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../database/prisma.service.js';
+import type {
+  PhotoUpload,
+  PhotoUploadRequest,
+  PublicPhoto,
+} from '../media/media.schemas.js';
+import { MediaService } from '../media/media.service.js';
 import { PushService } from '../push/push.service.js';
 import { replayFeed } from '../public/match-feed.js';
 import {
@@ -38,6 +44,7 @@ export class ReporterService {
     private readonly config: ConfigService<Env, true>,
     @Inject(AUTH_KEYS) keys: AuthKeys | null,
     private readonly push: PushService,
+    private readonly media: MediaService,
   ) {
     this.signer = keys ? new ReporterLinkSigner(keys.reporter) : null;
   }
@@ -114,8 +121,48 @@ export class ReporterService {
     };
   }
 
+  /** URL d'envoi d'une photo du match (la table de marque n'a pas de compte). */
+  async requestPhoto(
+    token: string,
+    input: PhotoUploadRequest,
+  ): Promise<PhotoUpload> {
+    const match = await this.openMatch(token);
+    return this.media.requestUpload(
+      {
+        tournamentId: match.tournamentId,
+        matchId: match.id,
+        source: 'REPORTER',
+        uploadedById: null,
+      },
+      input,
+    );
+  }
+
+  async confirmPhoto(token: string, photoId: string): Promise<PublicPhoto> {
+    const match = await this.openMatch(token);
+    return this.media.confirm(photoId, {
+      matchId: match.id,
+      source: 'REPORTER',
+    });
+  }
+
   async record(token: string, input: ReporterEvent): Promise<ReporterState> {
     const matchId = this.matchIdOf(token);
+    if (input.photoId) {
+      const photo = await this.prisma.photo.findFirst({
+        where: {
+          id: input.photoId,
+          matchId,
+          status: 'READY',
+          deletedAt: null,
+          hiddenAt: null,
+        },
+        select: { id: true },
+      });
+      if (!photo) {
+        throw new NotFoundException('Photo introuvable.');
+      }
+    }
     const result = await this.prisma.$transaction(async (tx) => {
       const match = await tx.match.findUnique({
         where: { id: matchId },
@@ -137,7 +184,7 @@ export class ReporterService {
             where: {
               matchId_clientEventId: { matchId, clientEventId: input.cancels },
             },
-            select: { id: true },
+            select: { id: true, photoId: true },
           })
         : null;
       const inserted = await tx.matchEvent.createMany({
@@ -151,6 +198,7 @@ export class ReporterService {
             player: input.player ?? null,
             assist: input.assist ?? null,
             caption: input.caption ?? null,
+            photoId: input.photoId ?? null,
             cancelsId: cancelled?.id ?? null,
             createdAt: this.clock.now(),
           },
@@ -186,8 +234,13 @@ export class ReporterService {
         previous: match.status,
         match,
         minute: input.minute,
+        // Photo d'un événement annulé : retirée avec lui.
+        cancelledPhotoId: inserted.count > 0 ? cancelled?.photoId : null,
       };
     });
+    if (result.cancelledPhotoId) {
+      await this.media.remove({ id: result.cancelledPhotoId });
+    }
     if (result.fresh) {
       await this.notify(input, result).catch(() => undefined);
     }
@@ -256,6 +309,21 @@ export class ReporterService {
       awayTeam: match.awayTeamCode,
       ...content,
     });
+  }
+
+  /** Match d'un lien valide, dans un tournoi public et non masqué. */
+  private async openMatch(token: string) {
+    const match = await this.prisma.match.findFirst({
+      where: {
+        id: this.matchIdOf(token),
+        tournament: { status: { in: [...PUBLIC_STATUSES] }, hiddenAt: null },
+      },
+      select: { id: true, tournamentId: true },
+    });
+    if (!match) {
+      throw new NotFoundException('Lien de saisie invalide ou expiré.');
+    }
+    return match;
   }
 
   private matchIdOf(token: string): string {

@@ -60,6 +60,12 @@ export const envSchema = z.object({
     .min(3)
     .default('Tournoi Connect <noreply@tournoi-connect.com>'),
   AWS_REGION: z.string().min(1).default('eu-west-3'),
+  /**
+   * Photos des tournois : bucket S3 privé (envoi direct par URL signée) et
+   * adresse de diffusion CloudFront. Sans eux, l'envoi de photos est fermé (503).
+   */
+  MEDIA_BUCKET: optional(),
+  MEDIA_PUBLIC_URL: z.preprocess(empty, z.url().optional()),
   /** Connexion en un clic : chaque fournisseur ne s'affiche que s'il est configuré. */
   GOOGLE_CLIENT_ID: optional(),
   GOOGLE_CLIENT_SECRET: optional(),

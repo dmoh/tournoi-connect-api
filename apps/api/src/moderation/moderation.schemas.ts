@@ -8,20 +8,27 @@ export const reportReasonSchema = z.enum([
   'OTHER',
 ]);
 
-/** Signalement d'une page de tournoi ou de l'une de ses actualités. */
-export const createReportSchema = z.object({
-  /** Actualité signalée ; absent : la page du tournoi. */
-  postId: z.string().min(1).max(40).optional(),
-  reason: reportReasonSchema,
-  details: z.string().trim().max(1000).default(''),
-  /** Pour être recontacté (facultatif). */
-  contactEmail: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .pipe(z.email().max(254))
-    .optional(),
-});
+/** Signalement d'une page de tournoi, d'une de ses actualités ou photos. */
+export const createReportSchema = z
+  .object({
+    /** Actualité signalée ; absent (avec photoId) : la page du tournoi. */
+    postId: z.string().min(1).max(40).optional(),
+    /** Photo signalée. */
+    photoId: z.string().min(1).max(40).optional(),
+    reason: reportReasonSchema,
+    details: z.string().trim().max(1000).default(''),
+    /** Pour être recontacté (facultatif). */
+    contactEmail: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .pipe(z.email().max(254))
+      .optional(),
+  })
+  .refine((r) => !(r.postId && r.photoId), {
+    message: 'Signalez une actualité ou une photo, pas les deux.',
+    path: ['photoId'],
+  });
 
 export const reportCreatedSchema = z.object({ id: z.string() });
 
@@ -44,6 +51,15 @@ export const platformReportSchema = z.object({
       id: z.string(),
       title: z.string(),
       body: z.string(),
+      hidden: z.boolean(),
+    })
+    .nullable(),
+  /** Photo signalée ; url null une fois l'objet effacé. */
+  photo: z
+    .object({
+      id: z.string(),
+      url: z.url().nullable(),
+      caption: z.string().nullable(),
       hidden: z.boolean(),
     })
     .nullable(),

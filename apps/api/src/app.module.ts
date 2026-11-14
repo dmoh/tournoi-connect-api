@@ -7,6 +7,7 @@ import { Clock, SystemClock } from './common/clock.js';
 import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
 import { MailModule } from './mail/mail.module.js';
+import { MediaModule } from './media/media.module.js';
 import { MaintenanceModule } from './maintenance/maintenance.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { PlatformModule } from './platform/platform.module.js';
@@ -26,6 +27,7 @@ import { QueueModule } from './queue/queue.module.js';
     DatabaseModule,
     QueueModule.forRoot(),
     MailModule,
+    MediaModule,
     AuthModule,
     AccountModule,
     HealthModule,

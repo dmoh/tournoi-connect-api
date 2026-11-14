@@ -30,6 +30,8 @@ locals {
       MAIL_FROM        = var.mail_from
       AWS_REGION       = data.aws_region.current.region
       SEED_DEMO        = var.seed_demo ? "true" : "false"
+      MEDIA_BUCKET     = var.media.bucket
+      MEDIA_PUBLIC_URL = var.media.public_url
     },
     var.managed_database ? {} : { COMPOSE_PROFILES = "local-db" },
   )

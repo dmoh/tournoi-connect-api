@@ -159,6 +159,7 @@ model Tournament {
   /// Masqué par la modération de la plateforme : la page publique répond 404.
   hiddenAt             DateTime?           @map("hidden_at") @db.Timestamptz
   reports              Report[]
+  photos               Photo[]
   teams                Team[]
   matches              Match[]
   posts                Post[]
@@ -222,6 +223,7 @@ model Match {
   version         Int             @default(0)
   events          MatchEvent[]
   reactions       MatchReaction[]
+  photos          Photo[]
 
   @@unique([tournamentId, code])
   @@index([tournamentId, startsAt])
@@ -267,6 +269,8 @@ model MatchEvent {
   assist        String?
   caption       String?
   cancelsId     String?        @map("cancels_id")
+  /// Photo jointe à un événement PHOTO (envoyée et confirmée avant l'événement).
+  photoId       String?        @map("photo_id")
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz
 
   @@unique([matchId, clientEventId])
@@ -421,6 +425,7 @@ model User {
   registrations     Registration[]
   follows           Follow[]
   pushSubscriptions PushSubscription[]
+  photos            Photo[]
 
   @@map("app_user")
 }
@@ -633,6 +638,8 @@ model Report {
   tournament   Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   /// Actualité signalée ; vide : la page du tournoi elle-même.
   postId       String?      @map("post_id")
+  /// Photo signalée (temps fort, photo d'un match).
+  photoId      String?      @map("photo_id")
   reason       ReportReason
   details      String       @default("")
   /// Adresse laissée pour être recontacté (facultative).
@@ -645,4 +652,56 @@ model Report {
   @@index([status, createdAt])
   @@index([tournamentId])
   @@map("report")
+}
+
+enum PhotoStatus {
+  /// URL d'envoi délivrée, fichier pas encore vérifié.
+  PENDING
+  /// Fichier vérifié (taille, type) : publié.
+  READY
+}
+
+enum PhotoSource {
+  /// Table de marque (lien du rapporteur).
+  REPORTER
+  /// Membre du club, depuis l'espace organisateur.
+  CLUB
+}
+
+/**
+ * Photo d'un tournoi (ou d'un match), stockée dans le bucket privé et servie
+ * par CloudFront. Redimensionnée et sans métadonnées (EXIF, GPS) dès
+ * l'appareil ; l'objet est effacé du stockage par le worker (removedAt).
+ */
+model Photo {
+  id           String      @id @default(cuid(2))
+  tournamentId String      @map("tournament_id")
+  tournament   Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  matchId      String?     @map("match_id")
+  match        Match?      @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  /// Clé de l'objet dans le bucket (photos/<tournoi>/<photo>.<ext>).
+  storageKey   String      @unique @map("storage_key")
+  contentType  String      @map("content_type")
+  bytes        Int
+  width        Int
+  height       Int
+  caption      String?
+  source       PhotoSource
+  /// Membre du club qui l'a envoyée ; vide pour la table de marque.
+  uploadedById String?     @map("uploaded_by_id")
+  uploadedBy   User?       @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  status       PhotoStatus @default(PENDING)
+  /// Mise en avant par le club : temps fort affiché dans le fil.
+  highlight    Boolean     @default(false)
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  /// Retirée par le club, la table de marque (annulation) ou avec le compte.
+  deletedAt    DateTime?   @map("deleted_at") @db.Timestamptz
+  /// Masquée par la modération de la plateforme.
+  hiddenAt     DateTime?   @map("hidden_at") @db.Timestamptz
+  /// Objet effacé du bucket.
+  removedAt    DateTime?   @map("removed_at") @db.Timestamptz
+
+  @@index([tournamentId, createdAt])
+  @@index([matchId])
+  @@map("photo")
 }
