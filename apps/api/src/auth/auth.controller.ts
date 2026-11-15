@@ -23,6 +23,7 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { openApi } from '../common/openapi-schema.js';
+import { RateLimited } from '../common/rate-limit.js';
 import type { Env } from '../config/env.js';
 import { SESSION_TTL_MS } from './auth-keys.js';
 import { AuthGuard, CurrentUser, type AuthUser } from './auth.guard.js';
@@ -71,6 +72,7 @@ export class AuthController {
   }
 
   @Post('code')
+  @RateLimited('authCode')
   @HttpCode(204)
   @ApiOperation({
     summary: 'Envoyer un code de connexion à 6 chiffres par email',
@@ -87,6 +89,7 @@ export class AuthController {
   }
 
   @Post('verify')
+  @RateLimited('authVerify')
   @HttpCode(200)
   @ApiOperation({
     summary: 'Ouvrir une session avec le code reçu (crée le compte au besoin)',
@@ -109,6 +112,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @RateLimited('authRefresh')
   @HttpCode(200)
   @ApiOperation({
     summary: 'Nouveau jeton d’accès depuis le cookie de session',

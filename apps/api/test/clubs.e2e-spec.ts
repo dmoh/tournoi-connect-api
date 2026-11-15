@@ -56,9 +56,8 @@ describe('Clubs, membres et invitations (e2e)', () => {
     expect(members.json()).toMatchObject({
       organization: { slug: 'etoile-de-l-arve-2', city: 'Cluses' },
       yourRole: 'OWNER',
-      members: [
-        { email: 'nouveau.club@example.com', role: 'OWNER', you: true },
-      ],
+      items: [{ email: 'nouveau.club@example.com', role: 'OWNER', you: true }],
+      nextCursor: null,
       invitations: [],
     });
     expect(
@@ -199,7 +198,7 @@ describe('Clubs, membres et invitations (e2e)', () => {
     const owner = await login(app, 'orga@example.org');
     const members = (await call('GET', '/organizer/members', owner)).json();
     const id = (email: string) =>
-      members.members.find((m: { email: string }) => m.email === email)
+      members.items.find((m: { email: string }) => m.email === email)
         .userId as string;
 
     const promoted = await call(
@@ -214,7 +213,7 @@ describe('Clubs, membres et invitations (e2e)', () => {
     expect(
       promoted
         .json()
-        .members.find(
+        .items.find(
           (m: { email: string }) => m.email === 'benevole@example.org',
         ).role,
     ).toBe('ADMIN');

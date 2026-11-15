@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBadRequestResponse,
   ApiBody,
   ApiConflictResponse,
   ApiHeader,
@@ -26,8 +27,12 @@ import {
   ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
-import { z } from 'zod';
 import { openApi } from '../common/openapi-schema.js';
+import {
+  pageQuerySchema,
+  type Page,
+  type PageQuery,
+} from '../common/pagination.js';
 import {
   OrganizerGuard,
   OrganizerRole,
@@ -35,9 +40,10 @@ import {
 } from '../organizer/organizer.guard.js';
 import { ClubPhotosService, type ClubActor } from './club-photos.service.js';
 import {
-  clubPhotoSchema,
+  clubPhotoPageSchema,
   clubPhotoUploadRequestSchema,
   photoUploadSchema,
+  publicPhotoPageSchema,
   publicPhotoSchema,
   publicPhotosQuerySchema,
   updatePhotoSchema,
@@ -73,13 +79,17 @@ export class ClubPhotosController {
   constructor(private readonly photos: ClubPhotosService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Photos publiées du tournoi' })
-  @ApiOkResponse({ schema: openApi(z.array(clubPhotoSchema)) })
+  @ApiOperation({
+    summary: 'Photos publiées du tournoi, les plus récentes d’abord (paginé)',
+  })
+  @ApiOkResponse({ schema: openApi(clubPhotoPageSchema) })
+  @ApiBadRequestResponse({ description: 'Limite ou curseur invalide' })
   list(
     @Req() req: OrganizerRequest,
     @Param('slug') slug: string,
-  ): Promise<ClubPhoto[]> {
-    return this.photos.list(actorOf(req), slug);
+    @Query({ schema: pageQuerySchema }) query: PageQuery,
+  ): Promise<Page<ClubPhoto>> {
+    return this.photos.list(actorOf(req), slug, query);
   }
 
   @Post()
@@ -152,14 +162,16 @@ export class PublicPhotosController {
 
   @Get()
   @ApiOperation({
-    summary: 'Photos du tournoi ou d’un match, les plus récentes d’abord',
+    summary:
+      'Photos du tournoi ou d’un match, les plus récentes d’abord (paginé)',
   })
-  @ApiOkResponse({ schema: openApi(z.array(publicPhotoSchema)) })
+  @ApiOkResponse({ schema: openApi(publicPhotoPageSchema) })
+  @ApiBadRequestResponse({ description: 'Limite ou curseur invalide' })
   @ApiNotFoundResponse({ description: 'Tournoi introuvable' })
   list(
     @Param('slug') slug: string,
     @Query({ schema: publicPhotosQuerySchema }) query: PublicPhotosQuery,
-  ): Promise<PublicPhoto[]> {
+  ): Promise<Page<PublicPhoto>> {
     return this.photos.list(slug, query);
   }
 }

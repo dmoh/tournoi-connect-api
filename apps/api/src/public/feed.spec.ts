@@ -47,6 +47,21 @@ describe('composeFeed', () => {
     }
   });
 
+  it('reprend la rotation des sponsors à la page suivante', () => {
+    // Page précédente : une carte (Or) déjà montrée ; celle-ci commence par Bronze.
+    expect(shape(composeFeed(posts, sponsors, 1))).toEqual([
+      'p1',
+      'p2',
+      'p3',
+      '[bronze]',
+      'p4',
+      'p5',
+      'p6',
+      '[or]',
+      'p7',
+    ]);
+  });
+
   it('se passe de sponsors', () => {
     expect(shape(composeFeed(posts, []))).toEqual(posts);
   });

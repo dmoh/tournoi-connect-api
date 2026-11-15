@@ -180,7 +180,7 @@ describe('Espace organisateur (e2e)', () => {
         url: '/api/v1/public/tournaments/challenge-u13-arve/news',
       })
     ).json();
-    expect(news[0].title).toBe('Finale avancée à 15 h 30');
+    expect(news.items[0].title).toBe('Finale avancée à 15 h 30');
   });
 
   const draft = {
@@ -207,10 +207,11 @@ describe('Espace organisateur (e2e)', () => {
   it('liste les tournois de l’organisation seulement', async () => {
     const res = await call('GET', '/tournaments');
     expect(res.statusCode).toBe(200);
-    const slugs = res.json().map((t: { slug: string }) => t.slug);
+    const slugs = res.json().items.map((t: { slug: string }) => t.slug);
     expect(slugs).toContain('challenge-u13-arve');
     expect(slugs).not.toContain('tournoi-11-novembre-u15');
-    expect(res.json()[0]).toMatchObject({
+    expect(res.json().nextCursor).toBeNull();
+    expect(res.json().items[0]).toMatchObject({
       venueName: expect.any(String),
       fields: 1,
     });
@@ -236,7 +237,7 @@ describe('Espace organisateur (e2e)', () => {
       method: 'GET',
       url: '/api/v1/public/tournaments?lat=46.06&lng=6.58&radiusKm=5',
     });
-    expect(nearby.json().map((t: { slug: string }) => t.slug)).toContain(
+    expect(nearby.json().items.map((t: { slug: string }) => t.slug)).toContain(
       'coupe-d-hiver-u13',
     );
   });

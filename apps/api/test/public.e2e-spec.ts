@@ -20,19 +20,20 @@ describe('Lectures publiques (e2e)', () => {
   it('trouve les tournois du rayon, triés par distance', async () => {
     const res = await get(`/tournaments?${CLUSES}&radiusKm=25`);
     expect(res.statusCode).toBe(200);
-    expect(res.json().map((t: { slug: string }) => t.slug)).toEqual([
+    expect(res.json().items.map((t: { slug: string }) => t.slug)).toEqual([
       'challenge-u13-arve',
       'coupe-noel-u11-bonneville',
       'tournoi-11-novembre-u15',
     ]);
-    expect(res.json()[0].distanceKm).toBeLessThan(0.1);
+    expect(res.json().items[0].distanceKm).toBeLessThan(0.1);
+    expect(res.json().nextCursor).toBeNull();
   });
 
   it('filtre par sport et refuse une requête invalide', async () => {
     const basket = await get(
       `/tournaments?${CLUSES}&radiusKm=100&sport=basketball`,
     );
-    expect(basket.json().map((t: { slug: string }) => t.slug)).toEqual([
+    expect(basket.json().items.map((t: { slug: string }) => t.slug)).toEqual([
       'basket-3x3-annecy',
     ]);
 
@@ -64,7 +65,10 @@ describe('Lectures publiques (e2e)', () => {
 
   it('intercale au plus une carte sponsorisée pour quatre éléments, Or en premier', async () => {
     const res = await get('/tournaments/challenge-u13-arve/news');
-    const items = res.json() as { type: string; sponsor?: { name: string } }[];
+    const items = res.json().items as {
+      type: string;
+      sponsor?: { name: string };
+    }[];
     expect(items.map((i) => i.type)).toEqual([
       'post',
       'post',
@@ -102,7 +106,7 @@ describe('Lectures publiques (e2e)', () => {
 
   it('compte un vote de sondage', async () => {
     const news = (await get('/tournaments/challenge-u13-arve/news')).json();
-    const poll = news.find((i: { kind?: string }) => i.kind === 'poll');
+    const poll = news.items.find((i: { kind?: string }) => i.kind === 'poll');
     const option = poll.poll.options[1];
     const res = await app.inject({
       method: 'POST',

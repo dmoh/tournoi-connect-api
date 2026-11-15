@@ -36,6 +36,8 @@ export class ReferralsService {
       include: {
         referrals: {
           orderBy: { createdAt: 'desc' },
+          // Borne explicite : les 200 clubs parrainés les plus récents.
+          take: 200,
           include: {
             _count: {
               select: {

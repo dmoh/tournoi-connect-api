@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Clock } from '../common/clock.js';
+import { keyset, type Page } from '../common/pagination.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { contentHiddenMail, reportReceivedMail } from '../mail/templates.js';
@@ -109,11 +110,25 @@ export class ModerationService {
     return { id: report.id };
   }
 
-  async list(query: ReportListQuery): Promise<PlatformReport[]> {
+  /**
+   * Signalements paginés sur (createdAt, id) : les ouverts du plus ancien au
+   * plus récent (file à traiter), les traités du plus récent au plus ancien.
+   */
+  async list(query: ReportListQuery): Promise<Page<PlatformReport>> {
+    const direction = query.status === 'OPEN' ? 'asc' : 'desc';
+    const page = keyset(
+      {
+        scope: `platform:reports:${query.status}`,
+        key: 'createdAt',
+        kind: 'date',
+        direction,
+      },
+      query,
+    );
     const reports = await this.prisma.report.findMany({
-      where: { status: query.status },
-      orderBy: { createdAt: query.status === 'OPEN' ? 'asc' : 'desc' },
-      take: 100,
+      where: { status: query.status, ...page.where },
+      orderBy: page.orderBy,
+      take: page.take,
       include: { tournament: { include: { organization: true } } },
     });
     const postIds = reports.flatMap((r) => (r.postId ? [r.postId] : []));
@@ -128,7 +143,7 @@ export class ModerationService {
         await this.prisma.photo.findMany({ where: { id: { in: photoIds } } })
       ).map((p) => [p.id, p]),
     );
-    return reports.map((r) => {
+    return page.finish(reports, (r) => {
       const post = r.postId ? posts.get(r.postId) : undefined;
       const photo = r.photoId ? photos.get(r.photoId) : undefined;
       return {

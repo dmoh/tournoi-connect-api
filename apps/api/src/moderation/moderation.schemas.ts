@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { pageQuerySchema, pageSchema } from '../common/pagination.js';
 
 export const reportReasonSchema = z.enum([
   'ILLEGAL',
@@ -65,7 +66,10 @@ export const platformReportSchema = z.object({
     .nullable(),
 });
 
-export const reportListQuerySchema = z.object({
+/** Page de signalements : ouverts du plus ancien au plus récent, traités l'inverse. */
+export const platformReportPageSchema = pageSchema(platformReportSchema);
+
+export const reportListQuerySchema = pageQuerySchema.extend({
   status: z.enum(['OPEN', 'HIDDEN', 'DISMISSED']).default('OPEN'),
 });
 

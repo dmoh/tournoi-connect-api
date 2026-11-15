@@ -8,7 +8,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Photos publiées du tournoi */
+        /** Photos publiées du tournoi, les plus récentes d’abord (paginé) */
         get: operations["ClubPhotosController_list_v1"];
         put?: never;
         /** URL d’envoi signée d’une photo (JPEG ou WebP, 2 Mo au plus, sans métadonnées) */
@@ -61,7 +61,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Photos du tournoi ou d’un match, les plus récentes d’abord */
+        /** Photos du tournoi ou d’un match, les plus récentes d’abord (paginé) */
         get: operations["PublicPhotosController_list_v1"];
         put?: never;
         post?: never;
@@ -249,7 +249,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Tournois en cours ou à venir autour d’un point */
+        /** Tournois en cours ou à venir autour d’un point, par distance, date puis id (paginé) */
         get: operations["PublicController_search_v1"];
         put?: never;
         post?: never;
@@ -293,6 +293,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/tournaments/{slug}/matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Matchs d’une journée (heure de Paris), par créneau puis par phase, et journées du tournoi */
+        get: operations["PublicController_matches_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/tournaments/{slug}/news": {
         parameters: {
             query?: never;
@@ -300,7 +317,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Fil News, une carte sponsorisée au plus pour quatre éléments */
+        /** Fil News paginé, plus récent en tête ; une carte sponsorisée au plus pour quatre éléments */
         get: operations["PublicController_news_v1"];
         put?: never;
         post?: never;
@@ -567,6 +584,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizer/tournaments/{slug}/matches/{matchId}/reporter-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Révoquer tous les liens de la table de marque d’un match */
+        delete: operations["ReporterLinksController_revoke_v1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/clubs": {
         parameters: {
             query?: never;
@@ -591,7 +625,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Membres du club et invitations en attente */
+        /** Membres du club (paginés, par rôle puis arrivée) et invitations en attente */
         get: operations["MembersController_members_v1"];
         put?: never;
         post?: never;
@@ -779,7 +813,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Inscriptions d’un tournoi du club */
+        /** Inscriptions d’un tournoi du club : tri, filtre de statut, pagination */
         get: operations["OrganizerRegistrationsController_list_v1"];
         put?: never;
         post?: never;
@@ -1093,7 +1127,10 @@ export type $defs = Record<string, never>;
 export interface operations {
     ClubPhotosController_list_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
             header?: {
                 /** @description Club concerné (slug), si le compte en a plusieurs */
                 "X-Organization"?: string;
@@ -1111,21 +1148,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        id: string;
-                        /** Format: uri */
-                        url: string;
-                        width: number;
-                        height: number;
-                        caption: string | null;
-                        matchCode: string | null;
-                        highlight: boolean;
-                        /** @enum {string} */
-                        source: "reporter" | "club";
-                        /** Format: date-time */
-                        createdAt: string;
-                        uploadedBy: string | null;
-                    }[];
+                        items: {
+                            id: string;
+                            /** Format: uri */
+                            url: string;
+                            width: number;
+                            height: number;
+                            caption: string | null;
+                            matchCode: string | null;
+                            highlight: boolean;
+                            /** @enum {string} */
+                            source: "reporter" | "club";
+                            /** Format: date-time */
+                            createdAt: string;
+                            uploadedBy: string | null;
+                        }[];
+                        nextCursor: string | null;
+                    };
                 };
+            };
+            /** @description Limite ou curseur invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Connexion requise */
             401: {
@@ -1384,9 +1431,10 @@ export interface operations {
     PublicPhotosController_list_v1: {
         parameters: {
             query?: {
+                cursor?: string;
+                limit?: number;
                 match?: string;
                 highlights?: "true" | "false";
-                limit?: number;
             };
             header?: never;
             path: {
@@ -1402,20 +1450,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        id: string;
-                        /** Format: uri */
-                        url: string;
-                        width: number;
-                        height: number;
-                        caption: string | null;
-                        matchCode: string | null;
-                        highlight: boolean;
-                        /** @enum {string} */
-                        source: "reporter" | "club";
-                        /** Format: date-time */
-                        createdAt: string;
-                    }[];
+                        items: {
+                            id: string;
+                            /** Format: uri */
+                            url: string;
+                            width: number;
+                            height: number;
+                            caption: string | null;
+                            matchCode: string | null;
+                            highlight: boolean;
+                            /** @enum {string} */
+                            source: "reporter" | "club";
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        nextCursor: string | null;
+                    };
                 };
+            };
+            /** @description Limite ou curseur invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Tournoi introuvable */
             404: {
@@ -2011,6 +2069,8 @@ export interface operations {
     PublicController_search_v1: {
         parameters: {
             query: {
+                cursor?: string;
+                limit?: number;
                 lat: number;
                 lng: number;
                 radiusKm?: number;
@@ -2028,31 +2088,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        slug: string;
-                        name: string;
-                        /** @enum {string} */
-                        sport: "football" | "handball" | "basketball" | "volleyball" | "rugby";
-                        organizer: string;
-                        /** Format: date-time */
-                        startsAt: string;
-                        /** Format: date-time */
-                        endsAt: string;
-                        venue: {
+                        items: {
+                            slug: string;
                             name: string;
-                            city: string;
-                            lat: number;
-                            lng: number;
-                            outdoor: boolean;
-                        };
-                        categories: string[];
-                        teamCount: number;
-                        maxTeams: number;
-                        feeCents: number;
-                        /** @enum {string} */
-                        status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED";
-                        distanceKm: number;
-                    }[];
+                            /** @enum {string} */
+                            sport: "football" | "handball" | "basketball" | "volleyball" | "rugby";
+                            organizer: string;
+                            /** Format: date-time */
+                            startsAt: string;
+                            /** Format: date-time */
+                            endsAt: string;
+                            venue: {
+                                name: string;
+                                city: string;
+                                lat: number;
+                                lng: number;
+                                outdoor: boolean;
+                            };
+                            categories: string[];
+                            teamCount: number;
+                            maxTeams: number;
+                            feeCents: number;
+                            /** @enum {string} */
+                            status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED";
+                            distanceKm: number;
+                        }[];
+                        nextCursor: string | null;
+                    };
                 };
+            };
+            /** @description Paramètre, limite ou curseur invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -2170,9 +2240,11 @@ export interface operations {
             };
         };
     };
-    PublicController_news_v1: {
+    PublicController_matches_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                day?: string;
+            };
             header?: never;
             path: {
                 slug: string;
@@ -2186,37 +2258,126 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": ({
-                        /** @enum {string} */
-                        type: "post";
-                        id: string;
-                        /** @enum {string} */
-                        kind: "announcement" | "result" | "poll";
-                        /** Format: date-time */
-                        publishedAt: string;
-                        title: string;
-                        body: string;
-                        matchId?: string;
-                        poll?: {
-                            options: {
-                                id: string;
-                                label: string;
-                                votes: number;
+                    "application/json": {
+                        /** Format: date */
+                        day: string;
+                        days: string[];
+                        /** Format: date */
+                        previousDay: string | null;
+                        /** Format: date */
+                        nextDay: string | null;
+                        slots: {
+                            /** Format: date-time */
+                            startsAt: string;
+                            phases: {
+                                /** @enum {string} */
+                                phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "final";
+                                matches: {
+                                    id: string;
+                                    /** @enum {string} */
+                                    phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "final";
+                                    group?: string;
+                                    field: string;
+                                    /** Format: date-time */
+                                    startsAt: string;
+                                    homeTeamId: string | null;
+                                    awayTeamId: string | null;
+                                    homePlaceholder?: string;
+                                    awayPlaceholder?: string;
+                                    scoreHome: number;
+                                    scoreAway: number;
+                                    /** @enum {string} */
+                                    status: "SCHEDULED" | "LIVE" | "FINISHED";
+                                    minute?: number;
+                                }[];
                             }[];
-                        };
-                    } | {
-                        /** @enum {string} */
-                        type: "sponsored";
-                        sponsor: {
-                            id: string;
-                            name: string;
-                            /** @enum {string} */
-                            tier: "GOLD" | "SILVER" | "BRONZE" | "FIELD";
-                            /** Format: uri */
-                            website?: string;
-                        };
-                    })[];
+                        }[];
+                    };
                 };
+            };
+            /** @description Journée mal formée (AAAA-MM-JJ) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi inconnu ou non publié */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicController_news_v1: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: ({
+                            /** @enum {string} */
+                            type: "post";
+                            id: string;
+                            /** @enum {string} */
+                            kind: "announcement" | "result" | "poll";
+                            /** Format: date-time */
+                            publishedAt: string;
+                            title: string;
+                            body: string;
+                            matchId?: string;
+                            poll?: {
+                                options: {
+                                    id: string;
+                                    label: string;
+                                    votes: number;
+                                }[];
+                            };
+                        } | {
+                            /** @enum {string} */
+                            type: "sponsored";
+                            sponsor: {
+                                id: string;
+                                name: string;
+                                /** @enum {string} */
+                                tier: "GOLD" | "SILVER" | "BRONZE" | "FIELD";
+                                /** Format: uri */
+                                website?: string;
+                            };
+                        })[];
+                        nextCursor: string | null;
+                    };
+                };
+            };
+            /** @description Limite ou curseur invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi inconnu ou non publié */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -2477,7 +2638,10 @@ export interface operations {
     };
     OrganizerController_tournaments_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
             header?: {
                 /** @description Club concerné (slug), si le compte en a plusieurs */
                 "X-Organization"?: string;
@@ -2493,22 +2657,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        slug: string;
-                        name: string;
-                        /** @enum {string} */
-                        status: "DRAFT" | "PUBLISHED" | "IN_PROGRESS";
-                        /** Format: date-time */
-                        startsAt: string;
-                        city: string;
-                        teamCount: number;
-                        maxTeams: number;
-                        /** @enum {string} */
-                        sport: "football" | "handball" | "basketball" | "volleyball" | "rugby";
-                        venueName: string;
-                        categories: string[];
-                        fields: number;
-                    }[];
+                        items: {
+                            slug: string;
+                            name: string;
+                            /** @enum {string} */
+                            status: "DRAFT" | "PUBLISHED" | "IN_PROGRESS";
+                            /** Format: date-time */
+                            startsAt: string;
+                            city: string;
+                            teamCount: number;
+                            maxTeams: number;
+                            /** @enum {string} */
+                            sport: "football" | "handball" | "basketball" | "volleyball" | "rugby";
+                            venueName: string;
+                            categories: string[];
+                            fields: number;
+                        }[];
+                        nextCursor: string | null;
+                    };
                 };
+            };
+            /** @description Limite ou curseur invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Connexion requise */
             401: {
@@ -2525,6 +2699,8 @@ export interface operations {
             header?: {
                 /** @description Club concerné (slug), si le compte en a plusieurs */
                 "X-Organization"?: string;
+                /** @description Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures. */
+                "Idempotency-Key"?: string;
             };
             path?: never;
             cookie?: never;
@@ -2581,8 +2757,29 @@ export interface operations {
                     };
                 };
             };
+            /** @description Idempotency-Key invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Connexion requise */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Requête de même clé encore en cours */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Idempotency-Key déjà utilisée pour un autre corps */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2719,6 +2916,8 @@ export interface operations {
             header?: {
                 /** @description Club concerné (slug), si le compte en a plusieurs */
                 "X-Organization"?: string;
+                /** @description Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures. */
+                "Idempotency-Key"?: string;
             };
             path: {
                 slug: string;
@@ -2760,6 +2959,13 @@ export interface operations {
                     };
                 };
             };
+            /** @description Idempotency-Key invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Connexion requise */
             401: {
                 headers: {
@@ -2767,8 +2973,15 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Pack épuisé ou sponsor déjà présent */
+            /** @description Pack épuisé, sponsor déjà présent ou requête de même clé en cours */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Idempotency-Key déjà utilisée pour un autre corps */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2818,6 +3031,8 @@ export interface operations {
             header?: {
                 /** @description Club concerné (slug), si le compte en a plusieurs */
                 "X-Organization"?: string;
+                /** @description Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures. */
+                "Idempotency-Key"?: string;
             };
             path: {
                 slug: string;
@@ -2849,8 +3064,29 @@ export interface operations {
                     };
                 };
             };
+            /** @description Idempotency-Key invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Connexion requise */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Requête de même clé encore en cours */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Idempotency-Key déjà utilisée pour un autre corps */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2906,7 +3142,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Lien invalide ou expiré */
+            /** @description Lien invalide, expiré ou révoqué */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -2957,8 +3193,15 @@ export interface operations {
                     };
                 };
             };
-            /** @description Lien invalide ou expiré */
+            /** @description Lien invalide, expiré ou révoqué */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi plus public, match terminé (seule la fin s’annule), annulation impossible, ou clientEventId déjà utilisé pour une autre saisie */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3007,14 +3250,14 @@ export interface operations {
                     };
                 };
             };
-            /** @description Lien invalide ou expiré */
+            /** @description Lien invalide, expiré ou révoqué */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Limite de photos du match */
+            /** @description Limite de photos du match, ou trop de requêtes */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -3063,7 +3306,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Lien invalide ou expiré */
+            /** @description Lien invalide, expiré ou révoqué */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -3079,6 +3322,43 @@ export interface operations {
             };
             /** @description Fichier non conforme */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReporterLinksController_revoke_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Match hors de l’organisation */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3151,7 +3431,10 @@ export interface operations {
     };
     MembersController_members_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
             header?: {
                 /** @description Club concerné (slug), si le compte en a plusieurs */
                 "X-Organization"?: string;
@@ -3167,14 +3450,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        organization: {
-                            slug: string;
-                            name: string;
-                            city: string | null;
-                        };
-                        /** @enum {string} */
-                        yourRole: "OWNER" | "ADMIN" | "STAFF";
-                        members: {
+                        items: {
                             userId: string;
                             firstName: string | null;
                             lastName: string | null;
@@ -3184,6 +3460,14 @@ export interface operations {
                             joinedAt: string;
                             you: boolean;
                         }[];
+                        nextCursor: string | null;
+                        organization: {
+                            slug: string;
+                            name: string;
+                            city: string | null;
+                        };
+                        /** @enum {string} */
+                        yourRole: "OWNER" | "ADMIN" | "STAFF";
                         invitations: {
                             id: string;
                             email: string;
@@ -3194,6 +3478,13 @@ export interface operations {
                         }[];
                     };
                 };
+            };
+            /** @description Limite ou curseur invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Connexion requise */
             401: {
@@ -3230,14 +3521,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        organization: {
-                            slug: string;
-                            name: string;
-                            city: string | null;
-                        };
-                        /** @enum {string} */
-                        yourRole: "OWNER" | "ADMIN" | "STAFF";
-                        members: {
+                        items: {
                             userId: string;
                             firstName: string | null;
                             lastName: string | null;
@@ -3247,6 +3531,14 @@ export interface operations {
                             joinedAt: string;
                             you: boolean;
                         }[];
+                        nextCursor: string | null;
+                        organization: {
+                            slug: string;
+                            name: string;
+                            city: string | null;
+                        };
+                        /** @enum {string} */
+                        yourRole: "OWNER" | "ADMIN" | "STAFF";
                         invitations: {
                             id: string;
                             email: string;
@@ -3387,14 +3679,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        organization: {
-                            slug: string;
-                            name: string;
-                            city: string | null;
-                        };
-                        /** @enum {string} */
-                        yourRole: "OWNER" | "ADMIN" | "STAFF";
-                        members: {
+                        items: {
                             userId: string;
                             firstName: string | null;
                             lastName: string | null;
@@ -3404,6 +3689,14 @@ export interface operations {
                             joinedAt: string;
                             you: boolean;
                         }[];
+                        nextCursor: string | null;
+                        organization: {
+                            slug: string;
+                            name: string;
+                            city: string | null;
+                        };
+                        /** @enum {string} */
+                        yourRole: "OWNER" | "ADMIN" | "STAFF";
                         invitations: {
                             id: string;
                             email: string;
@@ -3691,7 +3984,10 @@ export interface operations {
     };
     RegistrationsController_mine_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3704,29 +4000,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        orderId: string;
-                        code: string;
-                        tournamentSlug: string;
-                        tournamentName: string;
-                        /** Format: date-time */
-                        startsAt: string;
-                        teamName: string;
-                        /** @enum {string} */
-                        status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
-                        quote: {
-                            feeCents: number;
-                            serviceFeeCents: number;
-                            totalCents: number;
-                        };
-                        waitlistPosition?: number;
-                        /** Format: uri */
-                        checkoutUrl?: string;
-                        /** Format: date-time */
-                        expiresAt?: string;
-                        /** Format: date-time */
-                        createdAt: string;
-                    }[];
+                        items: {
+                            orderId: string;
+                            code: string;
+                            tournamentSlug: string;
+                            tournamentName: string;
+                            /** Format: date-time */
+                            startsAt: string;
+                            teamName: string;
+                            /** @enum {string} */
+                            status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
+                            quote: {
+                                feeCents: number;
+                                serviceFeeCents: number;
+                                totalCents: number;
+                            };
+                            waitlistPosition?: number;
+                            /** Format: uri */
+                            checkoutUrl?: string;
+                            /** Format: date-time */
+                            expiresAt?: string;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        nextCursor: string | null;
+                    };
                 };
+            };
+            /** @description Limite ou curseur invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Connexion requise */
             401: {
@@ -3853,7 +4159,12 @@ export interface operations {
     };
     OrganizerRegistrationsController_list_v1: {
         parameters: {
-            query?: never;
+            query?: {
+                cursor?: string;
+                limit?: number;
+                sort?: "createdAt" | "-createdAt" | "teamName" | "-teamName";
+                status?: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
+            };
             header?: {
                 /** @description Club concerné (slug), si le compte en a plusieurs */
                 "X-Organization"?: string;
@@ -3871,20 +4182,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        id: string;
-                        teamName: string;
-                        club: string;
-                        managerName: string;
-                        email: string | null;
-                        phone: string;
-                        players: number;
-                        /** @enum {string} */
-                        status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
-                        totalCents: number;
-                        /** Format: date-time */
-                        createdAt: string;
-                    }[];
+                        items: {
+                            id: string;
+                            teamName: string;
+                            club: string;
+                            managerName: string;
+                            email: string | null;
+                            phone: string;
+                            players: number;
+                            /** @enum {string} */
+                            status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
+                            totalCents: number;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        nextCursor: string | null;
+                    };
                 };
+            };
+            /** @description Tri, statut, limite ou curseur invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Connexion requise */
             401: {
@@ -4211,7 +4532,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Trop de signalements en une heure */
+            /** @description Trop de signalements en une heure, ou trop de requêtes */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -4277,6 +4598,8 @@ export interface operations {
     PlatformController_reports_v1: {
         parameters: {
             query?: {
+                cursor?: string;
+                limit?: number;
                 status?: "OPEN" | "HIDDEN" | "DISMISSED";
             };
             header?: never;
@@ -4291,36 +4614,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        id: string;
-                        /** @enum {string} */
-                        status: "OPEN" | "HIDDEN" | "DISMISSED";
-                        /** @enum {string} */
-                        reason: "ILLEGAL" | "ABUSE" | "PRIVACY" | "SPAM" | "OTHER";
-                        details: string;
-                        contactEmail: string | null;
-                        /** Format: date-time */
-                        createdAt: string;
-                        tournament: {
-                            slug: string;
-                            name: string;
-                            organization: string;
-                            hidden: boolean;
-                        };
-                        post: {
+                        items: {
                             id: string;
-                            title: string;
-                            body: string;
-                            hidden: boolean;
-                        } | null;
-                        photo: {
-                            id: string;
-                            /** Format: uri */
-                            url: string | null;
-                            caption: string | null;
-                            hidden: boolean;
-                        } | null;
-                    }[];
+                            /** @enum {string} */
+                            status: "OPEN" | "HIDDEN" | "DISMISSED";
+                            /** @enum {string} */
+                            reason: "ILLEGAL" | "ABUSE" | "PRIVACY" | "SPAM" | "OTHER";
+                            details: string;
+                            contactEmail: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            tournament: {
+                                slug: string;
+                                name: string;
+                                organization: string;
+                                hidden: boolean;
+                            };
+                            post: {
+                                id: string;
+                                title: string;
+                                body: string;
+                                hidden: boolean;
+                            } | null;
+                            photo: {
+                                id: string;
+                                /** Format: uri */
+                                url: string | null;
+                                caption: string | null;
+                                hidden: boolean;
+                            } | null;
+                        }[];
+                        nextCursor: string | null;
+                    };
                 };
+            };
+            /** @description Limite ou curseur invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Réservé aux admins de la plateforme */
             404: {

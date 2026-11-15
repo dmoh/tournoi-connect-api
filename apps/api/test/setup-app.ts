@@ -4,7 +4,7 @@ import {
 } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import { randomBytes } from 'node:crypto';
-import { configureApp } from '../src/app.factory.js';
+import { FASTIFY_OPTIONS, configureApp } from '../src/app.factory.js';
 import { AppModule } from '../src/app.module.js';
 import { Clock } from '../src/common/clock.js';
 import { PrismaService } from '../src/database/prisma.service.js';
@@ -50,6 +50,12 @@ export async function login(
 export const DEMO_NOW = new Date('2026-11-09T11:10:00+01:00');
 
 /**
+ * Limites de débit multipliées par 1000 : toutes les requêtes des tests
+ * viennent de la même IP. rate-limit.e2e-spec.ts garde les vraies (1).
+ */
+const TEST_RATE_LIMIT_FACTOR = 1000;
+
+/**
  * Application complète sur la base de test (DATABASE_URL), horloge figée au
  * matin du tournoi de démonstration.
  */
@@ -58,6 +64,7 @@ export async function createTestApp(
     provide: symbol | string | (abstract new (...args: never[]) => unknown);
     useValue: unknown;
   }[] = [],
+  { rateLimitFactor = TEST_RATE_LIMIT_FACTOR } = {},
 ): Promise<{
   app: NestFastifyApplication;
   prisma: PrismaService;
@@ -77,10 +84,10 @@ export async function createTestApp(
     })
     .compile();
   const app = moduleRef.createNestApplication<NestFastifyApplication>(
-    new FastifyAdapter(),
+    new FastifyAdapter(FASTIFY_OPTIONS),
     { rawBody: true },
   );
-  await configureApp(app);
+  await configureApp(app, { rateLimit: { factor: rateLimitFactor } });
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
   const prisma = app.get(PrismaService);

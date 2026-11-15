@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { pageQuerySchema, pageSchema } from '../common/pagination.js';
 
 /** Taille maximale d'une photo, une fois redimensionnée sur l'appareil. */
 export const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
@@ -50,20 +51,25 @@ export const publicPhotoSchema = z.object({
   createdAt: z.iso.datetime({ offset: true }),
 });
 
-export const publicPhotosQuerySchema = z.object({
+/** Galerie paginée (cursor, limit), filtrée par match ou temps forts. */
+export const publicPhotosQuerySchema = pageQuerySchema.extend({
   match: z.string().min(1).max(20).optional(),
   /** Seulement les temps forts choisis par le club. */
   highlights: z
     .enum(['true', 'false'])
     .transform((v) => v === 'true')
     .optional(),
-  limit: z.coerce.number().int().min(1).max(60).default(30),
 });
+
+/** Page de photos, les plus récentes d'abord (createdAt, id). */
+export const publicPhotoPageSchema = pageSchema(publicPhotoSchema);
 
 /** Photo vue par le club : qui l'a envoyée. */
 export const clubPhotoSchema = publicPhotoSchema.extend({
   uploadedBy: z.string().nullable(),
 });
+
+export const clubPhotoPageSchema = pageSchema(clubPhotoSchema);
 
 export const updatePhotoSchema = z
   .object({

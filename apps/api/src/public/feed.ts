@@ -20,17 +20,21 @@ const TIER_ORDER: Record<FeedSponsor['tier'], number> = {
  * Compose le fil News : après chaque bloc de trois posts, une carte
  * sponsorisée, en tournant sur les sponsors payés (Or d'abord). Jamais de
  * carte sponsorisée en tête ni deux à la suite.
+ *
+ * `rotation` est le nombre de cartes déjà montrées par les pages précédentes :
+ * la page suivante reprend la rotation là où la précédente l'a laissée.
  */
 export function composeFeed<P, S extends FeedSponsor>(
   posts: readonly P[],
   sponsors: readonly S[],
+  rotation = 0,
 ): FeedItem<P, S>[] {
   const ordered = [...sponsors].sort(
     (a, b) =>
       TIER_ORDER[a.tier] - TIER_ORDER[b.tier] || a.id.localeCompare(b.id),
   );
   const feed: FeedItem<P, S>[] = [];
-  let next = 0;
+  let next = rotation;
   posts.forEach((post, index) => {
     feed.push({ type: 'post', post });
     const endOfBlock = (index + 1) % POSTS_BETWEEN_SPONSORED === 0;

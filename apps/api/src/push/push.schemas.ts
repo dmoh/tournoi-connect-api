@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isPushEndpoint } from './push-hosts.js';
 
 const slug = z
   .string()
@@ -29,7 +30,12 @@ export const preferencesSchema = z.object({
 });
 
 export const subscribeSchema = z.object({
-  endpoint: z.url().max(1000).startsWith('https://'),
+  endpoint: z
+    .url()
+    .max(1000)
+    .startsWith('https://')
+    // Services push connus seulement (push-hosts.ts) : pas de requête vers un hôte arbitraire.
+    .refine(isPushEndpoint, 'Service push du navigateur inconnu.'),
   keys: z.object({
     p256dh: z.string().regex(/^[\w-]{80,100}$/),
     auth: z.string().regex(/^[\w-]{16,30}$/),
@@ -54,4 +60,9 @@ export interface MatchNotification {
   awayTeam: string | null;
   title: string;
   body: string;
+  /**
+   * Identifiant de l'événement source (clientEventId du rapporteur) : rend
+   * le dépôt dans la file idempotent. À défaut, le contenu en tient lieu.
+   */
+  eventId?: string;
 }

@@ -7,10 +7,12 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
@@ -23,8 +25,13 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { z } from 'zod';
+import { Idempotent } from '../common/idempotency/idempotent.decorator.js';
 import { openApi } from '../common/openapi-schema.js';
+import {
+  pageQuerySchema,
+  type Page,
+  type PageQuery,
+} from '../common/pagination.js';
 import {
   OrganizerGuard,
   OrganizerRole,
@@ -32,6 +39,7 @@ import {
 } from './organizer.guard.js';
 import {
   createTournamentSchema,
+  organizerTournamentPageSchema,
   organizerTournamentSchema,
   type CreateTournament,
   type OrganizerTournament,
@@ -88,7 +96,12 @@ export class OrganizerController {
     @Param('slug') slug: string,
     @Param('matchId') matchId: string,
   ): Promise<ReporterLink> {
-    return this.reporter.issueLink(req.organizationSlug!, slug, matchId);
+    return this.reporter.issueLink(
+      req.organizationSlug!,
+      req.user!.id,
+      slug,
+      matchId,
+    );
   }
 
   @Get('tournaments')
@@ -96,15 +109,21 @@ export class OrganizerController {
   @ApiOperation({
     summary: 'Écran 01 : les tournois de l’organisation (lecture dès bénévole)',
   })
-  @ApiOkResponse({ schema: openApi(z.array(organizerTournamentSchema)) })
-  tournaments(@Req() req: OrganizerRequest): Promise<OrganizerTournament[]> {
-    return this.service.tournaments(req.organizationSlug!);
+  @ApiOkResponse({ schema: openApi(organizerTournamentPageSchema) })
+  @ApiBadRequestResponse({ description: 'Limite ou curseur invalide' })
+  tournaments(
+    @Req() req: OrganizerRequest,
+    @Query({ schema: pageQuerySchema }) query: PageQuery,
+  ): Promise<Page<OrganizerTournament>> {
+    return this.service.tournaments(req.organizationSlug!, query);
   }
 
   @Post('tournaments')
+  @Idempotent()
   @ApiOperation({
     summary: 'Publier le tournoi de l’assistant de création (écrans 02 à 05)',
   })
+  @ApiConflictResponse({ description: 'Requête de même clé encore en cours' })
   @ApiBody({ schema: openApi(createTournamentSchema) })
   @ApiCreatedResponse({ schema: openApi(organizerTournamentSchema) })
   createTournament(
@@ -147,10 +166,14 @@ export class OrganizerController {
   }
 
   @Post('tournaments/:slug/sponsors')
+  @Idempotent()
   @ApiOperation({ summary: 'Inviter un sponsor à prendre un pack' })
   @ApiBody({ schema: openApi(inviteSponsorSchema) })
   @ApiCreatedResponse({ schema: openApi(sponsorRowSchema) })
-  @ApiConflictResponse({ description: 'Pack épuisé ou sponsor déjà présent' })
+  @ApiConflictResponse({
+    description:
+      'Pack épuisé, sponsor déjà présent ou requête de même clé en cours',
+  })
   invite(
     @Req() req: OrganizerRequest,
     @Param('slug') slug: string,
@@ -176,9 +199,11 @@ export class OrganizerController {
   }
 
   @Post('tournaments/:slug/posts')
+  @Idempotent()
   @ApiOperation({
     summary: 'Publier une annonce ou un sondage dans le fil News',
   })
+  @ApiConflictResponse({ description: 'Requête de même clé encore en cours' })
   @ApiBody({ schema: openApi(createPostSchema) })
   @ApiCreatedResponse({ schema: openApi(createdPostSchema) })
   createPost(

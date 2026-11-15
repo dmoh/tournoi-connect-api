@@ -21,6 +21,28 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[\\w-]+$"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
           }
         ],
         "responses": {
@@ -29,72 +51,89 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "url": {
-                        "type": "string",
-                        "format": "uri"
-                      },
-                      "width": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "height": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "caption": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "matchCode": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "highlight": {
-                        "type": "boolean"
-                      },
-                      "source": {
-                        "type": "string",
-                        "enum": [
-                          "reporter",
-                          "club"
-                        ]
-                      },
-                      "createdAt": {
-                        "type": "string",
-                        "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                      },
-                      "uploadedBy": {
-                        "nullable": true,
-                        "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "width": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "height": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "caption": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "matchCode": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "highlight": {
+                            "type": "boolean"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "reporter",
+                              "club"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "uploadedBy": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "url",
+                          "width",
+                          "height",
+                          "caption",
+                          "matchCode",
+                          "highlight",
+                          "source",
+                          "createdAt",
+                          "uploadedBy"
+                        ],
+                        "additionalProperties": false
                       }
                     },
-                    "required": [
-                      "id",
-                      "url",
-                      "width",
-                      "height",
-                      "caption",
-                      "matchCode",
-                      "highlight",
-                      "source",
-                      "createdAt",
-                      "uploadedBy"
-                    ],
-                    "additionalProperties": false
-                  }
+                    "nextCursor": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
+          },
+          "400": {
+            "description": "Limite ou curseur invalide"
           },
           "401": {
             "description": "Connexion requise"
@@ -108,7 +147,7 @@
             "bearer": []
           }
         ],
-        "summary": "Photos publiées du tournoi",
+        "summary": "Photos publiées du tournoi, les plus récentes d’abord (paginé)",
         "tags": [
           "organizer"
         ]
@@ -569,6 +608,28 @@
             }
           },
           {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[\\w-]+$"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          {
             "name": "match",
             "required": false,
             "in": "query",
@@ -589,17 +650,6 @@
                 "false"
               ]
             }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "default": 30,
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 60
-            }
           }
         ],
         "responses": {
@@ -608,73 +658,90 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "url": {
-                        "type": "string",
-                        "format": "uri"
-                      },
-                      "width": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "height": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "caption": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "matchCode": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "highlight": {
-                        "type": "boolean"
-                      },
-                      "source": {
-                        "type": "string",
-                        "enum": [
-                          "reporter",
-                          "club"
-                        ]
-                      },
-                      "createdAt": {
-                        "type": "string",
-                        "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "width": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "height": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "caption": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "matchCode": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "highlight": {
+                            "type": "boolean"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "reporter",
+                              "club"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "url",
+                          "width",
+                          "height",
+                          "caption",
+                          "matchCode",
+                          "highlight",
+                          "source",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
                       }
                     },
-                    "required": [
-                      "id",
-                      "url",
-                      "width",
-                      "height",
-                      "caption",
-                      "matchCode",
-                      "highlight",
-                      "source",
-                      "createdAt"
-                    ],
-                    "additionalProperties": false
-                  }
+                    "nextCursor": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
+          },
+          "400": {
+            "description": "Limite ou curseur invalide"
           },
           "404": {
             "description": "Tournoi introuvable"
           }
         },
-        "summary": "Photos du tournoi ou d’un match, les plus récentes d’abord",
+        "summary": "Photos du tournoi ou d’un match, les plus récentes d’abord (paginé)",
         "tags": [
           "public"
         ]
@@ -2147,6 +2214,28 @@
         "operationId": "PublicController_search_v1",
         "parameters": [
           {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[\\w-]+$"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          {
             "name": "lat",
             "required": true,
             "in": "query",
@@ -2199,124 +2288,141 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "slug": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "sport": {
-                        "type": "string",
-                        "enum": [
-                          "football",
-                          "handball",
-                          "basketball",
-                          "volleyball",
-                          "rugby"
-                        ]
-                      },
-                      "organizer": {
-                        "type": "string"
-                      },
-                      "startsAt": {
-                        "type": "string",
-                        "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                      },
-                      "endsAt": {
-                        "type": "string",
-                        "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                      },
-                      "venue": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
                         "type": "object",
                         "properties": {
+                          "slug": {
+                            "type": "string"
+                          },
                           "name": {
                             "type": "string"
                           },
-                          "city": {
+                          "sport": {
+                            "type": "string",
+                            "enum": [
+                              "football",
+                              "handball",
+                              "basketball",
+                              "volleyball",
+                              "rugby"
+                            ]
+                          },
+                          "organizer": {
                             "type": "string"
                           },
-                          "lat": {
-                            "type": "number"
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                           },
-                          "lng": {
-                            "type": "number"
+                          "endsAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                           },
-                          "outdoor": {
-                            "type": "boolean"
+                          "venue": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "city": {
+                                "type": "string"
+                              },
+                              "lat": {
+                                "type": "number"
+                              },
+                              "lng": {
+                                "type": "number"
+                              },
+                              "outdoor": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "city",
+                              "lat",
+                              "lng",
+                              "outdoor"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "categories": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "teamCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "maxTeams": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "feeCents": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "REGISTRATION_OPEN",
+                              "REGISTRATION_CLOSED",
+                              "IN_PROGRESS",
+                              "COMPLETED"
+                            ]
+                          },
+                          "distanceKm": {
+                            "type": "number"
                           }
                         },
                         "required": [
+                          "slug",
                           "name",
-                          "city",
-                          "lat",
-                          "lng",
-                          "outdoor"
+                          "sport",
+                          "organizer",
+                          "startsAt",
+                          "endsAt",
+                          "venue",
+                          "categories",
+                          "teamCount",
+                          "maxTeams",
+                          "feeCents",
+                          "status",
+                          "distanceKm"
                         ],
                         "additionalProperties": false
-                      },
-                      "categories": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      },
-                      "teamCount": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "maxTeams": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "feeCents": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "REGISTRATION_OPEN",
-                          "REGISTRATION_CLOSED",
-                          "IN_PROGRESS",
-                          "COMPLETED"
-                        ]
-                      },
-                      "distanceKm": {
-                        "type": "number"
                       }
                     },
-                    "required": [
-                      "slug",
-                      "name",
-                      "sport",
-                      "organizer",
-                      "startsAt",
-                      "endsAt",
-                      "venue",
-                      "categories",
-                      "teamCount",
-                      "maxTeams",
-                      "feeCents",
-                      "status",
-                      "distanceKm"
-                    ],
-                    "additionalProperties": false
-                  }
+                    "nextCursor": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
+          },
+          "400": {
+            "description": "Paramètre, limite ou curseur invalide"
           }
         },
-        "summary": "Tournois en cours ou à venir autour d’un point",
+        "summary": "Tournois en cours ou à venir autour d’un point, par distance, date puis id (paginé)",
         "tags": [
           "public"
         ]
@@ -2697,6 +2803,212 @@
         ]
       }
     },
+    "/api/v1/public/tournaments/{slug}/matches": {
+      "get": {
+        "operationId": "PublicController_matches_v1",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "day",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "day": {
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "days": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                      }
+                    },
+                    "previousDay": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "nextDay": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                    },
+                    "slots": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "phases": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "phase": {
+                                  "type": "string",
+                                  "enum": [
+                                    "groups",
+                                    "round-of-32",
+                                    "round-of-16",
+                                    "quarter",
+                                    "semi",
+                                    "final"
+                                  ]
+                                },
+                                "matches": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "phase": {
+                                        "type": "string",
+                                        "enum": [
+                                          "groups",
+                                          "round-of-32",
+                                          "round-of-16",
+                                          "quarter",
+                                          "semi",
+                                          "final"
+                                        ]
+                                      },
+                                      "group": {
+                                        "type": "string"
+                                      },
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "startsAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                      },
+                                      "homeTeamId": {
+                                        "nullable": true,
+                                        "type": "string"
+                                      },
+                                      "awayTeamId": {
+                                        "nullable": true,
+                                        "type": "string"
+                                      },
+                                      "homePlaceholder": {
+                                        "type": "string"
+                                      },
+                                      "awayPlaceholder": {
+                                        "type": "string"
+                                      },
+                                      "scoreHome": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "scoreAway": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "status": {
+                                        "type": "string",
+                                        "enum": [
+                                          "SCHEDULED",
+                                          "LIVE",
+                                          "FINISHED"
+                                        ]
+                                      },
+                                      "minute": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "phase",
+                                      "field",
+                                      "startsAt",
+                                      "homeTeamId",
+                                      "awayTeamId",
+                                      "scoreHome",
+                                      "scoreAway",
+                                      "status"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "required": [
+                                "phase",
+                                "matches"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "startsAt",
+                          "phases"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "day",
+                    "days",
+                    "previousDay",
+                    "nextDay",
+                    "slots"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Journée mal formée (AAAA-MM-JJ)"
+          },
+          "404": {
+            "description": "Tournoi inconnu ou non publié"
+          }
+        },
+        "summary": "Matchs d’une journée (heure de Paris), par créneau puis par phase, et journées du tournoi",
+        "tags": [
+          "public"
+        ]
+      }
+    },
     "/api/v1/public/tournaments/{slug}/news": {
       "get": {
         "operationId": "PublicController_news_v1",
@@ -2708,6 +3020,28 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[\\w-]+$"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
           }
         ],
         "responses": {
@@ -2716,142 +3050,162 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "oneOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "enum": [
-                              "post"
-                            ]
-                          },
-                          "id": {
-                            "type": "string"
-                          },
-                          "kind": {
-                            "type": "string",
-                            "enum": [
-                              "announcement",
-                              "result",
-                              "poll"
-                            ]
-                          },
-                          "publishedAt": {
-                            "type": "string",
-                            "format": "date-time",
-                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                          },
-                          "title": {
-                            "type": "string"
-                          },
-                          "body": {
-                            "type": "string"
-                          },
-                          "matchId": {
-                            "type": "string"
-                          },
-                          "poll": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
                             "type": "object",
                             "properties": {
-                              "options": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "id": {
-                                      "type": "string"
-                                    },
-                                    "label": {
-                                      "type": "string"
-                                    },
-                                    "votes": {
-                                      "type": "integer",
-                                      "minimum": -9007199254740991,
-                                      "maximum": 9007199254740991
-                                    }
-                                  },
-                                  "required": [
-                                    "id",
-                                    "label",
-                                    "votes"
-                                  ],
-                                  "additionalProperties": false
-                                }
-                              }
-                            },
-                            "required": [
-                              "options"
-                            ],
-                            "additionalProperties": false
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "id",
-                          "kind",
-                          "publishedAt",
-                          "title",
-                          "body"
-                        ],
-                        "additionalProperties": false
-                      },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "enum": [
-                              "sponsored"
-                            ]
-                          },
-                          "sponsor": {
-                            "type": "object",
-                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "post"
+                                ]
+                              },
                               "id": {
                                 "type": "string"
                               },
-                              "name": {
-                                "type": "string"
-                              },
-                              "tier": {
+                              "kind": {
                                 "type": "string",
                                 "enum": [
-                                  "GOLD",
-                                  "SILVER",
-                                  "BRONZE",
-                                  "FIELD"
+                                  "announcement",
+                                  "result",
+                                  "poll"
                                 ]
                               },
-                              "website": {
+                              "publishedAt": {
                                 "type": "string",
-                                "format": "uri"
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "body": {
+                                "type": "string"
+                              },
+                              "matchId": {
+                                "type": "string"
+                              },
+                              "poll": {
+                                "type": "object",
+                                "properties": {
+                                  "options": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "label": {
+                                          "type": "string"
+                                        },
+                                        "votes": {
+                                          "type": "integer",
+                                          "minimum": -9007199254740991,
+                                          "maximum": 9007199254740991
+                                        }
+                                      },
+                                      "required": [
+                                        "id",
+                                        "label",
+                                        "votes"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "options"
+                                ],
+                                "additionalProperties": false
                               }
                             },
                             "required": [
+                              "type",
                               "id",
-                              "name",
-                              "tier"
+                              "kind",
+                              "publishedAt",
+                              "title",
+                              "body"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "sponsored"
+                                ]
+                              },
+                              "sponsor": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "tier": {
+                                    "type": "string",
+                                    "enum": [
+                                      "GOLD",
+                                      "SILVER",
+                                      "BRONZE",
+                                      "FIELD"
+                                    ]
+                                  },
+                                  "website": {
+                                    "type": "string",
+                                    "format": "uri"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name",
+                                  "tier"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "sponsor"
                             ],
                             "additionalProperties": false
                           }
-                        },
-                        "required": [
-                          "type",
-                          "sponsor"
-                        ],
-                        "additionalProperties": false
+                        ]
                       }
-                    ]
-                  }
+                    },
+                    "nextCursor": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
+          },
+          "400": {
+            "description": "Limite ou curseur invalide"
+          },
+          "404": {
+            "description": "Tournoi inconnu ou non publié"
           }
         },
-        "summary": "Fil News, une carte sponsorisée au plus pour quatre éléments",
+        "summary": "Fil News paginé, plus récent en tête ; une carte sponsorisée au plus pour quatre éléments",
         "tags": [
           "public"
         ]
@@ -3506,6 +3860,28 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[\\w-]+$"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
           }
         ],
         "responses": {
@@ -3514,85 +3890,102 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "slug": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "DRAFT",
-                          "PUBLISHED",
-                          "IN_PROGRESS"
-                        ]
-                      },
-                      "startsAt": {
-                        "type": "string",
-                        "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                      },
-                      "city": {
-                        "type": "string"
-                      },
-                      "teamCount": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "maxTeams": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "sport": {
-                        "type": "string",
-                        "enum": [
-                          "football",
-                          "handball",
-                          "basketball",
-                          "volleyball",
-                          "rugby"
-                        ]
-                      },
-                      "venueName": {
-                        "type": "string"
-                      },
-                      "categories": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      },
-                      "fields": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "slug": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "DRAFT",
+                              "PUBLISHED",
+                              "IN_PROGRESS"
+                            ]
+                          },
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "city": {
+                            "type": "string"
+                          },
+                          "teamCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "maxTeams": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "sport": {
+                            "type": "string",
+                            "enum": [
+                              "football",
+                              "handball",
+                              "basketball",
+                              "volleyball",
+                              "rugby"
+                            ]
+                          },
+                          "venueName": {
+                            "type": "string"
+                          },
+                          "categories": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "fields": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "slug",
+                          "name",
+                          "status",
+                          "startsAt",
+                          "city",
+                          "teamCount",
+                          "maxTeams",
+                          "sport",
+                          "venueName",
+                          "categories",
+                          "fields"
+                        ],
+                        "additionalProperties": false
                       }
                     },
-                    "required": [
-                      "slug",
-                      "name",
-                      "status",
-                      "startsAt",
-                      "city",
-                      "teamCount",
-                      "maxTeams",
-                      "sport",
-                      "venueName",
-                      "categories",
-                      "fields"
-                    ],
-                    "additionalProperties": false
-                  }
+                    "nextCursor": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
+          },
+          "400": {
+            "description": "Limite ou curseur invalide"
           },
           "401": {
             "description": "Connexion requise"
@@ -3615,6 +4008,15 @@
             "name": "X-Organization",
             "in": "header",
             "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures.",
             "required": false,
             "schema": {
               "type": "string"
@@ -3836,8 +4238,17 @@
               }
             }
           },
+          "400": {
+            "description": "Idempotency-Key invalide"
+          },
           "401": {
             "description": "Connexion requise"
+          },
+          "409": {
+            "description": "Requête de même clé encore en cours"
+          },
+          "422": {
+            "description": "Idempotency-Key déjà utilisée pour un autre corps"
           }
         },
         "security": [
@@ -4163,6 +4574,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -4275,11 +4695,17 @@
               }
             }
           },
+          "400": {
+            "description": "Idempotency-Key invalide"
+          },
           "401": {
             "description": "Connexion requise"
           },
           "409": {
-            "description": "Pack épuisé ou sponsor déjà présent"
+            "description": "Pack épuisé, sponsor déjà présent ou requête de même clé en cours"
+          },
+          "422": {
+            "description": "Idempotency-Key déjà utilisée pour un autre corps"
           }
         },
         "security": [
@@ -4376,6 +4802,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -4447,8 +4882,17 @@
               }
             }
           },
+          "400": {
+            "description": "Idempotency-Key invalide"
+          },
           "401": {
             "description": "Connexion requise"
+          },
+          "409": {
+            "description": "Requête de même clé encore en cours"
+          },
+          "422": {
+            "description": "Idempotency-Key déjà utilisée pour un autre corps"
           }
         },
         "security": [
@@ -4623,7 +5067,7 @@
             }
           },
           "404": {
-            "description": "Lien invalide ou expiré"
+            "description": "Lien invalide, expiré ou révoqué"
           }
         },
         "summary": "Match ouvert par le lien du rapporteur, avec les effectifs",
@@ -4764,7 +5208,10 @@
             }
           },
           "404": {
-            "description": "Lien invalide ou expiré"
+            "description": "Lien invalide, expiré ou révoqué"
+          },
+          "409": {
+            "description": "Tournoi plus public, match terminé (seule la fin s’annule), annulation impossible, ou clientEventId déjà utilisé pour une autre saisie"
           }
         },
         "summary": "Saisie du rapporteur (but, carton, arrêt, photo, période, annulation)",
@@ -4877,10 +5324,10 @@
             }
           },
           "404": {
-            "description": "Lien invalide ou expiré"
+            "description": "Lien invalide, expiré ou révoqué"
           },
           "429": {
-            "description": "Limite de photos du match"
+            "description": "Limite de photos du match, ou trop de requêtes"
           },
           "503": {
             "description": "Stockage non configuré"
@@ -4979,7 +5426,7 @@
             }
           },
           "404": {
-            "description": "Lien invalide ou expiré"
+            "description": "Lien invalide, expiré ou révoqué"
           },
           "409": {
             "description": "Fichier pas encore arrivé"
@@ -4991,6 +5438,58 @@
         "summary": "Publie la photo une fois envoyée et vérifiée (à joindre ensuite à un événement PHOTO)",
         "tags": [
           "reporter"
+        ]
+      }
+    },
+    "/api/v1/organizer/tournaments/{slug}/matches/{matchId}/reporter-links": {
+      "delete": {
+        "operationId": "ReporterLinksController_revoke_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Match hors de l’organisation"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Révoquer tous les liens de la table de marque d’un match",
+        "tags": [
+          "organizer"
         ]
       }
     },
@@ -5175,6 +5674,28 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[\\w-]+$"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
           }
         ],
         "responses": {
@@ -5185,36 +5706,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "organization": {
-                      "type": "object",
-                      "properties": {
-                        "slug": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "city": {
-                          "nullable": true,
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "slug",
-                        "name",
-                        "city"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "yourRole": {
-                      "type": "string",
-                      "enum": [
-                        "OWNER",
-                        "ADMIN",
-                        "STAFF"
-                      ]
-                    },
-                    "members": {
+                    "items": {
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -5260,6 +5752,39 @@
                         "additionalProperties": false
                       }
                     },
+                    "nextCursor": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "organization": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name",
+                        "city"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "yourRole": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER",
+                        "ADMIN",
+                        "STAFF"
+                      ]
+                    },
                     "invitations": {
                       "type": "array",
                       "items": {
@@ -5299,15 +5824,19 @@
                     }
                   },
                   "required": [
+                    "items",
+                    "nextCursor",
                     "organization",
                     "yourRole",
-                    "members",
                     "invitations"
                   ],
                   "additionalProperties": false
                 }
               }
             }
+          },
+          "400": {
+            "description": "Limite ou curseur invalide"
           },
           "401": {
             "description": "Connexion requise"
@@ -5318,7 +5847,7 @@
             "bearer": []
           }
         ],
-        "summary": "Membres du club et invitations en attente",
+        "summary": "Membres du club (paginés, par rôle puis arrivée) et invitations en attente",
         "tags": [
           "organizer"
         ]
@@ -5373,36 +5902,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "organization": {
-                      "type": "object",
-                      "properties": {
-                        "slug": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "city": {
-                          "nullable": true,
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "slug",
-                        "name",
-                        "city"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "yourRole": {
-                      "type": "string",
-                      "enum": [
-                        "OWNER",
-                        "ADMIN",
-                        "STAFF"
-                      ]
-                    },
-                    "members": {
+                    "items": {
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -5448,6 +5948,39 @@
                         "additionalProperties": false
                       }
                     },
+                    "nextCursor": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "organization": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name",
+                        "city"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "yourRole": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER",
+                        "ADMIN",
+                        "STAFF"
+                      ]
+                    },
                     "invitations": {
                       "type": "array",
                       "items": {
@@ -5487,9 +6020,10 @@
                     }
                   },
                   "required": [
+                    "items",
+                    "nextCursor",
                     "organization",
                     "yourRole",
-                    "members",
                     "invitations"
                   ],
                   "additionalProperties": false
@@ -5615,36 +6149,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "organization": {
-                      "type": "object",
-                      "properties": {
-                        "slug": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "city": {
-                          "nullable": true,
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "slug",
-                        "name",
-                        "city"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "yourRole": {
-                      "type": "string",
-                      "enum": [
-                        "OWNER",
-                        "ADMIN",
-                        "STAFF"
-                      ]
-                    },
-                    "members": {
+                    "items": {
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -5690,6 +6195,39 @@
                         "additionalProperties": false
                       }
                     },
+                    "nextCursor": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "organization": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name",
+                        "city"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "yourRole": {
+                      "type": "string",
+                      "enum": [
+                        "OWNER",
+                        "ADMIN",
+                        "STAFF"
+                      ]
+                    },
                     "invitations": {
                       "type": "array",
                       "items": {
@@ -5729,9 +6267,10 @@
                     }
                   },
                   "required": [
+                    "items",
+                    "nextCursor",
                     "organization",
                     "yourRole",
-                    "members",
                     "invitations"
                   ],
                   "additionalProperties": false
@@ -6459,109 +6998,149 @@
     "/api/v1/registrations": {
       "get": {
         "operationId": "RegistrationsController_mine_v1",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[\\w-]+$"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "orderId": {
-                        "type": "string"
-                      },
-                      "code": {
-                        "type": "string"
-                      },
-                      "tournamentSlug": {
-                        "type": "string"
-                      },
-                      "tournamentName": {
-                        "type": "string"
-                      },
-                      "startsAt": {
-                        "type": "string",
-                        "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                      },
-                      "teamName": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "PENDING_PAYMENT",
-                          "CONFIRMED",
-                          "WAITLISTED",
-                          "EXPIRED",
-                          "CANCELLED"
-                        ]
-                      },
-                      "quote": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
                         "type": "object",
                         "properties": {
-                          "feeCents": {
+                          "orderId": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "tournamentSlug": {
+                            "type": "string"
+                          },
+                          "tournamentName": {
+                            "type": "string"
+                          },
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "teamName": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING_PAYMENT",
+                              "CONFIRMED",
+                              "WAITLISTED",
+                              "EXPIRED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "quote": {
+                            "type": "object",
+                            "properties": {
+                              "feeCents": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "serviceFeeCents": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "totalCents": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "feeCents",
+                              "serviceFeeCents",
+                              "totalCents"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "waitlistPosition": {
                             "type": "integer",
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
                           },
-                          "serviceFeeCents": {
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
+                          "checkoutUrl": {
+                            "type": "string",
+                            "format": "uri"
                           },
-                          "totalCents": {
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
+                          "expiresAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                           }
                         },
                         "required": [
-                          "feeCents",
-                          "serviceFeeCents",
-                          "totalCents"
+                          "orderId",
+                          "code",
+                          "tournamentSlug",
+                          "tournamentName",
+                          "startsAt",
+                          "teamName",
+                          "status",
+                          "quote",
+                          "createdAt"
                         ],
                         "additionalProperties": false
-                      },
-                      "waitlistPosition": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "checkoutUrl": {
-                        "type": "string",
-                        "format": "uri"
-                      },
-                      "expiresAt": {
-                        "type": "string",
-                        "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                      },
-                      "createdAt": {
-                        "type": "string",
-                        "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                       }
                     },
-                    "required": [
-                      "orderId",
-                      "code",
-                      "tournamentSlug",
-                      "tournamentName",
-                      "startsAt",
-                      "teamName",
-                      "status",
-                      "quote",
-                      "createdAt"
-                    ],
-                    "additionalProperties": false
-                  }
+                    "nextCursor": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
+          },
+          "400": {
+            "description": "Limite ou curseur invalide"
           },
           "401": {
             "description": "Connexion requise"
@@ -6860,6 +7439,58 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[\\w-]+$"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "createdAt",
+              "type": "string",
+              "enum": [
+                "createdAt",
+                "-createdAt",
+                "teamName",
+                "-teamName"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING_PAYMENT",
+                "CONFIRMED",
+                "WAITLISTED",
+                "EXPIRED",
+                "CANCELLED"
+              ]
+            }
           }
         ],
         "responses": {
@@ -6868,72 +7499,89 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "teamName": {
-                        "type": "string"
-                      },
-                      "club": {
-                        "type": "string"
-                      },
-                      "managerName": {
-                        "type": "string"
-                      },
-                      "email": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "phone": {
-                        "type": "string"
-                      },
-                      "players": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "PENDING_PAYMENT",
-                          "CONFIRMED",
-                          "WAITLISTED",
-                          "EXPIRED",
-                          "CANCELLED"
-                        ]
-                      },
-                      "totalCents": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991
-                      },
-                      "createdAt": {
-                        "type": "string",
-                        "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "teamName": {
+                            "type": "string"
+                          },
+                          "club": {
+                            "type": "string"
+                          },
+                          "managerName": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "phone": {
+                            "type": "string"
+                          },
+                          "players": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING_PAYMENT",
+                              "CONFIRMED",
+                              "WAITLISTED",
+                              "EXPIRED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "totalCents": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "teamName",
+                          "club",
+                          "managerName",
+                          "email",
+                          "phone",
+                          "players",
+                          "status",
+                          "totalCents",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
                       }
                     },
-                    "required": [
-                      "id",
-                      "teamName",
-                      "club",
-                      "managerName",
-                      "email",
-                      "phone",
-                      "players",
-                      "status",
-                      "totalCents",
-                      "createdAt"
-                    ],
-                    "additionalProperties": false
-                  }
+                    "nextCursor": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
+          },
+          "400": {
+            "description": "Tri, statut, limite ou curseur invalide"
           },
           "401": {
             "description": "Connexion requise"
@@ -6947,7 +7595,7 @@
             "bearer": []
           }
         ],
-        "summary": "Inscriptions d’un tournoi du club",
+        "summary": "Inscriptions d’un tournoi du club : tri, filtre de statut, pagination",
         "tags": [
           "organizer"
         ]
@@ -7561,7 +8209,7 @@
             "description": "Tournoi ou actualité introuvable"
           },
           "429": {
-            "description": "Trop de signalements en une heure"
+            "description": "Trop de signalements en une heure, ou trop de requêtes"
           }
         },
         "summary": "Signaler la page d’un tournoi ou l’une de ses actualités",
@@ -7750,6 +8398,28 @@
         "operationId": "PlatformController_reports_v1",
         "parameters": [
           {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[\\w-]+$"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          {
             "name": "status",
             "required": false,
             "in": "query",
@@ -7769,137 +8439,154 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "OPEN",
-                          "HIDDEN",
-                          "DISMISSED"
-                        ]
-                      },
-                      "reason": {
-                        "type": "string",
-                        "enum": [
-                          "ILLEGAL",
-                          "ABUSE",
-                          "PRIVACY",
-                          "SPAM",
-                          "OTHER"
-                        ]
-                      },
-                      "details": {
-                        "type": "string"
-                      },
-                      "contactEmail": {
-                        "nullable": true,
-                        "type": "string"
-                      },
-                      "createdAt": {
-                        "type": "string",
-                        "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                      },
-                      "tournament": {
-                        "type": "object",
-                        "properties": {
-                          "slug": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "organization": {
-                            "type": "string"
-                          },
-                          "hidden": {
-                            "type": "boolean"
-                          }
-                        },
-                        "required": [
-                          "slug",
-                          "name",
-                          "organization",
-                          "hidden"
-                        ],
-                        "additionalProperties": false
-                      },
-                      "post": {
-                        "nullable": true,
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
                         "type": "object",
                         "properties": {
                           "id": {
                             "type": "string"
                           },
-                          "title": {
-                            "type": "string"
-                          },
-                          "body": {
-                            "type": "string"
-                          },
-                          "hidden": {
-                            "type": "boolean"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "title",
-                          "body",
-                          "hidden"
-                        ],
-                        "additionalProperties": false
-                      },
-                      "photo": {
-                        "nullable": true,
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "url": {
-                            "nullable": true,
+                          "status": {
                             "type": "string",
-                            "format": "uri"
+                            "enum": [
+                              "OPEN",
+                              "HIDDEN",
+                              "DISMISSED"
+                            ]
                           },
-                          "caption": {
+                          "reason": {
+                            "type": "string",
+                            "enum": [
+                              "ILLEGAL",
+                              "ABUSE",
+                              "PRIVACY",
+                              "SPAM",
+                              "OTHER"
+                            ]
+                          },
+                          "details": {
+                            "type": "string"
+                          },
+                          "contactEmail": {
                             "nullable": true,
                             "type": "string"
                           },
-                          "hidden": {
-                            "type": "boolean"
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "tournament": {
+                            "type": "object",
+                            "properties": {
+                              "slug": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "organization": {
+                                "type": "string"
+                              },
+                              "hidden": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "slug",
+                              "name",
+                              "organization",
+                              "hidden"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "post": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "body": {
+                                "type": "string"
+                              },
+                              "hidden": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "title",
+                              "body",
+                              "hidden"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "photo": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "nullable": true,
+                                "type": "string",
+                                "format": "uri"
+                              },
+                              "caption": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "hidden": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "url",
+                              "caption",
+                              "hidden"
+                            ],
+                            "additionalProperties": false
                           }
                         },
                         "required": [
                           "id",
-                          "url",
-                          "caption",
-                          "hidden"
+                          "status",
+                          "reason",
+                          "details",
+                          "contactEmail",
+                          "createdAt",
+                          "tournament",
+                          "post",
+                          "photo"
                         ],
                         "additionalProperties": false
                       }
                     },
-                    "required": [
-                      "id",
-                      "status",
-                      "reason",
-                      "details",
-                      "contactEmail",
-                      "createdAt",
-                      "tournament",
-                      "post",
-                      "photo"
-                    ],
-                    "additionalProperties": false
-                  }
+                    "nextCursor": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
+          },
+          "400": {
+            "description": "Limite ou curseur invalide"
           },
           "404": {
             "description": "Réservé aux admins de la plateforme"

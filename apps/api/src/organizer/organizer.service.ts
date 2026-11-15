@@ -4,7 +4,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Clock } from '../common/clock.js';
+import { keyset, type Page, type PageQuery } from '../common/pagination.js';
 import { parisDate, parisDateTime } from '../common/paris-time.js';
+import { insertWithUniqueSlug, slugify } from '../common/slug.js';
 import type {
   TournamentFormat,
   TournamentStatus,
@@ -25,6 +27,14 @@ import type {
 
 const TIER_ORDER = { GOLD: 0, SILVER: 1, BRONZE: 2, FIELD: 3 } as const;
 
+/**
+ * Bornes de l'écran sponsors (non paginé) : les sponsors d'un tournoi sont
+ * limités par les packs (4 au plus, leur inventaire), le carnet de
+ * prospects du club par cette borne.
+ */
+export const MAX_TOURNAMENT_SPONSORS = 200;
+export const MAX_PROSPECTS = 200;
+
 const FORMATS: Record<CreateTournament['format'], TournamentFormat> = {
   'single-group': 'SINGLE_GROUP',
   'groups-knockout': 'GROUPS_KNOCKOUT',
@@ -38,17 +48,6 @@ function cardStatus(status: TournamentStatus): OrganizerTournament['status'] {
     return 'DRAFT';
   }
   return status === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'PUBLISHED';
-}
-
-/** « Coupe d'hiver U13 » → « coupe-d-hiver-u13 ». */
-export function slugify(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60);
 }
 
 /**
@@ -71,13 +70,23 @@ export class OrganizerService {
       organizationSlug,
       tournamentSlug,
     );
-    const [packages, rows, prospects] = await Promise.all([
+    const [packages, rows, audience, prospects] = await Promise.all([
+      // Un pack par palier (contrainte unique) : 4 au plus.
       this.prisma.sponsorPackage.findMany({
         where: { tournamentId: tournament.id },
+        take: Object.keys(TIER_ORDER).length,
       }),
       this.prisma.tournamentSponsor.findMany({
         where: { tournamentId: tournament.id },
-        include: { sponsor: true, audience: true },
+        include: { sponsor: true },
+        orderBy: { id: 'asc' },
+        take: MAX_TOURNAMENT_SPONSORS,
+      }),
+      // Cumul de l'audience en base : les lignes horaires grandissent avec le temps.
+      this.prisma.audienceHourly.groupBy({
+        by: ['tournamentSponsorId'],
+        where: { tournamentSponsor: { tournamentId: tournament.id } },
+        _sum: { impressions: true, clicks: true },
       }),
       this.prisma.sponsor.findMany({
         where: {
@@ -85,9 +94,13 @@ export class OrganizerService {
           source: 'CLUB',
           tournaments: { none: { tournamentId: tournament.id } },
         },
-        orderBy: { name: 'asc' },
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        take: MAX_PROSPECTS,
       }),
     ]);
+    const totals = new Map(
+      audience.map((a) => [a.tournamentSponsorId, a._sum]),
+    );
     return {
       packages: packages
         .sort((a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier])
@@ -108,8 +121,8 @@ export class OrganizerService {
           status: r.status,
           tier: r.tier,
           ...(r.field ? { field: r.field } : {}),
-          impressions: r.audience.reduce((sum, a) => sum + a.impressions, 0),
-          clicks: r.audience.reduce((sum, a) => sum + a.clicks, 0),
+          impressions: totals.get(r.id)?.impressions ?? 0,
+          clicks: totals.get(r.id)?.clicks ?? 0,
         }))
         .sort(
           (a, b) =>
@@ -257,17 +270,34 @@ export class OrganizerService {
     return { id: post.id, publishedAt: post.publishedAt.toISOString() };
   }
 
-  /** Écran 01 : les tournois de l'organisation, les plus proches en premier. */
-  async tournaments(organizationSlug: string): Promise<OrganizerTournament[]> {
+  /**
+   * Écran 01 : les tournois de l'organisation, les plus proches en premier,
+   * paginés sur (startsAt, id).
+   */
+  async tournaments(
+    organizationSlug: string,
+    query: PageQuery,
+  ): Promise<Page<OrganizerTournament>> {
+    const page = keyset(
+      {
+        scope: 'organizer:tournaments',
+        key: 'startsAt',
+        kind: 'date',
+        direction: 'asc',
+      },
+      query,
+    );
     const rows = await this.prisma.tournament.findMany({
       where: {
         organization: { slug: organizationSlug },
         status: { not: 'ARCHIVED' },
+        ...page.where,
       },
       include: { venue: true },
-      orderBy: { startsAt: 'asc' },
+      orderBy: page.orderBy,
+      take: page.take,
     });
-    return rows.map((t) => ({
+    return page.finish(rows, (t) => ({
       slug: t.slug,
       name: t.name,
       status: cardStatus(t.status),
@@ -300,62 +330,61 @@ export class OrganizerService {
     const startsAt = parisDateTime(input.date, input.startTime);
     const endsAt = parisDateTime(input.date, input.endTime);
 
-    const created = await this.prisma.$transaction(async (tx) => {
-      const venue =
-        (await tx.venue.findFirst({
-          where: {
-            organizationId: organization.id,
-            name: input.venueName,
-            city: input.city,
-          },
-        })) ??
-        (await tx.venue.create({
-          data: {
-            organizationId: organization.id,
-            name: input.venueName,
-            city: input.city,
-            lat: input.lat,
-            lng: input.lng,
-            outdoor: input.outdoor,
-          },
-        }));
-      const base = slugify(input.name) || 'tournoi';
-      const taken = new Set(
-        (
-          await tx.tournament.findMany({
-            where: { slug: { startsWith: base } },
-            select: { slug: true },
-          })
-        ).map((t) => t.slug),
-      );
-      let slug = base;
-      for (let n = 2; taken.has(slug); n += 1) {
-        slug = `${base}-${n}`;
-      }
-      return tx.tournament.create({
-        data: {
-          organizationId: organization.id,
-          venueId: venue.id,
-          slug,
-          name: input.name,
-          sport: input.sport,
-          startsAt,
-          endsAt,
-          categories: input.categories,
-          maxTeams: input.maxTeams,
-          feeCents: Math.round(input.feeEuros * 100),
-          status: 'REGISTRATION_OPEN',
-          format: FORMATS[input.format],
-          fieldCount: input.fields,
-          matchMinutes: input.matchMinutes,
-          breakMinutes: input.breakMinutes,
-          registrationDeadline: new Date(
-            `${input.registrationDeadline}T00:00:00Z`,
-          ),
-        },
-        include: { venue: true },
-      });
+    const base = slugify(input.name) || 'tournoi';
+    const taken = await this.prisma.tournament.findMany({
+      where: { slug: { startsWith: base } },
+      select: { slug: true },
     });
+    // Toute la transaction est rejouée sur un slug pris entre-temps : le lieu
+    // créé par la tentative interrompue est annulé avec elle.
+    const created = await insertWithUniqueSlug(
+      base,
+      taken.map((t) => t.slug),
+      (slug) =>
+        this.prisma.$transaction(async (tx) => {
+          const venue =
+            (await tx.venue.findFirst({
+              where: {
+                organizationId: organization.id,
+                name: input.venueName,
+                city: input.city,
+              },
+            })) ??
+            (await tx.venue.create({
+              data: {
+                organizationId: organization.id,
+                name: input.venueName,
+                city: input.city,
+                lat: input.lat,
+                lng: input.lng,
+                outdoor: input.outdoor,
+              },
+            }));
+          return tx.tournament.create({
+            data: {
+              organizationId: organization.id,
+              venueId: venue.id,
+              slug,
+              name: input.name,
+              sport: input.sport,
+              startsAt,
+              endsAt,
+              categories: input.categories,
+              maxTeams: input.maxTeams,
+              feeCents: Math.round(input.feeEuros * 100),
+              status: 'REGISTRATION_OPEN',
+              format: FORMATS[input.format],
+              fieldCount: input.fields,
+              matchMinutes: input.matchMinutes,
+              breakMinutes: input.breakMinutes,
+              registrationDeadline: new Date(
+                `${input.registrationDeadline}T00:00:00Z`,
+              ),
+            },
+            include: { venue: true },
+          });
+        }),
+    );
 
     return {
       slug: created.slug,

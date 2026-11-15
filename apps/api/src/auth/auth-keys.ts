@@ -16,6 +16,12 @@ export const CODE_TTL_MS = 10 * 60 * 1000;
 export const CODE_MAX_ATTEMPTS = 5;
 /** Au plus 5 codes par adresse et par heure. */
 export const CODES_PER_HOUR = 5;
+/**
+ * Au plus 20 essais ratés par adresse sur 24 heures glissantes, tous codes
+ * confondus : au-delà, ni nouveau code ni vérification.
+ */
+export const FAILED_ATTEMPTS_PER_DAY = 20;
+export const FAILED_ATTEMPTS_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export interface AccessClaims {
   /** Compte. */

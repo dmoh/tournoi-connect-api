@@ -87,6 +87,40 @@ export function registrationConfirmedMail(
   return { to, subject, text, html };
 }
 
+/**
+ * Paiement reçu mais non retenu, intégralement remboursé : tournoi complet
+ * entre-temps, ou second paiement d'une inscription déjà réglée.
+ */
+export function registrationRefundedMail(
+  to: string,
+  info: {
+    team: string;
+    tournament: string;
+    amount: string;
+    reason: 'full' | 'duplicate';
+  },
+): MailMessage {
+  const subject =
+    info.reason === 'full'
+      ? `${info.tournament} est complet : votre paiement est remboursé`
+      : `Paiement en double pour ${info.team} : il est remboursé`;
+  const why =
+    info.reason === 'full'
+      ? `Le ${info.tournament} est devenu complet avant la confirmation de votre paiement : l’inscription de ${info.team} n’a pas pu être retenue.`
+      : `L’inscription de ${info.team} au ${info.tournament} était déjà réglée : ce second paiement n’est pas retenu.`;
+  const refund = `Votre paiement de ${info.amount} vous est intégralement remboursé. Il apparaît sur votre compte sous 5 à 10 jours selon votre banque.`;
+  const text = [why, '', refund, '', 'Tournoi Connect'].join('\n');
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+<div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
+<p style="margin:0 0 8px;font-size:15px">Paiement remboursé</p>
+<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.team)}</p>
+<p style="margin:0 0 16px;font-size:14px;color:#5c6a7f">${escape(info.tournament)}</p>
+<p style="margin:0 0 12px;font-size:15px">${escape(why)}</p>
+<p style="margin:0;font-size:14px;color:#5c6a7f">${escape(refund)}</p>
+</div></body></html>`;
+  return { to, subject, text, html };
+}
+
 /** Confirmation de la suppression du compte (RGPD, droit à l'effacement). */
 export function accountDeletedMail(to: string): MailMessage {
   const subject = 'Votre compte Tournoi Connect est supprimé';

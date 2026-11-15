@@ -103,9 +103,14 @@ describe('Photos et temps forts (e2e)', () => {
   const get = (url: string, headers = {}) =>
     app.inject({ method: 'GET', url: `/api/v1${url}`, headers });
   const publicPhotos = async (query = '') =>
-    (await get(`/public/tournaments/${SLUG}/photos${query}`)).json<
-      { id: string; url: string; highlight: boolean; matchCode: string }[]
-    >();
+    (await get(`/public/tournaments/${SLUG}/photos${query}`)).json<{
+      items: {
+        id: string;
+        url: string;
+        highlight: boolean;
+        matchCode: string;
+      }[];
+    }>().items;
   const feed = async (match = 'b5') =>
     (await get(`/public/tournaments/${SLUG}/matches/${match}/feed`)).json<{
       events: { type: string; caption?: string; photo?: { url: string } }[];
@@ -325,9 +330,15 @@ describe('Photos et temps forts (e2e)', () => {
       `/organizer/tournaments/${SLUG}/photos`,
       as(staff),
     );
-    expect(listed.json()).toEqual([
-      expect.objectContaining({ id: photoId, uploadedBy: expect.any(String) }),
-    ]);
+    expect(listed.json()).toEqual({
+      items: [
+        expect.objectContaining({
+          id: photoId,
+          uploadedBy: expect.any(String),
+        }),
+      ],
+      nextCursor: null,
+    });
 
     // Mise en avant : un admin seulement.
     const patch = (token: string, payload: object) =>
@@ -399,10 +410,9 @@ describe('Photos et temps forts (e2e)', () => {
     const reports = await get('/platform/reports', {
       authorization: `Bearer ${platform}`,
     });
-    const [open] =
-      reports.json<
-        { id: string; photo: { id: string; url: string | null } | null }[]
-      >();
+    const [open] = reports.json<{
+      items: { id: string; photo: { id: string; url: string | null } | null }[];
+    }>().items;
     expect(open!.photo).toEqual({
       id: photoId,
       url: `https://media.test/${key}`,
@@ -424,7 +434,9 @@ describe('Photos et temps forts (e2e)', () => {
     const closed = await get('/platform/reports?status=HIDDEN', {
       authorization: `Bearer ${platform}`,
     });
-    expect(closed.json<{ photo: object }[]>()[0]!.photo).toEqual({
+    expect(
+      closed.json<{ items: { photo: object }[] }>().items[0]!.photo,
+    ).toEqual({
       id: photoId,
       url: null,
       caption: 'Visage d’un enfant',
@@ -522,5 +534,79 @@ describe('Photos et temps forts (e2e)', () => {
     });
     expect(await media.cleanup()).toEqual({ expired: 2, removed: 2 });
     expect(await prisma.photo.count()).toBe(0);
+  });
+
+  it('pagine la galerie et les photos du club par (date, id), plus récentes en tête', async () => {
+    const tournament = await prisma.tournament.findUniqueOrThrow({
+      where: { slug: SLUG },
+    });
+    // 7 photos de la même milliseconde : départagées par id.
+    const same = new Date(DEMO_NOW.getTime() - 60_000);
+    await prisma.photo.createMany({
+      data: Array.from({ length: 7 }, (_, i) => ({
+        tournamentId: tournament.id,
+        storageKey: `photos/page/${i}.jpg`,
+        contentType: 'image/jpeg',
+        bytes: 1000,
+        width: 800,
+        height: 600,
+        source: 'CLUB' as const,
+        status: 'READY' as const,
+        highlight: i % 2 === 0,
+        createdAt: same,
+      })),
+    });
+    const expected = await prisma.photo.findMany({
+      where: { tournamentId: tournament.id },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: { id: true, highlight: true },
+    });
+    const read = async (url: string, headers = {}) => {
+      const ids: string[][] = [];
+      let cursor: string | null = null;
+      do {
+        const res = await get(
+          `${url}${cursor ? `&cursor=${cursor}` : ''}`,
+          headers,
+        );
+        expect(res.statusCode).toBe(200);
+        const body = res.json<{
+          items: { id: string }[];
+          nextCursor: string | null;
+        }>();
+        ids.push(body.items.map((p) => p.id));
+        cursor = body.nextCursor;
+      } while (cursor && ids.length < 10);
+      return ids;
+    };
+
+    const gallery = await read(`/public/tournaments/${SLUG}/photos?limit=3`);
+    expect(gallery.map((p) => p.length)).toEqual([3, 3, 1]);
+    expect(gallery.flat()).toEqual(expected.map((p) => p.id));
+    const highlights = await read(
+      `/public/tournaments/${SLUG}/photos?highlights=true&limit=3`,
+    );
+    expect(highlights.flat()).toEqual(
+      expected.filter((p) => p.highlight).map((p) => p.id),
+    );
+    const club = await read(
+      `/organizer/tournaments/${SLUG}/photos?limit=4`,
+      as(owner),
+    );
+    expect(club.map((p) => p.length)).toEqual([4, 3]);
+    expect(club.flat()).toEqual(expected.map((p) => p.id));
+
+    // Curseur d'une autre galerie (filtre différent) ou limite hors bornes : 400.
+    const first = (
+      await get(`/public/tournaments/${SLUG}/photos?limit=3`)
+    ).json<{ nextCursor: string }>();
+    for (const url of [
+      `/public/tournaments/${SLUG}/photos?highlights=true&cursor=${first.nextCursor}`,
+      `/public/tournaments/${SLUG}/photos?limit=51`,
+      `/organizer/tournaments/${SLUG}/photos?cursor=${first.nextCursor}`,
+    ]) {
+      const res = await get(url, url.includes('organizer') ? as(owner) : {});
+      expect(res.statusCode, url).toBe(400);
+    }
   });
 });

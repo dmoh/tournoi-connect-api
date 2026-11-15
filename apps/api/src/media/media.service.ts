@@ -14,6 +14,7 @@ import {
 import type { Queue } from 'bullmq';
 import { randomUUID } from 'node:crypto';
 import { Clock } from '../common/clock.js';
+import { keyset, type Page, type PageQuery } from '../common/pagination.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { PhotoSource } from '../generated/prisma/enums.js';
@@ -177,14 +178,23 @@ export class MediaService {
     return this.toPublic(ready);
   }
 
-  /** Photos publiées d'un tournoi, les plus récentes d'abord. */
-  async list(where: Prisma.PhotoWhereInput, take: number): Promise<PhotoRow[]> {
-    return this.prisma.photo.findMany({
-      where: { ...where, ...VISIBLE_PHOTO },
+  /** Page de photos publiées d'un tournoi, les plus récentes d'abord (createdAt, id). */
+  async list(
+    where: Prisma.PhotoWhereInput,
+    scope: string,
+    query: PageQuery,
+  ): Promise<Page<PublicPhoto>> {
+    const page = keyset(
+      { scope, key: 'createdAt', kind: 'date', direction: 'desc' },
+      query,
+    );
+    const rows = await this.prisma.photo.findMany({
+      where: { ...where, ...VISIBLE_PHOTO, ...page.where },
       include: { match: { select: { code: true } } },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take,
+      orderBy: page.orderBy,
+      take: page.take,
     });
+    return page.finish(rows, (p) => this.toPublic(p));
   }
 
   /** Retire des photos ; leurs objets sont effacés par le worker. */

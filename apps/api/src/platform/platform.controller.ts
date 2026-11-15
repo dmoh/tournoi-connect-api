@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBadRequestResponse,
   ApiBody,
   ApiNoContentResponse,
   ApiNotFoundResponse,
@@ -19,12 +20,13 @@ import {
   ApiTags,
   ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
-import { z } from 'zod';
 import { CurrentUser, type AuthUser } from '../auth/auth.guard.js';
 import { openApi } from '../common/openapi-schema.js';
+import { RateLimited } from '../common/rate-limit.js';
+import type { Page } from '../common/pagination.js';
 import {
   createReportSchema,
-  platformReportSchema,
+  platformReportPageSchema,
   reportCreatedSchema,
   reportListQuerySchema,
   type CreateReport,
@@ -46,6 +48,7 @@ export class PublicReportsController {
   constructor(private readonly moderation: ModerationService) {}
 
   @Post()
+  @RateLimited('report')
   @HttpCode(201)
   @ApiOperation({
     summary: 'Signaler la page d’un tournoi ou l’une de ses actualités',
@@ -54,7 +57,7 @@ export class PublicReportsController {
   @ApiOkResponse({ schema: openApi(reportCreatedSchema) })
   @ApiNotFoundResponse({ description: 'Tournoi ou actualité introuvable' })
   @ApiTooManyRequestsResponse({
-    description: 'Trop de signalements en une heure',
+    description: 'Trop de signalements en une heure, ou trop de requêtes',
   })
   report(
     @Param('slug') slug: string,
@@ -90,10 +93,11 @@ export class PlatformController {
     required: false,
     enum: ['OPEN', 'HIDDEN', 'DISMISSED'],
   })
-  @ApiOkResponse({ schema: openApi(z.array(platformReportSchema)) })
+  @ApiOkResponse({ schema: openApi(platformReportPageSchema) })
+  @ApiBadRequestResponse({ description: 'Limite ou curseur invalide' })
   reports(
     @Query({ schema: reportListQuerySchema }) query: ReportListQuery,
-  ): Promise<PlatformReport[]> {
+  ): Promise<Page<PlatformReport>> {
     return this.moderation.list(query);
   }
 

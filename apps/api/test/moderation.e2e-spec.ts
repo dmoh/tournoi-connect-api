@@ -34,7 +34,7 @@ describe('Signalements et espace plateforme (e2e)', () => {
         method: 'GET',
         url: `/api/v1/public/tournaments/${SLUG}/news`,
       })
-    ).json<{ type: string; id?: string; title?: string }[]>();
+    ).json<{ items: { type: string; id?: string; title?: string }[] }>().items;
   const openReports = async (token: string) =>
     (
       await app.inject({
@@ -42,7 +42,7 @@ describe('Signalements et espace plateforme (e2e)', () => {
         url: '/api/v1/platform/reports',
         headers: as(token),
       })
-    ).json<{ id: string; post: { id: string } | null }[]>();
+    ).json<{ items: { id: string; post: { id: string } | null }[] }>().items;
 
   it('signale une actualité sans compte, puis la modération la masque', async () => {
     const post = (await news()).find((item) => item.type === 'post')!;
@@ -135,12 +135,15 @@ describe('Signalements et espace plateforme (e2e)', () => {
       url: '/api/v1/platform/reports?status=DISMISSED',
       headers: as(admin),
     });
-    expect(closed.json()).toEqual([
-      expect.objectContaining({
-        status: 'DISMISSED',
-        contactEmail: 'temoin@example.com',
-      }),
-    ]);
+    expect(closed.json()).toEqual({
+      items: [
+        expect.objectContaining({
+          status: 'DISMISSED',
+          contactEmail: 'temoin@example.com',
+        }),
+      ],
+      nextCursor: null,
+    });
     const page = await app.inject({
       method: 'GET',
       url: `/api/v1/public/tournaments/${SLUG}`,

@@ -30,6 +30,7 @@ import {
 import { AUTH_KEYS } from '../auth/auth.tokens.js';
 import { Clock } from '../common/clock.js';
 import { openApi } from '../common/openapi-schema.js';
+import { RateLimited } from '../common/rate-limit.js';
 import {
   followsSchema,
   pushConfigSchema,
@@ -62,6 +63,7 @@ export class PushController {
   }
 
   @Put('subscriptions')
+  @RateLimited('pushSubscribe')
   @HttpCode(204)
   @ApiOperation({
     summary:

@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { keyset, type Page, type PageQuery } from '../common/pagination.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type { MemberRole } from '../generated/prisma/enums.js';
 import type {
@@ -29,20 +30,40 @@ export class ClubPhotosService {
     private readonly media: MediaService,
   ) {}
 
-  async list(actor: ClubActor, slug: string): Promise<ClubPhoto[]> {
+  /** Photos publiées du tournoi, les plus récentes d'abord (createdAt, id). */
+  async list(
+    actor: ClubActor,
+    slug: string,
+    query: PageQuery,
+  ): Promise<Page<ClubPhoto>> {
     const tournamentId = await this.tournamentId(actor, slug);
+    const page = keyset(
+      {
+        scope: 'photos:organizer',
+        key: 'createdAt',
+        kind: 'date',
+        direction: 'desc',
+      },
+      query,
+    );
     const photos = await this.prisma.photo.findMany({
-      where: { tournamentId, status: 'READY', deletedAt: null, hiddenAt: null },
+      where: {
+        tournamentId,
+        status: 'READY',
+        deletedAt: null,
+        hiddenAt: null,
+        ...page.where,
+      },
       include: {
         match: { select: { code: true } },
         uploadedBy: {
           select: { firstName: true, lastName: true, email: true },
         },
       },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: 200,
+      orderBy: page.orderBy,
+      take: page.take,
     });
-    return photos.map((p) => ({
+    return page.finish(photos, (p) => ({
       ...this.media.toPublic(p),
       uploadedBy: p.uploadedBy
         ? [p.uploadedBy.firstName, p.uploadedBy.lastName]

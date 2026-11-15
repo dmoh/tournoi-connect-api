@@ -13,8 +13,10 @@ x-api: &api
     REDIS_URL: ${REDIS_URL}
     PUBLIC_APP_URL: ${PUBLIC_APP_URL}
     AUTH_SECRET: ${AUTH_SECRET}
-    # Préprod seulement (données de démonstration) : code des comptes de test.
+    # Préprod seulement (données de démonstration) : code des comptes de test,
+    # actif seulement avec ALLOW_TEST_ACCOUNTS=true (interdits en production).
     TEST_ACCOUNTS_CODE: ${TEST_ACCOUNTS_CODE:-}
+    ALLOW_TEST_ACCOUNTS: ${ALLOW_TEST_ACCOUNTS:-}
     MAIL_TRANSPORT: ${MAIL_TRANSPORT}
     MAIL_FROM: ${MAIL_FROM}
     AWS_REGION: ${AWS_REGION}
