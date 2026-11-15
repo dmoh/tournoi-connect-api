@@ -135,7 +135,7 @@ Toutes les listes qui grandissent avec l'usage sont paginées par curseur (`apps
 - Réponse : `{ items: T[], nextCursor: string | null }` ; `nextCursor` est nul sur la dernière page.
 - Tri stable sur une clé composée terminée par l'id (deux dates égales se départagent par l'id) ; lecture de `limit + 1` lignes pour savoir s'il reste une page.
 - Curseur opaque (base64url) lié à sa liste et à son tri : illisible, falsifié, d'une autre liste ou d'un autre tri → `400` problem+json, comme une limite hors bornes. Le curseur se renvoie tel quel, avec les mêmes filtres.
-- Index : chaque tri (clé, id) a son index (migration `20261111170000_pagination_indexes`).
+- Index : chaque tri (clé, id) a son index (migration `20261115090400_pagination_indexes`).
 
 | Route                                            | Tri (clé du curseur)                                                          | Paramètres en plus                                                                                                                                                                                       |
 | ------------------------------------------------ | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -145,6 +145,9 @@ Toutes les listes qui grandissent avec l'usage sont paginées par curseur (`apps
 | `GET /organizer/tournaments`                     | startsAt, id (croissants), archivés exclus                                    |                                                                                                                                                                                                          |
 | `GET /organizer/tournaments/:slug/registrations` | `sort` : `createdAt` (défaut), `-createdAt`, `teamName`, `-teamName`, puis id | `status` : statut affiché (`EXPIRED` comprend les places dont le paiement a expiré)                                                                                                                      |
 | `GET /organizer/members`                         | rôle (propriétaire, admin, bénévole), arrivée, id du compte                   | la réponse garde `organization`, `yourRole` et `invitations` (50 plus récentes, identiques à chaque page) ; `POST /organizer/invitations` et `PATCH /organizer/members/:userId` rendent la première page |
+| `GET /public/tournaments/:slug/photos`           | createdAt, id (décroissants)                                                  | `match`, `highlights` : les mêmes d'une page à l'autre (curseur lié aux filtres)                                                                                                                         |
+| `GET /organizer/tournaments/:slug/photos`        | createdAt, id (décroissants)                                                  |                                                                                                                                                                                                          |
+| `GET /platform/reports`                          | createdAt, id : croissants pour `OPEN` (file à traiter), décroissants sinon   | `status` (`OPEN` par défaut) : le même d'une page à l'autre                                                                                                                                              |
 
 Listes volontairement non paginées, bornées :
 
@@ -157,6 +160,9 @@ Listes volontairement non paginées, bornées :
 | `GET /organizer/tournaments/:slug/sponsors`       | 4 packs, 200 sponsors du tournoi, 200 prospects ; audience cumulée en base |
 | `GET /organizer/payments`                         | pas une liste (état du compte Stripe)                                      |
 | `GET /me/follows`                                 | ensemble synchronisé : 200 tournois et 200 équipes, les plus récents       |
+| `GET /public/sitemap`                             | 50 000 tournois publiés (limite d'un sitemap.xml)                          |
+| `GET /organizer/dashboard`                        | agrégats par tournoi non archivé du club, 5 derniers versements Stripe     |
+| `GET /organizer/referral`                         | 200 clubs parrainés, les plus récents                                      |
 | Notifications push (worker)                       | abonnements lus par lots de 500 (curseur sur l'id)                         |
 
 ## Limites de débit

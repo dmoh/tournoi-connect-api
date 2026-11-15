@@ -11,6 +11,12 @@ import { Clock } from '../common/clock.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import type {
+  PhotoUpload,
+  PhotoUploadRequest,
+  PublicPhoto,
+} from '../media/media.schemas.js';
+import { MediaService } from '../media/media.service.js';
 import { PushService } from '../push/push.service.js';
 import { replayFeed } from '../public/match-feed.js';
 import {
@@ -48,6 +54,7 @@ export class ReporterService {
     private readonly config: ConfigService<Env, true>,
     @Inject(AUTH_KEYS) keys: AuthKeys | null,
     private readonly push: PushService,
+    private readonly media: MediaService,
   ) {
     this.signer = keys ? new ReporterLinkSigner(keys.reporter) : null;
   }
@@ -159,6 +166,31 @@ export class ReporterService {
     };
   }
 
+  /** URL d'envoi d'une photo du match (la table de marque n'a pas de compte). */
+  async requestPhoto(
+    token: string,
+    input: PhotoUploadRequest,
+  ): Promise<PhotoUpload> {
+    const match = await this.openMatch(token);
+    return this.media.requestUpload(
+      {
+        tournamentId: match.tournamentId,
+        matchId: match.id,
+        source: 'REPORTER',
+        uploadedById: null,
+      },
+      input,
+    );
+  }
+
+  async confirmPhoto(token: string, photoId: string): Promise<PublicPhoto> {
+    const match = await this.openMatch(token);
+    return this.media.confirm(photoId, {
+      matchId: match.id,
+      source: 'REPORTER',
+    });
+  }
+
   async record(token: string, raw: ReporterEvent): Promise<ReporterState> {
     const input: ReporterEvent = {
       ...raw,
@@ -196,12 +228,27 @@ export class ReporterService {
           'Le tournoi n’est plus ouvert : les scores ne se saisissent plus.',
         );
       }
+      if (input.photoId) {
+        const photo = await tx.photo.findFirst({
+          where: {
+            id: input.photoId,
+            matchId,
+            status: 'READY',
+            deletedAt: null,
+            hiddenAt: null,
+          },
+          select: { id: true },
+        });
+        if (!photo) {
+          throw new NotFoundException('Photo introuvable.');
+        }
+      }
       const target = input.cancels
         ? await tx.matchEvent.findUnique({
             where: {
               matchId_clientEventId: { matchId, clientEventId: input.cancels },
             },
-            select: { id: true, type: true, matchId: true },
+            select: { id: true, type: true, matchId: true, photoId: true },
           })
         : null;
       const existing = await tx.matchEvent.findUnique({
@@ -219,7 +266,13 @@ export class ReporterService {
             'Cet identifiant de saisie a déjà servi pour une autre saisie.',
           );
         }
-        return { state: current, notify: null, match, previous: match.status };
+        return {
+          state: current,
+          notify: null,
+          match,
+          previous: match.status,
+          cancelledPhotoId: null,
+        };
       }
       if (input.type === 'CANCEL') {
         await this.checkCancel(tx, target, match.status);
@@ -238,6 +291,7 @@ export class ReporterService {
           player: input.player ?? null,
           assist: input.assist ?? null,
           caption: input.caption ?? null,
+          photoId: input.photoId ?? null,
           cancelsId: input.type === 'CANCEL' ? target!.id : null,
           createdAt: now,
         },
@@ -262,8 +316,14 @@ export class ReporterService {
           input.type === 'GOAL' ? await this.notifiesGoal(tx, matchId) : true,
         match,
         previous: match.status,
+        // Photo d'un événement annulé : retirée avec lui.
+        cancelledPhotoId:
+          input.type === 'CANCEL' ? (target?.photoId ?? null) : null,
       };
     });
+    if (result.cancelledPhotoId) {
+      await this.media.remove({ id: result.cancelledPhotoId });
+    }
     if (result.notify) {
       await this.notify(input, result).catch(() => undefined);
     }
@@ -277,7 +337,12 @@ export class ReporterService {
    */
   private async checkCancel(
     tx: Tx,
-    target: { id: string; type: string; matchId: string } | null,
+    target: {
+      id: string;
+      type: string;
+      matchId: string;
+      photoId: string | null;
+    } | null,
     status: string,
   ): Promise<void> {
     if (!target) {
@@ -350,6 +415,21 @@ export class ReporterService {
       throw new NotFoundException(INVALID_LINK);
     }
     return link.matchId;
+  }
+
+  /** Match d'un lien valide, dans un tournoi public et non masqué. */
+  private async openMatch(token: string) {
+    const match = await this.prisma.match.findFirst({
+      where: {
+        id: await this.openLink(this.prisma, token),
+        tournament: { status: { in: [...PUBLIC_STATUSES] }, hiddenAt: null },
+      },
+      select: { id: true, tournamentId: true },
+    });
+    if (!match) {
+      throw new NotFoundException(INVALID_LINK);
+    }
+    return match;
   }
 
   /** Coup d'envoi, but ou fin du match : notification aux appareils qui suivent. */
@@ -457,6 +537,7 @@ function sameEvent(
     player: string | null;
     assist: string | null;
     caption: string | null;
+    photoId: string | null;
     cancelsId: string | null;
   },
   input: ReporterEvent,
@@ -469,6 +550,7 @@ function sameEvent(
     stored.player === (input.player ?? null) &&
     stored.assist === (input.assist ?? null) &&
     stored.caption === (input.caption ?? null) &&
+    stored.photoId === (input.photoId ?? null) &&
     (input.type !== 'CANCEL' || stored.cancelsId === targetId)
   );
 }

@@ -100,6 +100,15 @@ export const accountExportSchema = z.object({
       lastSentAt: date.nullable(),
     }),
   ),
+  /** Photos envoyées depuis l'espace du club (retirées avec le compte). */
+  photos: z.array(
+    z.object({
+      tournament: z.string(),
+      url: z.string(),
+      caption: z.string().nullable(),
+      createdAt: date,
+    }),
+  ),
 });
 
 export type DeleteAccount = z.infer<typeof deleteAccountSchema>;

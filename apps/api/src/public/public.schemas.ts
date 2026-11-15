@@ -136,10 +136,18 @@ export const dayMatchesSchema = z.object({
   ),
 });
 
+/** Pages de tournoi à référencer (sitemap.xml de la PWA). */
+export const sitemapSchema = z.object({
+  tournaments: z.array(
+    z.object({ slug: z.string(), endsAt: z.iso.datetime({ offset: true }) }),
+  ),
+});
+
 export type SearchQuery = z.infer<typeof searchQuerySchema>;
 export type DayQuery = z.infer<typeof dayQuerySchema>;
 export type DayMatches = z.infer<typeof dayMatchesSchema>;
 export type PublicMatch = z.infer<typeof matchSchema>;
+export type Sitemap = z.infer<typeof sitemapSchema>;
 export type TournamentSummary = z.infer<typeof tournamentSummarySchema>;
 export type NearbyTournament = z.infer<typeof nearbyTournamentSchema>;
 export type TournamentDetail = z.infer<typeof tournamentDetailSchema>;

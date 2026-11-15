@@ -487,6 +487,70 @@ describe('Pagination par curseur (e2e)', () => {
     });
   });
 
+  describe('signalements (espace plateforme)', () => {
+    it('pagine les ouverts du plus ancien au plus récent, les traités à l’inverse', async () => {
+      const t = await liveTournament();
+      const same = new Date('2026-11-09T10:00:00.000Z');
+      await prisma.report.createMany({
+        data: [
+          ...Array.from({ length: 5 }, (_, i) => ({
+            tournamentId: t.id,
+            reason: 'SPAM' as const,
+            details: `ouvert ${i}`,
+            createdAt: same,
+          })),
+          ...Array.from({ length: 3 }, (_, i) => ({
+            tournamentId: t.id,
+            reason: 'OTHER' as const,
+            details: `écarté ${i}`,
+            status: 'DISMISSED' as const,
+            createdAt: new Date(same.getTime() + i * 1000),
+            resolvedAt: same,
+          })),
+        ],
+      });
+      const token = await login(app, 'plateforme@example.org');
+      const order = async (
+        status: 'OPEN' | 'DISMISSED',
+        direction: 'asc' | 'desc',
+      ) =>
+        (
+          await prisma.report.findMany({
+            where: { status },
+            orderBy: [{ createdAt: direction }, { id: direction }],
+            select: { id: true },
+          })
+        ).map((r) => r.id);
+
+      const open = await readPages<{ id: string }>(
+        '/platform/reports?limit=2',
+        token,
+      );
+      expect(open.map((p) => p.length)).toEqual([2, 2, 1]);
+      expect(open.flat().map((r) => r.id)).toEqual(await order('OPEN', 'asc'));
+      const dismissed = await readPages<{ id: string }>(
+        '/platform/reports?status=DISMISSED&limit=2',
+        token,
+      );
+      expect(dismissed.flat().map((r) => r.id)).toEqual(
+        await order('DISMISSED', 'desc'),
+      );
+      // Un curseur des ouverts ne sert pas pour les traités.
+      const first = (await get('/platform/reports?limit=2', token)).json<{
+        nextCursor: string;
+      }>();
+      expect(
+        (
+          await get(
+            `/platform/reports?status=DISMISSED&cursor=${first.nextCursor}`,
+            token,
+          )
+        ).statusCode,
+      ).toBe(400);
+      await expectRejects('/platform/reports', token);
+    });
+  });
+
   describe('matchs d’une journée', () => {
     const url = '/public/tournaments/challenge-u13-arve/matches';
 

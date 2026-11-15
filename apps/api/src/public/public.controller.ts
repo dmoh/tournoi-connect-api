@@ -46,11 +46,13 @@ import {
   dayQuerySchema,
   nearbyPageSchema,
   searchQuerySchema,
+  sitemapSchema,
   tournamentDetailSchema,
   type DayMatches,
   type DayQuery,
   type NearbyTournament,
   type SearchQuery,
+  type Sitemap,
   type TournamentDetail,
 } from './public.schemas.js';
 import { PublicService } from './public.service.js';
@@ -85,6 +87,13 @@ export class PublicController {
     @Query({ schema: searchQuerySchema }) query: SearchQuery,
   ): Promise<Page<NearbyTournament>> {
     return this.service.search(query);
+  }
+
+  @Get('sitemap')
+  @ApiOperation({ summary: 'Tournois publiés à référencer (sitemap)' })
+  @ApiOkResponse({ schema: openApi(sitemapSchema) })
+  sitemap(): Promise<Sitemap> {
+    return this.service.sitemap();
   }
 
   @Get('tournaments/:slug')

@@ -20,6 +20,8 @@ export const RETENTION_DAYS = {
   unpaidRegistrations: 30,
   /** Abonnements push sans activité. */
   pushSubscriptions: 180,
+  /** Signalements traités (ils peuvent contenir une adresse de contact). */
+  closedReports: 365,
 } as const;
 
 export interface PurgeReport {
@@ -29,6 +31,7 @@ export interface PurgeReport {
   registrations: number;
   pushSubscriptions: number;
   idempotencyKeys: number;
+  reports: number;
 }
 
 /** Purge quotidienne des données arrivées au bout de leur conservation. */
@@ -96,6 +99,13 @@ export class MaintenanceService {
       where: { createdAt: { lt: new Date(now - IDEMPOTENCY_TTL_MS) } },
     });
 
+    const reports = await this.prisma.report.deleteMany({
+      where: {
+        status: { not: 'OPEN' },
+        resolvedAt: { lt: before(RETENTION_DAYS.closedReports) },
+      },
+    });
+
     const report: PurgeReport = {
       loginCodes: loginCodes.count,
       sessions: sessions.count,
@@ -103,6 +113,7 @@ export class MaintenanceService {
       registrations: registrations.count,
       pushSubscriptions: pushSubscriptions.count,
       idempotencyKeys: idempotencyKeys.count,
+      reports: reports.count,
     };
     this.logger.log(`Purge : ${JSON.stringify(report)}`);
     return report;

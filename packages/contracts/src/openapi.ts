@@ -1,6 +1,76 @@
 // Fichier généré par `pnpm openapi` — ne pas modifier à la main.
 
 export interface paths {
+    "/api/v1/organizer/tournaments/{slug}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Photos publiées du tournoi, les plus récentes d’abord (paginé) */
+        get: operations["ClubPhotosController_list_v1"];
+        put?: never;
+        /** URL d’envoi signée d’une photo (JPEG ou WebP, 2 Mo au plus, sans métadonnées) */
+        post: operations["ClubPhotosController_upload_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/photos/{photoId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publie la photo une fois envoyée et vérifiée */
+        post: operations["ClubPhotosController_confirm_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/photos/{photoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retire une photo (un bénévole : seulement les siennes) */
+        delete: operations["ClubPhotosController_remove_v1"];
+        options?: never;
+        head?: never;
+        /** Temps fort (mise en avant) ou légende */
+        patch: operations["ClubPhotosController_update_v1"];
+        trace?: never;
+    };
+    "/api/v1/public/tournaments/{slug}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Photos du tournoi ou d’un match, les plus récentes d’abord (paginé) */
+        get: operations["PublicPhotosController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/providers": {
         parameters: {
             query?: never;
@@ -181,6 +251,23 @@ export interface paths {
         };
         /** Tournois en cours ou à venir autour d’un point, par distance, date puis id (paginé) */
         get: operations["PublicController_search_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/sitemap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tournois publiés à référencer (sitemap) */
+        get: operations["PublicController_sitemap_v1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -457,6 +544,40 @@ export interface paths {
         put?: never;
         /** Saisie du rapporteur (but, carton, arrêt, photo, période, annulation) */
         post: operations["ReporterController_record_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reporter/{token}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** URL d’envoi signée d’une photo du match (JPEG ou WebP, 2 Mo au plus, sans métadonnées) */
+        post: operations["ReporterController_requestPhoto_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reporter/{token}/photos/{photoId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publie la photo une fois envoyée et vérifiée (à joindre ensuite à un événement PHOTO) */
+        post: operations["ReporterController_confirmPhoto_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -822,6 +943,176 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/tournaments/{slug}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Signaler la page d’un tournoi ou l’une de ses actualités */
+        post: operations["PublicReportsController_report_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Indicateurs et état des services */
+        get: operations["PlatformController_overview_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Signalements (ouverts par défaut) */
+        get: operations["PlatformController_reports_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/reports/{id}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Masquer le contenu signalé et prévenir le club */
+        post: operations["PlatformController_hide_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/reports/{id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Écarter le signalement (rien à retirer) */
+        post: operations["PlatformController_dismiss_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/referral": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lien de parrainage du club et clubs parrainés */
+        get: operations["OrganizerReferralController_referral_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/referrals/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Club qui a partagé ce lien de parrainage */
+        get: operations["PublicReferralController_lookup_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tableau de bord : remplissage, encaissements, audience, versements */
+        get: operations["DashboardController_get_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/export/registrations.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inscriptions du tournoi (CSV, Excel) */
+        get: operations["DashboardController_registrations_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/export/players.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Effectifs des équipes du tournoi (CSV, Excel) */
+        get: operations["DashboardController_players_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -834,6 +1125,365 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ClubPhotosController_list_v1: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            /** Format: uri */
+                            url: string;
+                            width: number;
+                            height: number;
+                            caption: string | null;
+                            matchCode: string | null;
+                            highlight: boolean;
+                            /** @enum {string} */
+                            source: "reporter" | "club";
+                            /** Format: date-time */
+                            createdAt: string;
+                            uploadedBy: string | null;
+                        }[];
+                        nextCursor: string | null;
+                    };
+                };
+            };
+            /** @description Limite ou curseur invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou photo hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClubPhotosController_upload_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    contentType: "image/jpeg" | "image/webp";
+                    bytes: number;
+                    width: number;
+                    height: number;
+                    caption?: string;
+                    /** @enum {boolean} */
+                    consent: true;
+                    matchCode?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        photoId: string;
+                        /** Format: uri */
+                        uploadUrl: string;
+                        headers: {
+                            [key: string]: string;
+                        };
+                        /** Format: date-time */
+                        expiresAt: string;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou photo hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Limite de photos atteinte */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Stockage non configuré */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClubPhotosController_confirm_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+                photoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** Format: uri */
+                        url: string;
+                        width: number;
+                        height: number;
+                        caption: string | null;
+                        matchCode: string | null;
+                        highlight: boolean;
+                        /** @enum {string} */
+                        source: "reporter" | "club";
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou photo hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Fichier pas encore arrivé */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Fichier non conforme */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClubPhotosController_remove_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+                photoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Photo retirée */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou photo hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ClubPhotosController_update_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+                photoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    highlight?: boolean;
+                    caption?: string | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** Format: uri */
+                        url: string;
+                        width: number;
+                        height: number;
+                        caption: string | null;
+                        matchCode: string | null;
+                        highlight: boolean;
+                        /** @enum {string} */
+                        source: "reporter" | "club";
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou photo hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicPhotosController_list_v1: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+                match?: string;
+                highlights?: "true" | "false";
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            /** Format: uri */
+                            url: string;
+                            width: number;
+                            height: number;
+                            caption: string | null;
+                            matchCode: string | null;
+                            highlight: boolean;
+                            /** @enum {string} */
+                            source: "reporter" | "club";
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
+                        nextCursor: string | null;
+                    };
+                };
+            };
+            /** @description Limite ou curseur invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     AuthController_providers_v1: {
         parameters: {
             query?: never;
@@ -1201,6 +1851,13 @@ export interface operations {
                             /** Format: date-time */
                             lastSentAt: string | null;
                         }[];
+                        photos: {
+                            tournament: string;
+                            url: string;
+                            caption: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                        }[];
                     };
                 };
             };
@@ -1466,6 +2123,31 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    PublicController_sitemap_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        tournaments: {
+                            slug: string;
+                            /** Format: date-time */
+                            endsAt: string;
+                        }[];
+                    };
+                };
             };
         };
     };
@@ -1776,6 +2458,13 @@ export interface operations {
                             player?: string;
                             assist?: string;
                             caption?: string;
+                            photo?: {
+                                id: string;
+                                /** Format: uri */
+                                url: string;
+                                width: number;
+                                height: number;
+                            };
                             score: {
                                 home: number;
                                 away: number;
@@ -2483,6 +3172,7 @@ export interface operations {
                     player?: string;
                     assist?: string;
                     caption?: string;
+                    photoId?: string;
                     cancels?: string;
                 };
             };
@@ -2512,6 +3202,126 @@ export interface operations {
             };
             /** @description Tournoi plus public, match terminé (seule la fin s’annule), annulation impossible, ou clientEventId déjà utilisé pour une autre saisie */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReporterController_requestPhoto_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    contentType: "image/jpeg" | "image/webp";
+                    bytes: number;
+                    width: number;
+                    height: number;
+                    caption?: string;
+                    /** @enum {boolean} */
+                    consent: true;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        photoId: string;
+                        /** Format: uri */
+                        uploadUrl: string;
+                        headers: {
+                            [key: string]: string;
+                        };
+                        /** Format: date-time */
+                        expiresAt: string;
+                    };
+                };
+            };
+            /** @description Lien invalide, expiré ou révoqué */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Limite de photos du match, ou trop de requêtes */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Stockage non configuré */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReporterController_confirmPhoto_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+                photoId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** Format: uri */
+                        url: string;
+                        width: number;
+                        height: number;
+                        caption: string | null;
+                        matchCode: string | null;
+                        highlight: boolean;
+                        /** @enum {string} */
+                        source: "reporter" | "club";
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Lien invalide, expiré ou révoqué */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Fichier pas encore arrivé */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Fichier non conforme */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2568,6 +3378,7 @@ export interface operations {
                 "application/json": {
                     name: string;
                     city?: string;
+                    referralCode?: string;
                 };
             };
         };
@@ -3674,6 +4485,444 @@ export interface operations {
             };
             /** @description Connexion requise */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicReportsController_report_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    postId?: string;
+                    photoId?: string;
+                    /** @enum {string} */
+                    reason: "ILLEGAL" | "ABUSE" | "PRIVACY" | "SPAM" | "OTHER";
+                    /** @default  */
+                    details?: string;
+                    contactEmail?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            /** @description Tournoi ou actualité introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Trop de signalements en une heure, ou trop de requêtes */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlatformController_overview_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        counts: {
+                            accounts: number;
+                            clubs: number;
+                            tournaments: {
+                                published: number;
+                                inProgress: number;
+                                drafts: number;
+                            };
+                            confirmedRegistrations: number;
+                            paidCents: number;
+                            serviceFeeCents: number;
+                            openReports: number;
+                            referredClubs: number;
+                        };
+                        services: {
+                            mail: boolean;
+                            payments: {
+                                secretKey: boolean;
+                                webhook: boolean;
+                                connectWebhook: boolean;
+                                testMode: boolean;
+                            };
+                            push: boolean;
+                            oauth: ("GOOGLE" | "APPLE" | "FACEBOOK")[];
+                            queues: boolean;
+                            testAccounts: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Réservé aux admins de la plateforme */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlatformController_reports_v1: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+                status?: "OPEN" | "HIDDEN" | "DISMISSED";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            id: string;
+                            /** @enum {string} */
+                            status: "OPEN" | "HIDDEN" | "DISMISSED";
+                            /** @enum {string} */
+                            reason: "ILLEGAL" | "ABUSE" | "PRIVACY" | "SPAM" | "OTHER";
+                            details: string;
+                            contactEmail: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            tournament: {
+                                slug: string;
+                                name: string;
+                                organization: string;
+                                hidden: boolean;
+                            };
+                            post: {
+                                id: string;
+                                title: string;
+                                body: string;
+                                hidden: boolean;
+                            } | null;
+                            photo: {
+                                id: string;
+                                /** Format: uri */
+                                url: string | null;
+                                caption: string | null;
+                                hidden: boolean;
+                            } | null;
+                        }[];
+                        nextCursor: string | null;
+                    };
+                };
+            };
+            /** @description Limite ou curseur invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Réservé aux admins de la plateforme */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlatformController_hide_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Réservé aux admins de la plateforme */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlatformController_dismiss_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Réservé aux admins de la plateforme */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerReferralController_referral_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        url: string;
+                        clubs: {
+                            name: string;
+                            city: string | null;
+                            /** Format: date-time */
+                            joinedAt: string;
+                            active: boolean;
+                        }[];
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicReferralController_lookup_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        club: {
+                            name: string;
+                            city: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Code inconnu */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DashboardController_get_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        tournaments: {
+                            slug: string;
+                            name: string;
+                            /** @enum {string} */
+                            status: "DRAFT" | "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED";
+                            /** Format: date-time */
+                            startsAt: string;
+                            teamCount: number;
+                            maxTeams: number;
+                            registrations: {
+                                confirmed: number;
+                                pending: number;
+                                waitlisted: number;
+                            };
+                            collectedCents: number;
+                            serviceFeeCents: number;
+                            audience: {
+                                impressions: number;
+                                clicks: number;
+                            };
+                        }[];
+                        totals: {
+                            tournaments: number;
+                            teams: number;
+                            collectedCents: number;
+                            impressions: number;
+                            clicks: number;
+                        };
+                        payouts: {
+                            availableCents: number;
+                            pendingCents: number;
+                            recent: {
+                                amountCents: number;
+                                /** Format: date-time */
+                                arrivalDate: string;
+                                status: string;
+                            }[];
+                        } | null;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DashboardController_registrations_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fichier CSV (séparateur « ; », UTF-8) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DashboardController_players_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fichier CSV (séparateur « ; », UTF-8) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi hors du club */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -20,6 +20,9 @@ x-api: &api
     MAIL_TRANSPORT: ${MAIL_TRANSPORT}
     MAIL_FROM: ${MAIL_FROM}
     AWS_REGION: ${AWS_REGION}
+    # Photos : bucket privé et adresse CloudFront (Terraform) ; vides, envoi fermé.
+    MEDIA_BUCKET: ${MEDIA_BUCKET:-}
+    MEDIA_PUBLIC_URL: ${MEDIA_PUBLIC_URL:-}
     # Notifications web push (VAPID) : renseignées dans SSM ; vides, pas de notifications.
     VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
     VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
@@ -27,6 +30,7 @@ x-api: &api
     # vides, les inscriptions payantes sont fermées.
     STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
     STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+    STRIPE_CONNECT_WEBHOOK_SECRET: ${STRIPE_CONNECT_WEBHOOK_SECRET:-}
     # Connexion en un clic : renseignées dans SSM quand l'application du
     # fournisseur existe ; vides, le bouton n'apparaît pas.
     GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}

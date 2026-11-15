@@ -25,6 +25,7 @@ import { PrismaService } from '../database/prisma.service.js';
 import type { MemberRole } from '../generated/prisma/enums.js';
 import { Mailer } from '../mail/mailer.js';
 import { invitationMail } from '../mail/templates.js';
+import { ReferralsService } from '../referrals/referrals.service.js';
 import { revokeLinksIssuedBy } from '../reporter/reporter-link.js';
 import { z } from 'zod';
 import {
@@ -68,6 +69,7 @@ export class ClubsService {
     private readonly mailer: Mailer,
     private readonly auth: AuthService,
     private readonly config: ConfigService<Env, true>,
+    private readonly referrals: ReferralsService,
   ) {}
 
   async create(user: AuthUser, input: CreateClub): Promise<Me> {
@@ -80,6 +82,7 @@ export class ClubsService {
       );
     }
     const base = slugify(input.name) || 'club';
+    const referredById = await this.referrals.referrerId(input.referralCode);
     const taken = await this.prisma.organization.findMany({
       where: { slug: { startsWith: base } },
       select: { slug: true },
@@ -93,6 +96,7 @@ export class ClubsService {
             slug,
             name: input.name,
             city: input.city ?? null,
+            referredById,
             members: { create: { userId: user.id, role: 'OWNER' } },
           },
         }),

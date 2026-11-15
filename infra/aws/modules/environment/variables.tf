@@ -71,3 +71,12 @@ variable "mail_from" {
   description = "Expéditeur des emails (codes de connexion, invitations)."
   type        = string
 }
+
+variable "media" {
+  description = "Bucket des photos et adresse de diffusion (module media)"
+  type = object({
+    bucket     = string
+    bucket_arn = string
+    public_url = string
+  })
+}

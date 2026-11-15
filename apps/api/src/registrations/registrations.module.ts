@@ -31,5 +31,6 @@ import { STRIPE } from './registrations.tokens.js';
         ),
     },
   ],
+  exports: [STRIPE],
 })
 export class RegistrationsModule {}

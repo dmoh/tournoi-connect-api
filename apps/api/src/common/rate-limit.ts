@@ -68,6 +68,16 @@ export const RATE_LIMITS = {
    * avec une rafale de 15 pour la file hors ligne rejouée au retour du réseau.
    */
   reporterEvent: [{ key: 'reporterToken', max: 15, windowMs: 30 * SECOND }],
+  /**
+   * Photos de la table de marque (URL d'envoi, confirmation), en plus de la
+   * limite métier de 30 photos par match.
+   */
+  reporterPhoto: [{ key: 'reporterToken', max: 20, windowMs: MINUTE }],
+  /**
+   * Signalement d'un contenu public, sans compte : chaque signalement prévient
+   * les admins par email. En plus de la limite métier par tournoi et par heure.
+   */
+  report: [{ key: 'ip', max: 10, windowMs: 10 * MINUTE }],
   /** Invitations d'un club, en plus de la limite métier par club. */
   invitation: [{ key: 'ip', max: 20, windowMs: MINUTE }],
 } as const satisfies Record<string, readonly RateLimit[]>;

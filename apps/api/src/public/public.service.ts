@@ -20,6 +20,7 @@ import { parisDate, parisDateTime } from '../common/paris-time.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { Placement } from '../generated/prisma/enums.js';
+import { MediaService, VISIBLE_PHOTO } from '../media/media.service.js';
 import { AUDIENCE_QUEUE } from '../queue/queue.module.js';
 import { composeFeed } from './feed.js';
 import { replayFeed } from './match-feed.js';
@@ -35,6 +36,7 @@ import type {
   NearbyTournament,
   PublicMatch,
   SearchQuery,
+  Sitemap,
   TournamentDetail,
 } from './public.schemas.js';
 import type { Match } from '../generated/prisma/client.js';
@@ -83,6 +85,7 @@ export class PublicService {
     private readonly prisma: PrismaService,
     private readonly clock: Clock,
     private readonly audienceWriter: AudienceWriter,
+    private readonly media: MediaService,
     @Optional()
     @InjectQueue(AUDIENCE_QUEUE)
     private readonly audienceQueue?: Queue<AudienceJob>,
@@ -118,6 +121,7 @@ export class PublicService {
         )) AS distance_km
       ) d
       WHERE t.status::text IN (${Prisma.join([...DISCOVERABLE_STATUSES])})
+        AND t.hidden_at IS NULL
         AND t.ends_at >= ${this.clock.now()}
         AND v.lat BETWEEN ${query.lat - dLat} AND ${query.lat + dLat}
         AND v.lng BETWEEN ${query.lng - dLng} AND ${query.lng + dLng}
@@ -155,9 +159,25 @@ export class PublicService {
     };
   }
 
+  /** Tournois publiés et non masqués, les plus récents d'abord (50 000 au plus). */
+  async sitemap(): Promise<Sitemap> {
+    const tournaments = await this.prisma.tournament.findMany({
+      where: { status: { in: [...PUBLIC_STATUSES] }, hiddenAt: null },
+      select: { slug: true, endsAt: true },
+      orderBy: { startsAt: 'desc' },
+      take: 50_000,
+    });
+    return {
+      tournaments: tournaments.map((t) => ({
+        slug: t.slug,
+        endsAt: t.endsAt.toISOString(),
+      })),
+    };
+  }
+
   async detail(slug: string): Promise<TournamentDetail> {
     const t = await this.prisma.tournament.findFirst({
-      where: { slug, status: { in: [...PUBLIC_STATUSES] } },
+      where: { slug, status: { in: [...PUBLIC_STATUSES] }, hiddenAt: null },
       include: {
         venue: true,
         organization: true,
@@ -282,6 +302,7 @@ export class PublicService {
       this.prisma.post.findMany({
         where: {
           tournamentId,
+          hiddenAt: null,
           ...seekAfter(
             'publishedAt',
             'id',
@@ -374,7 +395,8 @@ export class PublicService {
         postId,
         post: {
           kind: 'POLL',
-          tournament: { status: { in: [...PUBLIC_STATUSES] } },
+          hiddenAt: null,
+          tournament: { status: { in: [...PUBLIC_STATUSES] }, hiddenAt: null },
         },
       },
     });
@@ -440,8 +462,33 @@ export class PublicService {
       this.reactionCounts(matchId),
     ]);
     const last = events.at(-1);
+    const photoIds = events.flatMap((e) => (e.photoId ? [e.photoId] : []));
+    const photos = new Map(
+      photoIds.length === 0
+        ? []
+        : (
+            await this.prisma.photo.findMany({
+              where: { id: { in: photoIds }, matchId, ...VISIBLE_PHOTO },
+            })
+          ).map((p) => [
+            p.id,
+            {
+              id: p.id,
+              url: this.media.url(p.storageKey),
+              width: p.width,
+              height: p.height,
+            },
+          ]),
+    );
     return {
-      events: replayFeed(events),
+      // Un événement dont la photo est retirée ou masquée disparaît du fil.
+      events: replayFeed(events).flatMap(({ photoId, ...event }) => {
+        if (!photoId) {
+          return [event];
+        }
+        const photo = photos.get(photoId);
+        return photo ? [{ ...event, photo }] : [];
+      }),
       reactions,
       updatedAt: last ? toIso(last.createdAt) : null,
     };
@@ -478,7 +525,11 @@ export class PublicService {
     const match = await this.prisma.match.findFirst({
       where: {
         code,
-        tournament: { slug, status: { in: [...PUBLIC_STATUSES] } },
+        tournament: {
+          slug,
+          status: { in: [...PUBLIC_STATUSES] },
+          hiddenAt: null,
+        },
       },
       select: { id: true },
     });
@@ -490,7 +541,7 @@ export class PublicService {
 
   private async publicTournamentId(slug: string): Promise<string> {
     const t = await this.prisma.tournament.findFirst({
-      where: { slug, status: { in: [...PUBLIC_STATUSES] } },
+      where: { slug, status: { in: [...PUBLIC_STATUSES] }, hiddenAt: null },
       select: { id: true },
     });
     if (!t) {

@@ -61,6 +61,11 @@ const envVariables = z.object({
   /** Secret de signature du webhook Stripe (whsec_…). */
   STRIPE_WEBHOOK_SECRET: optionalSecret(20),
   /**
+   * Secret du webhook des comptes connectés (account.updated) : Stripe le
+   * sépare de celui de la plateforme.
+   */
+  STRIPE_CONNECT_WEBHOOK_SECRET: optionalSecret(20),
+  /**
    * Notifications web push (VAPID, base64url) : clé publique (65 octets) et
    * privée (32 octets). Sans elles, l'abonnement aux notifications est fermé.
    */
@@ -77,6 +82,12 @@ const envVariables = z.object({
     .min(3)
     .default('Tournoi Connect <noreply@tournoi-connect.com>'),
   AWS_REGION: z.string().min(1).default('eu-west-3'),
+  /**
+   * Photos des tournois : bucket S3 privé (envoi direct par URL signée) et
+   * adresse de diffusion CloudFront. Sans eux, l'envoi de photos est fermé (503).
+   */
+  MEDIA_BUCKET: optional(),
+  MEDIA_PUBLIC_URL: z.preprocess(empty, z.url().optional()),
   /** Connexion en un clic : chaque fournisseur ne s'affiche que s'il est configuré. */
   GOOGLE_CLIENT_ID: optional(),
   GOOGLE_CLIENT_SECRET: optional(),

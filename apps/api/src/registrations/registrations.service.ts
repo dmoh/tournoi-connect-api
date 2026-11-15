@@ -112,7 +112,8 @@ export class RegistrationsService {
     if (
       !tournament ||
       tournament.status === 'DRAFT' ||
-      tournament.status === 'ARCHIVED'
+      tournament.status === 'ARCHIVED' ||
+      tournament.hiddenAt !== null
     ) {
       throw new NotFoundException('Lien d’inscription inconnu.');
     }
@@ -159,7 +160,8 @@ export class RegistrationsService {
     if (
       !tournament ||
       tournament.status === 'DRAFT' ||
-      tournament.status === 'ARCHIVED'
+      tournament.status === 'ARCHIVED' ||
+      tournament.hiddenAt !== null
     ) {
       throw new NotFoundException('Lien d’inscription inconnu.');
     }

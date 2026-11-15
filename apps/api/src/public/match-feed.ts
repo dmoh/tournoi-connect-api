@@ -15,6 +15,7 @@ export interface StoredEvent {
   player: string | null;
   assist: string | null;
   caption: string | null;
+  photoId?: string | null;
   cancelsId: string | null;
 }
 
@@ -27,6 +28,7 @@ export interface FeedEvent {
   player?: string;
   assist?: string;
   caption?: string;
+  photoId?: string;
   score: { home: number; away: number };
 }
 
@@ -65,6 +67,7 @@ export function replayFeed(events: readonly StoredEvent[]): FeedEvent[] {
       ...(event.player ? { player: event.player } : {}),
       ...(event.assist ? { assist: event.assist } : {}),
       ...(event.caption ? { caption: event.caption } : {}),
+      ...(event.photoId ? { photoId: event.photoId } : {}),
       score: { ...score },
     });
   }

@@ -50,12 +50,18 @@ export const reporterEventSchema = z
     player: z.string().trim().min(1).max(60).optional(),
     assist: z.string().trim().min(1).max(60).optional(),
     caption: z.string().trim().min(1).max(140).optional(),
+    /** Photo du match déjà envoyée et confirmée, pour PHOTO. */
+    photoId: z.string().min(1).max(40).optional(),
     /** clientEventId de l'événement annulé, pour CANCEL. */
     cancels: z.string().min(8).max(64).optional(),
   })
   .refine((e) => e.type !== 'GOAL' || e.side !== undefined, {
     message: 'Un but indique son équipe.',
     path: ['side'],
+  })
+  .refine((e) => e.photoId === undefined || e.type === 'PHOTO', {
+    message: 'Seul un événement photo porte une photo.',
+    path: ['photoId'],
   })
   .refine((e) => e.type !== 'CANCEL' || e.cancels !== undefined, {
     message: 'Une annulation indique l’événement annulé.',

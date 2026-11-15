@@ -29,6 +29,19 @@ module "preprod" {
   host_files         = local.host_files
   ses_identity_arn   = aws_sesv2_email_identity.domain.arn
   mail_from          = "Tournoi Connect <noreply@${var.domain}>"
+  media              = module.preprod_media
+}
+
+# Photos de chaque environnement : bucket privé et CloudFront sur media.<env>.
+module "preprod_media" {
+  source    = "./modules/media"
+  providers = { aws = aws, aws.us_east_1 = aws.us_east_1 }
+
+  name        = "preprod"
+  media_host  = "media.preprod.${var.domain}"
+  app_host    = "preprod.${var.domain}"
+  zone_id     = data.aws_route53_zone.main.zone_id
+  bucket_name = "tournoi-connect-preprod-media-${var.account_id}"
 }
 
 # Prod : un serveur pour la PWA, l'API, le worker BullMQ et Redis ; base RDS.
@@ -49,6 +62,18 @@ module "prod" {
   host_files         = local.host_files
   ses_identity_arn   = aws_sesv2_email_identity.domain.arn
   mail_from          = "Tournoi Connect <noreply@${var.domain}>"
+  media              = module.prod_media
+}
+
+module "prod_media" {
+  source    = "./modules/media"
+  providers = { aws = aws, aws.us_east_1 = aws.us_east_1 }
+
+  name        = "prod"
+  media_host  = "media.${var.domain}"
+  app_host    = "app.${var.domain}"
+  zone_id     = data.aws_route53_zone.main.zone_id
+  bucket_name = "tournoi-connect-prod-media-${var.account_id}"
 }
 
 # Seules Amazon (CloudFront) et Let's Encrypt (Caddy) peuvent émettre des

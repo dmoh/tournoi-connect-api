@@ -25,6 +25,6 @@ import { OAuthProviders } from './oauth/oauth-providers.js';
     AuthGuard,
     OAuthProviders,
   ],
-  exports: [AUTH_KEYS, AuthService, AuthGuard],
+  exports: [AUTH_KEYS, AuthService, AuthGuard, OAuthProviders],
 })
 export class AuthModule {}
