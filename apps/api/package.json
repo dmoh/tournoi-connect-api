@@ -58,10 +58,10 @@
     "@types/node": "^26.6.6",
     "@types/pg": "8.23.1",
     "@vitest/coverage-v8": "^5.1.0",
-    "oxlint": "^1.58.0",
-    "oxlint-tsgolint": "^7.0.2005",
-    "typescript": "^6.0.2",
-    "vite": "^8.0.0",
+    "oxlint": "^1.93.0",
+    "oxlint-tsgolint": "^7.0.2007",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
     "vitest": "^5.1.0"
   }
 }
