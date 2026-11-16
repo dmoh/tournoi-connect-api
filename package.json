@@ -28,6 +28,6 @@
     "db:seed": "pnpm --filter @tournoi-connect/api db:seed"
   },
   "devDependencies": {
-    "prettier": "^3.4.2"
+    "prettier": "^3.10.1"
   }
 }
