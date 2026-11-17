@@ -25,7 +25,14 @@ export const DISCOVERABLE_STATUSES = [
 /** round_of_32 (identifiant Prisma) ↔ round-of-32 (contrat). */
 export function toPublicPhase(
   phase: Phase,
-): 'groups' | 'round-of-32' | 'round-of-16' | 'quarter' | 'semi' | 'final' {
+):
+  | 'groups'
+  | 'round-of-32'
+  | 'round-of-16'
+  | 'quarter'
+  | 'semi'
+  | 'third-place'
+  | 'final' {
   return phase.replaceAll('_', '-') as ReturnType<typeof toPublicPhase>;
 }
 

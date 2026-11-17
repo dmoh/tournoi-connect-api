@@ -45,6 +45,8 @@ enum Phase {
   round_of_16
   quarter
   semi
+  /// Petite finale (match pour la 3e place).
+  third_place
   final
 }
 
@@ -159,6 +161,8 @@ model Tournament {
   registrationDeadline DateTime?           @map("registration_deadline") @db.Date
   /// Masqué par la modération de la plateforme : la page publique répond 404.
   hiddenAt             DateTime?           @map("hidden_at") @db.Timestamptz
+  /// Graine du dernier tirage des poules : le même tirage se refait à l'identique.
+  drawSeed             String?             @map("draw_seed")
   /// Règles de classement choisies par l'organisateur (points, départages) ;
   /// vide : celles du sport (moteur, SPORT_RULES).
   rankingRules         Json?               @map("ranking_rules")
@@ -221,6 +225,12 @@ model Match {
   awayTeamCode    String?         @map("away_team_code")
   homePlaceholder String?         @map("home_placeholder")
   awayPlaceholder String?         @map("away_placeholder")
+  /// Origine d'une place du tableau (« group:A:1 », « winner:df1 », « loser:df1 ») :
+  /// l'équipe y est placée dès que la poule ou le match est terminé.
+  homeSource      String?         @map("home_source")
+  awaySource      String?         @map("away_source")
+  /// Vainqueur d'un match à élimination terminé sur un nul (tirs au but).
+  winnerSide      Side?           @map("winner_side")
   scoreHome       Int             @default(0) @map("score_home")
   scoreAway       Int             @default(0) @map("score_away")
   status          MatchStatus     @default(SCHEDULED)

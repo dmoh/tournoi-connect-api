@@ -2,6 +2,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { AuthKeys } from '../auth/auth-keys.js';
@@ -16,6 +17,7 @@ import type {
   PhotoUploadRequest,
   PublicPhoto,
 } from '../media/media.schemas.js';
+import { BracketService } from '../bracket/bracket.service.js';
 import { MediaService } from '../media/media.service.js';
 import { PushService } from '../push/push.service.js';
 import { replayFeed } from '../public/match-feed.js';
@@ -46,6 +48,7 @@ const INVALID_LINK = 'Lien de saisie invalide, expiré ou révoqué.';
  */
 @Injectable()
 export class ReporterService {
+  private readonly logger = new Logger(ReporterService.name);
   private readonly signer: ReporterLinkSigner | null;
 
   constructor(
@@ -55,6 +58,7 @@ export class ReporterService {
     @Inject(AUTH_KEYS) keys: AuthKeys | null,
     private readonly push: PushService,
     private readonly media: MediaService,
+    private readonly bracket: BracketService,
   ) {
     this.signer = keys ? new ReporterLinkSigner(keys.reporter) : null;
   }
@@ -272,6 +276,7 @@ export class ReporterService {
           match,
           previous: match.status,
           cancelledPhotoId: null,
+          fresh: false,
         };
       }
       if (input.type === 'CANCEL') {
@@ -307,6 +312,13 @@ export class ReporterService {
           scoreAway: next.score.away,
           status: next.status,
           minute: next.minute,
+          // Fin d'un match à élimination sur un nul : le camp indiqué gagne
+          // aux tirs au but ; annuler la fin efface le vainqueur.
+          ...(input.type === 'FULL_TIME'
+            ? { winnerSide: input.side ? SIDES[input.side] : null }
+            : next.status !== 'FINISHED'
+              ? { winnerSide: null }
+              : {}),
           version: { increment: 1 },
         },
       });
@@ -319,8 +331,15 @@ export class ReporterService {
         // Photo d'un événement annulé : retirée avec lui.
         cancelledPhotoId:
           input.type === 'CANCEL' ? (target?.photoId ?? null) : null,
+        fresh: true,
       };
     });
+    if (result.fresh) {
+      // Fin de poule ou de match : les qualifiés et vainqueurs prennent leur place.
+      await this.bracket
+        .advance(result.match.tournamentId)
+        .catch((error: unknown) => this.logger.error(error));
+    }
     if (result.cancelledPhotoId) {
       await this.media.remove({ id: result.cancelledPhotoId });
     }

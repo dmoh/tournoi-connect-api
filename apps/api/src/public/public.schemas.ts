@@ -19,6 +19,7 @@ export const phaseSchema = z.enum([
   'round-of-16',
   'quarter',
   'semi',
+  'third-place',
   'final',
 ]);
 export const publicStatusSchema = z.enum([
