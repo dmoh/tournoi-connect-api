@@ -159,6 +159,9 @@ model Tournament {
   registrationDeadline DateTime?           @map("registration_deadline") @db.Date
   /// Masqué par la modération de la plateforme : la page publique répond 404.
   hiddenAt             DateTime?           @map("hidden_at") @db.Timestamptz
+  /// Règles de classement choisies par l'organisateur (points, départages) ;
+  /// vide : celles du sport (moteur, SPORT_RULES).
+  rankingRules         Json?               @map("ranking_rules")
   reports              Report[]
   photos               Photo[]
   teams                Team[]

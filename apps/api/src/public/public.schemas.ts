@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { pageQuerySchema, pageSchema } from '../common/pagination.js';
+import { rankingRulesSchema } from '../common/ranking-rules.schema.js';
 
 /**
  * Contrat des lectures publiques, calqué sur les modèles de la PWA
@@ -86,6 +87,8 @@ export const standingRowSchema = z.object({
   lost: z.number().int(),
   goalsFor: z.number().int(),
   goalsAgainst: z.number().int(),
+  /** Bonus défensifs (rugby), déjà comptés dans les points. */
+  bonus: z.number().int(),
   points: z.number().int(),
 });
 
@@ -95,6 +98,8 @@ export const tournamentDetailSchema = tournamentSummarySchema.extend({
   standings: z.array(
     z.object({ group: z.string(), rows: z.array(standingRowSchema) }),
   ),
+  /** Règles du classement : celles du sport ou de l'organisateur. */
+  rules: rankingRulesSchema,
 });
 
 /**

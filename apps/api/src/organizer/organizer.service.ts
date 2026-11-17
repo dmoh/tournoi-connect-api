@@ -377,6 +377,7 @@ export class OrganizerService {
               fieldCount: input.fields,
               matchMinutes: input.matchMinutes,
               breakMinutes: input.breakMinutes,
+              ...(input.rules ? { rankingRules: input.rules } : {}),
               registrationDeadline: new Date(
                 `${input.registrationDeadline}T00:00:00Z`,
               ),

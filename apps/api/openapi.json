@@ -2743,6 +2743,11 @@
                                   "minimum": -9007199254740991,
                                   "maximum": 9007199254740991
                                 },
+                                "bonus": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
                                 "points": {
                                   "type": "integer",
                                   "minimum": -9007199254740991,
@@ -2757,6 +2762,7 @@
                                 "lost",
                                 "goalsFor",
                                 "goalsAgainst",
+                                "bonus",
                                 "points"
                               ],
                               "additionalProperties": false
@@ -2769,6 +2775,78 @@
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "rules": {
+                      "type": "object",
+                      "properties": {
+                        "points": {
+                          "type": "object",
+                          "properties": {
+                            "win": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10
+                            },
+                            "draw": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10
+                            },
+                            "loss": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 10
+                            }
+                          },
+                          "required": [
+                            "win",
+                            "draw",
+                            "loss"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "losingBonus": {
+                          "nullable": true,
+                          "type": "object",
+                          "properties": {
+                            "margin": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 50
+                            },
+                            "points": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 5
+                            }
+                          },
+                          "required": [
+                            "margin",
+                            "points"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "tiebreakers": {
+                          "maxItems": 5,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "headToHead",
+                              "difference",
+                              "scored",
+                              "wins",
+                              "conceded"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "points",
+                        "losingBonus",
+                        "tiebreakers"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -2786,7 +2864,8 @@
                     "status",
                     "teams",
                     "matches",
-                    "standings"
+                    "standings",
+                    "rules"
                   ],
                   "additionalProperties": false
                 }
@@ -4129,6 +4208,75 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 60
+                  },
+                  "rules": {
+                    "type": "object",
+                    "properties": {
+                      "points": {
+                        "type": "object",
+                        "properties": {
+                          "win": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10
+                          },
+                          "draw": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10
+                          },
+                          "loss": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10
+                          }
+                        },
+                        "required": [
+                          "win",
+                          "draw",
+                          "loss"
+                        ]
+                      },
+                      "losingBonus": {
+                        "nullable": true,
+                        "type": "object",
+                        "properties": {
+                          "margin": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 50
+                          },
+                          "points": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 5
+                          }
+                        },
+                        "required": [
+                          "margin",
+                          "points"
+                        ]
+                      },
+                      "tiebreakers": {
+                        "maxItems": 5,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "headToHead",
+                            "difference",
+                            "scored",
+                            "wins",
+                            "conceded"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "points",
+                      "losingBonus",
+                      "tiebreakers"
+                    ]
                   }
                 },
                 "required": [
