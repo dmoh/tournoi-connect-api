@@ -2437,6 +2437,8 @@ export interface operations {
                             /** @enum {string} */
                             status: "SCHEDULED" | "LIVE" | "FINISHED";
                             minute?: number;
+                            /** @enum {string} */
+                            winner?: "home" | "away";
                         }[];
                         standings: {
                             group: string;
@@ -2525,6 +2527,8 @@ export interface operations {
                                     /** @enum {string} */
                                     status: "SCHEDULED" | "LIVE" | "FINISHED";
                                     minute?: number;
+                                    /** @enum {string} */
+                                    winner?: "home" | "away";
                                 }[];
                             }[];
                         }[];

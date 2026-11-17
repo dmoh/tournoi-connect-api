@@ -234,6 +234,15 @@ describe('Tirage, calendrier et phase finale (e2e)', () => {
     await semi({ type: 'GOAL', side: 'away' });
     await semi({ type: 'FULL_TIME', side: 'away' });
     expect((await liveMatch('f')).homeTeamCode).toBe(df1.awayTeamCode);
+    const publicSemi = (
+      await app.inject({
+        method: 'GET',
+        url: `/api/v1/public/tournaments/${LIVE}`,
+      })
+    )
+      .json()
+      .matches.find((m: { id: string }) => m.id === 'df1');
+    expect(publicSemi).toMatchObject({ status: 'FINISHED', winner: 'away' });
 
     // Annuler la fin du match retire le qualifié de la finale.
     await semi({ type: 'CANCEL', cancels: 'df1-evt-3' });

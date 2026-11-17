@@ -78,6 +78,8 @@ export const matchSchema = z.object({
   scoreAway: z.number().int(),
   status: z.enum(['SCHEDULED', 'LIVE', 'FINISHED']),
   minute: z.number().int().optional(),
+  /** Vainqueur aux tirs au but d'un match à élimination terminé sur un nul. */
+  winner: z.enum(['home', 'away']).optional(),
 });
 
 export const standingRowSchema = z.object({
