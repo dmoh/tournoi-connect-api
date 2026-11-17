@@ -1,7 +1,8 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import type { Queue } from 'bullmq';
-import { computeStandings } from '@dmoh/tournoi-connect-engine';
+import { computeStandings, rulesFor } from '@dmoh/tournoi-connect-engine';
+import { storedRules } from '../common/ranking-rules.schema.js';
 import {
   AudienceWriter,
   type AudienceJob,
@@ -194,6 +195,7 @@ export class PublicService {
     if (!t) {
       throw new NotFoundException('Tournoi introuvable.');
     }
+    const rules = rulesFor(t.sport, storedRules(t.rankingRules));
     const standings = computeStandings(
       t.teams.map((team) => ({
         id: team.code,
@@ -209,6 +211,7 @@ export class PublicService {
           scoreAway: m.scoreAway,
           finished: m.status === 'FINISHED',
         })),
+      rules,
     );
     return {
       ...toSummary(t),
@@ -221,6 +224,7 @@ export class PublicService {
       })),
       matches: t.matches.map(toPublicMatch),
       standings,
+      rules: { ...rules, tiebreakers: [...rules.tiebreakers] },
     };
   }
 

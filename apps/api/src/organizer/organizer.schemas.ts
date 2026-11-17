@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { pageSchema } from '../common/pagination.js';
+import { rankingRulesSchema } from '../common/ranking-rules.schema.js';
 
 export const tierSchema = z.enum(['GOLD', 'SILVER', 'BRONZE', 'FIELD']);
 export const sponsorStatusSchema = z.enum(['PROSPECT', 'INVITED', 'PAID']);
@@ -135,6 +136,8 @@ export const createTournamentSchema = z
     format: formatSchema,
     matchMinutes: z.number().int().min(5).max(120),
     breakMinutes: z.number().int().min(0).max(60),
+    /** Points et départages ; absents : les règles du sport. */
+    rules: rankingRulesSchema.optional(),
   })
   .refine((v) => v.endTime > v.startTime, {
     message: 'La fin doit suivre le début.',

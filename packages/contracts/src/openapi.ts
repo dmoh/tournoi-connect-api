@@ -2225,9 +2225,22 @@ export interface operations {
                                 lost: number;
                                 goalsFor: number;
                                 goalsAgainst: number;
+                                bonus: number;
                                 points: number;
                             }[];
                         }[];
+                        rules: {
+                            points: {
+                                win: number;
+                                draw: number;
+                                loss: number;
+                            };
+                            losingBonus: {
+                                margin: number;
+                                points: number;
+                            } | null;
+                            tiebreakers: ("headToHead" | "difference" | "scored" | "wins" | "conceded")[];
+                        };
                     };
                 };
             };
@@ -2730,6 +2743,18 @@ export interface operations {
                     format: "single-group" | "groups-knockout" | "knockout" | "swiss";
                     matchMinutes: number;
                     breakMinutes: number;
+                    rules?: {
+                        points: {
+                            win: number;
+                            draw: number;
+                            loss: number;
+                        };
+                        losingBonus: {
+                            margin: number;
+                            points: number;
+                        } | null;
+                        tiebreakers: ("headToHead" | "difference" | "scored" | "wins" | "conceded")[];
+                    };
                 };
             };
         };

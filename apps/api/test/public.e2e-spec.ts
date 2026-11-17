@@ -56,6 +56,13 @@ describe('Lectures publiques (e2e)', () => {
     expect(body.standings[0].rows[0]).toMatchObject({
       teamId: 'eda',
       points: 6,
+      bonus: 0,
+    });
+    // Sans réglage de l'organisateur : les règles du football.
+    expect(body.rules).toEqual({
+      points: { win: 3, draw: 1, loss: 0 },
+      losingBonus: null,
+      tiebreakers: ['headToHead', 'difference', 'scored'],
     });
   });
 

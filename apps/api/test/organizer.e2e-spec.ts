@@ -242,6 +242,56 @@ describe('Espace organisateur (e2e)', () => {
     );
   });
 
+  it('garde les points et départages choisis, et classe avec eux', async () => {
+    const rules = {
+      points: { win: 3, draw: 2, loss: 1 },
+      losingBonus: null,
+      tiebreakers: ['difference', 'headToHead', 'wins'],
+    };
+    const res = await call('POST', '/tournaments', {
+      ...draft,
+      name: 'Coupe de hand',
+      sport: 'handball',
+      rules,
+    });
+    expect(res.statusCode).toBe(201);
+    const stored = await prisma.tournament.findUniqueOrThrow({
+      where: { slug: res.json().slug },
+    });
+    expect(stored.rankingRules).toEqual(rules);
+
+    // Les règles d'un tournoi publié s'appliquent à son classement public.
+    const demo = await prisma.tournament.update({
+      where: { slug: 'challenge-u13-arve' },
+      data: {
+        rankingRules: { ...rules, points: { win: 5, draw: 2, loss: 1 } },
+      },
+    });
+    const page = await app.inject({
+      method: 'GET',
+      url: `/api/v1/public/tournaments/${demo.slug}`,
+    });
+    expect(page.json().rules.points).toEqual({ win: 5, draw: 2, loss: 1 });
+    // Étoile de l'Arve : deux victoires, 5 points chacune.
+    expect(page.json().standings[0].rows[0]).toMatchObject({
+      teamId: 'eda',
+      points: 10,
+    });
+  });
+
+  it('refuse des règles de classement incohérentes', async () => {
+    const res = await call('POST', '/tournaments', {
+      ...draft,
+      rules: {
+        points: { win: 1, draw: 1, loss: 0 },
+        losingBonus: null,
+        tiebreakers: ['scored', 'scored'],
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(JSON.stringify(res.json())).toContain('Une victoire rapporte plus');
+  });
+
   it('refuse un brouillon incohérent en problem+json', async () => {
     const res = await call('POST', '/tournaments', {
       ...draft,
