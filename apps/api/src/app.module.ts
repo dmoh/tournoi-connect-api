@@ -6,6 +6,7 @@ import { validateEnv } from './config/env.js';
 import { Clock, SystemClock } from './common/clock.js';
 import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
+import { BracketModule } from './bracket/bracket.module.js';
 import { MailModule } from './mail/mail.module.js';
 import { MediaModule } from './media/media.module.js';
 import { MaintenanceModule } from './maintenance/maintenance.module.js';
@@ -27,6 +28,7 @@ import { QueueModule } from './queue/queue.module.js';
     DatabaseModule,
     QueueModule.forRoot(),
     MailModule,
+    BracketModule,
     MediaModule,
     AuthModule,
     AccountModule,

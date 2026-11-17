@@ -1,6 +1,404 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/organizer/tournaments/{slug}/draw": {
+      "get": {
+        "operationId": "BracketController_view_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "format": {
+                      "type": "string",
+                      "enum": [
+                        "single-group",
+                        "groups-knockout",
+                        "knockout",
+                        "swiss"
+                      ]
+                    },
+                    "teams": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "seed": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "started": {
+                      "type": "boolean"
+                    },
+                    "groups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "group": {
+                            "type": "string"
+                          },
+                          "teams": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "code": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "code",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "group",
+                          "teams"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "matches": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "endsAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "overrunMinutes": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "format",
+                    "teams",
+                    "seed",
+                    "started",
+                    "groups",
+                    "matches",
+                    "endsAt",
+                    "overrunMinutes"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Tournoi ou match hors du club"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Équipes inscrites, poules tirées et calendrier",
+        "tags": [
+          "organizer"
+        ]
+      },
+      "post": {
+        "operationId": "BracketController_draw_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "seed": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "format": {
+                      "type": "string",
+                      "enum": [
+                        "single-group",
+                        "groups-knockout",
+                        "knockout",
+                        "swiss"
+                      ]
+                    },
+                    "teams": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "seed": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "started": {
+                      "type": "boolean"
+                    },
+                    "groups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "group": {
+                            "type": "string"
+                          },
+                          "teams": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "code": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "code",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "group",
+                          "teams"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "matches": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "endsAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "overrunMinutes": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "format",
+                    "teams",
+                    "seed",
+                    "started",
+                    "groups",
+                    "matches",
+                    "endsAt",
+                    "overrunMinutes"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Tournoi ou match hors du club"
+          },
+          "409": {
+            "description": "Match commencé, ou moins de deux équipes"
+          },
+          "422": {
+            "description": "Format sans tirage automatique"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tire les poules et génère le calendrier (refait le tirage tant qu’aucun match n’a commencé)",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/organizer/tournaments/{slug}/matches/{code}/winner": {
+      "put": {
+        "operationId": "BracketController_winner_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "side": {
+                    "type": "string",
+                    "enum": [
+                      "home",
+                      "away"
+                    ]
+                  }
+                },
+                "required": [
+                  "side"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Vainqueur enregistré, tableau mis à jour"
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Tournoi ou match hors du club"
+          },
+          "409": {
+            "description": "Le match n’attend pas de vainqueur"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Vainqueur d’un match à élimination terminé sur un nul",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
     "/api/v1/organizer/tournaments/{slug}/photos": {
       "get": {
         "operationId": "ClubPhotosController_list_v1",
@@ -2631,6 +3029,7 @@
                               "round-of-16",
                               "quarter",
                               "semi",
+                              "third-place",
                               "final"
                             ]
                           },
@@ -2681,6 +3080,13 @@
                             "type": "integer",
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
+                          },
+                          "winner": {
+                            "type": "string",
+                            "enum": [
+                              "home",
+                              "away"
+                            ]
                           }
                         },
                         "required": [
@@ -2961,6 +3367,7 @@
                                     "round-of-16",
                                     "quarter",
                                     "semi",
+                                    "third-place",
                                     "final"
                                   ]
                                 },
@@ -2980,6 +3387,7 @@
                                           "round-of-16",
                                           "quarter",
                                           "semi",
+                                          "third-place",
                                           "final"
                                         ]
                                       },
@@ -3030,6 +3438,13 @@
                                         "type": "integer",
                                         "minimum": -9007199254740991,
                                         "maximum": 9007199254740991
+                                      },
+                                      "winner": {
+                                        "type": "string",
+                                        "enum": [
+                                          "home",
+                                          "away"
+                                        ]
                                       }
                                     },
                                     "required": [
@@ -5095,6 +5510,7 @@
                         "round-of-16",
                         "quarter",
                         "semi",
+                        "third-place",
                         "final"
                       ]
                     },

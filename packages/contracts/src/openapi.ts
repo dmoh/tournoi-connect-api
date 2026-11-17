@@ -1,6 +1,41 @@
 // Fichier généré par `pnpm openapi` — ne pas modifier à la main.
 
 export interface paths {
+    "/api/v1/organizer/tournaments/{slug}/draw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Équipes inscrites, poules tirées et calendrier */
+        get: operations["BracketController_view_v1"];
+        put?: never;
+        /** Tire les poules et génère le calendrier (refait le tirage tant qu’aucun match n’a commencé) */
+        post: operations["BracketController_draw_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/matches/{code}/winner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Vainqueur d’un match à élimination terminé sur un nul */
+        put: operations["BracketController_winner_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizer/tournaments/{slug}/photos": {
         parameters: {
             query?: never;
@@ -1125,6 +1160,194 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    BracketController_view_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        format: "single-group" | "groups-knockout" | "knockout" | "swiss";
+                        teams: {
+                            code: string;
+                            name: string;
+                        }[];
+                        seed: string | null;
+                        started: boolean;
+                        groups: {
+                            group: string;
+                            teams: {
+                                code: string;
+                                name: string;
+                            }[];
+                        }[];
+                        matches: number;
+                        /** Format: date-time */
+                        endsAt: string | null;
+                        overrunMinutes: number;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou match hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BracketController_draw_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    seed?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        format: "single-group" | "groups-knockout" | "knockout" | "swiss";
+                        teams: {
+                            code: string;
+                            name: string;
+                        }[];
+                        seed: string | null;
+                        started: boolean;
+                        groups: {
+                            group: string;
+                            teams: {
+                                code: string;
+                                name: string;
+                            }[];
+                        }[];
+                        matches: number;
+                        /** Format: date-time */
+                        endsAt: string | null;
+                        overrunMinutes: number;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou match hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Match commencé, ou moins de deux équipes */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Format sans tirage automatique */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    BracketController_winner_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    side: "home" | "away";
+                };
+            };
+        };
+        responses: {
+            /** @description Vainqueur enregistré, tableau mis à jour */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou match hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Le match n’attend pas de vainqueur */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ClubPhotosController_list_v1: {
         parameters: {
             query?: {
@@ -2200,7 +2423,7 @@ export interface operations {
                         matches: {
                             id: string;
                             /** @enum {string} */
-                            phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "final";
+                            phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "third-place" | "final";
                             group?: string;
                             field: string;
                             /** Format: date-time */
@@ -2214,6 +2437,8 @@ export interface operations {
                             /** @enum {string} */
                             status: "SCHEDULED" | "LIVE" | "FINISHED";
                             minute?: number;
+                            /** @enum {string} */
+                            winner?: "home" | "away";
                         }[];
                         standings: {
                             group: string;
@@ -2284,11 +2509,11 @@ export interface operations {
                             startsAt: string;
                             phases: {
                                 /** @enum {string} */
-                                phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "final";
+                                phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "third-place" | "final";
                                 matches: {
                                     id: string;
                                     /** @enum {string} */
-                                    phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "final";
+                                    phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "third-place" | "final";
                                     group?: string;
                                     field: string;
                                     /** Format: date-time */
@@ -2302,6 +2527,8 @@ export interface operations {
                                     /** @enum {string} */
                                     status: "SCHEDULED" | "LIVE" | "FINISHED";
                                     minute?: number;
+                                    /** @enum {string} */
+                                    winner?: "home" | "away";
                                 }[];
                             }[];
                         }[];
@@ -3141,7 +3368,7 @@ export interface operations {
                         tournamentName: string;
                         matchId: string;
                         /** @enum {string} */
-                        phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "final";
+                        phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "third-place" | "final";
                         field: string;
                         /** Format: date-time */
                         startsAt: string;

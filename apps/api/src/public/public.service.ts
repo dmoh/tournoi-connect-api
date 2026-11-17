@@ -593,6 +593,9 @@ function toPublicMatch(m: Match): PublicMatch {
     scoreAway: m.scoreAway,
     status: m.status,
     ...(m.minute === null ? {} : { minute: m.minute }),
+    ...(m.winnerSide
+      ? { winner: m.winnerSide === 'HOME' ? 'home' : 'away' }
+      : {}),
   };
 }
 

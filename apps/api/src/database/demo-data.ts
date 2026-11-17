@@ -209,6 +209,9 @@ interface DemoMatch {
   away?: string;
   homePlaceholder?: string;
   awayPlaceholder?: string;
+  /** Origine de la place (« group:A:1 », « winner:df1 ») : remplie à la fin de la poule. */
+  homeSource?: string;
+  awaySource?: string;
   scoreHome: number;
   scoreAway: number;
   status: MatchStatus;
@@ -369,6 +372,8 @@ export const DEMO_MATCHES: DemoMatch[] = [
     time: '14:00',
     homePlaceholder: '1er poule A',
     awayPlaceholder: '2e poule B',
+    homeSource: 'group:A:1',
+    awaySource: 'group:B:2',
     scoreHome: 0,
     scoreAway: 0,
     status: 'SCHEDULED',
@@ -380,6 +385,8 @@ export const DEMO_MATCHES: DemoMatch[] = [
     time: '14:00',
     homePlaceholder: '1er poule B',
     awayPlaceholder: '2e poule A',
+    homeSource: 'group:B:1',
+    awaySource: 'group:A:2',
     scoreHome: 0,
     scoreAway: 0,
     status: 'SCHEDULED',
@@ -391,6 +398,8 @@ export const DEMO_MATCHES: DemoMatch[] = [
     time: '16:00',
     homePlaceholder: 'Vainqueur DF1',
     awayPlaceholder: 'Vainqueur DF2',
+    homeSource: 'winner:df1',
+    awaySource: 'winner:df2',
     scoreHome: 0,
     scoreAway: 0,
     status: 'SCHEDULED',

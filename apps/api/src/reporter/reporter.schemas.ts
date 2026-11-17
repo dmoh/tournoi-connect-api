@@ -20,6 +20,7 @@ export const reporterMatchSchema = z.object({
     'round-of-16',
     'quarter',
     'semi',
+    'third-place',
     'final',
   ]),
   field: z.string(),
