@@ -22,6 +22,7 @@ import { PrismaService } from '../database/prisma.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { Registration, Tournament } from '../generated/prisma/client.js';
 import { Mailer } from '../mail/mailer.js';
+import { SponsorInvites } from '../sponsorships/sponsor-invites.service.js';
 import {
   registrationConfirmedMail,
   registrationRefundedMail,
@@ -61,6 +62,14 @@ export interface StripeEvent {
 }
 
 /** Session Checkout payée, telle que Stripe la décrit. */
+/** Pack sponsor d'une session Checkout (métadonnée « sponsorship »), sinon null. */
+function sponsorshipOf(object: Record<string, unknown>): string | null {
+  const value = (object['metadata'] as Record<string, unknown> | undefined)?.[
+    'sponsorship'
+  ];
+  return typeof value === 'string' && value ? value : null;
+}
+
 interface PaidSession {
   id: string;
   paymentIntent: string | null;
@@ -102,6 +111,7 @@ export class RegistrationsService {
     private readonly mailer: Mailer,
     private readonly config: ConfigService<Env, true>,
     @Inject(STRIPE) private readonly stripe: StripeClient,
+    private readonly sponsorInvites: SponsorInvites,
   ) {}
 
   async invite(code: string): Promise<RegistrationInvite> {
@@ -395,6 +405,26 @@ export class RegistrationsService {
         case 'checkout.session.completed':
         case 'checkout.session.async_payment_succeeded':
           // « unpaid » : paiement différé (SEPA), son issue arrive plus tard.
+          if (sponsorshipOf(object)) {
+            // Pack sponsor payé en ligne (lot 13) : pas une inscription.
+            return object['payment_status'] === 'paid'
+              ? this.sponsorInvites.settle(tx, {
+                  id: objectId,
+                  paymentIntent: text(object['payment_intent']),
+                  amountTotal: object['amount_total'],
+                  currency: object['currency'],
+                  livemode: object['livemode'],
+                  sponsorshipId: sponsorshipOf(object)!,
+                  email:
+                    text(
+                      (
+                        object['customer_details'] as
+                          Record<string, unknown> | undefined
+                      )?.['email'],
+                    ) ?? text(object['customer_email']),
+                })
+              : null;
+          }
           return object['payment_status'] === 'paid'
             ? this.settlePayment(tx, {
                 id: objectId,

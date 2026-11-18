@@ -38,27 +38,29 @@ import {
   type OrganizerRequest,
 } from './organizer.guard.js';
 import {
-  createTournamentSchema,
-  organizerTournamentPageSchema,
-  organizerTournamentSchema,
-  type CreateTournament,
-  type OrganizerTournament,
-  createPostSchema,
   createdPostSchema,
+  createPostSchema,
+  createTournamentSchema,
+  invitedSponsorSchema,
   inviteSponsorSchema,
   organizerSponsorsSchema,
-  sponsorRowSchema,
-  updateSponsorSchema,
-  type CreatePost,
-  type CreatedPost,
-  type InviteSponsor,
-  type OrganizerSponsors,
-  type SponsorRow,
-  type UpdateSponsor,
+  organizerTournamentPageSchema,
+  organizerTournamentSchema,
   scheduleResultSchema,
   scheduleSchema,
+  sponsorRowSchema,
+  updateSponsorSchema,
+  type CreatedPost,
+  type CreatePost,
+  type CreateTournament,
+  type InvitedSponsor,
+  type InviteSponsor,
+  type OrganizerSponsors,
+  type OrganizerTournament,
   type Schedule,
   type ScheduleResult,
+  type SponsorRow,
+  type UpdateSponsor,
 } from './organizer.schemas.js';
 import { OrganizerService } from './organizer.service.js';
 import {
@@ -169,7 +171,7 @@ export class OrganizerController {
   @Idempotent()
   @ApiOperation({ summary: 'Inviter un sponsor à prendre un pack' })
   @ApiBody({ schema: openApi(inviteSponsorSchema) })
-  @ApiCreatedResponse({ schema: openApi(sponsorRowSchema) })
+  @ApiCreatedResponse({ schema: openApi(invitedSponsorSchema) })
   @ApiConflictResponse({
     description:
       'Pack épuisé, sponsor déjà présent ou requête de même clé en cours',
@@ -178,7 +180,7 @@ export class OrganizerController {
     @Req() req: OrganizerRequest,
     @Param('slug') slug: string,
     @Body({ schema: inviteSponsorSchema }) body: InviteSponsor,
-  ): Promise<SponsorRow> {
+  ): Promise<InvitedSponsor> {
     return this.service.invite(req.organizationSlug!, slug, body);
   }
 

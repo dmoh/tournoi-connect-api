@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Clock } from '../common/clock.js';
+import { SponsorInvites } from '../sponsorships/sponsor-invites.service.js';
 import { keyset, type Page, type PageQuery } from '../common/pagination.js';
 import { parisDate, parisDateTime } from '../common/paris-time.js';
 import { insertWithUniqueSlug, slugify } from '../common/slug.js';
@@ -13,16 +14,17 @@ import type {
 } from '../generated/prisma/enums.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type {
-  CreateTournament,
-  OrganizerTournament,
   CreatePost,
+  CreateTournament,
   CreatedPost,
   InviteSponsor,
+  InvitedSponsor,
   OrganizerSponsors,
-  SponsorRow,
-  UpdateSponsor,
+  OrganizerTournament,
   Schedule,
   ScheduleResult,
+  SponsorRow,
+  UpdateSponsor,
 } from './organizer.schemas.js';
 
 const TIER_ORDER = { GOLD: 0, SILVER: 1, BRONZE: 2, FIELD: 3 } as const;
@@ -60,6 +62,7 @@ export class OrganizerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly clock: Clock,
+    private readonly invites: SponsorInvites,
   ) {}
 
   async sponsors(
@@ -123,6 +126,7 @@ export class OrganizerService {
           ...(r.field ? { field: r.field } : {}),
           impressions: totals.get(r.id)?.impressions ?? 0,
           clicks: totals.get(r.id)?.clicks ?? 0,
+          paidOnline: r.paymentIntentId !== null,
         }))
         .sort(
           (a, b) =>
@@ -145,12 +149,12 @@ export class OrganizerService {
     organizationSlug: string,
     tournamentSlug: string,
     input: InviteSponsor,
-  ): Promise<SponsorRow> {
+  ): Promise<InvitedSponsor> {
     const tournament = await this.ownTournament(
       organizationSlug,
       tournamentSlug,
     );
-    return this.prisma.$transaction(async (tx) => {
+    const invited = await this.prisma.$transaction(async (tx) => {
       const pack = await tx.sponsorPackage.findUnique({
         where: {
           tournamentId_tier: { tournamentId: tournament.id, tier: input.tier },
@@ -215,11 +219,15 @@ export class OrganizerService {
         ...(row.field ? { field: row.field } : {}),
         impressions: 0,
         clicks: 0,
-      };
+        paidOnline: false,
+      } satisfies SponsorRow;
     });
+    // Lien de paiement personnel, envoyé par email au sponsor s'il a une adresse.
+    const link = await this.invites.issue(invited.id);
+    return { ...invited, inviteUrl: link.url, emailed: link.emailed };
   }
 
-  /** Paiement reçu hors Stripe (espèces, chèque) ; Stripe le fera par webhook. */
+  /** Paiement reçu hors Stripe (espèces, chèque) ; en ligne, le webhook s'en charge. */
   async updateSponsor(
     organizationSlug: string,
     id: string,

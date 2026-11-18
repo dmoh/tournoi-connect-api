@@ -15,6 +15,15 @@ export const sponsorRowSchema = z.object({
   field: z.string().optional(),
   impressions: z.number().int(),
   clicks: z.number().int(),
+  /** Payé en ligne par le sponsor (Stripe) ; faux s'il a été marqué payé à la main. */
+  paidOnline: z.boolean(),
+});
+
+/** Sponsor invité : son lien de paiement personnel, montré une seule fois. */
+export const invitedSponsorSchema = sponsorRowSchema.extend({
+  inviteUrl: z.url(),
+  /** Le lien est parti par email (le sponsor a une adresse). */
+  emailed: z.boolean(),
 });
 
 export const organizerSponsorsSchema = z.object({
@@ -73,6 +82,7 @@ export const createdPostSchema = z.object({
 });
 
 export type SponsorRow = z.infer<typeof sponsorRowSchema>;
+export type InvitedSponsor = z.infer<typeof invitedSponsorSchema>;
 export type OrganizerSponsors = z.infer<typeof organizerSponsorsSchema>;
 export type InviteSponsor = z.infer<typeof inviteSponsorSchema>;
 export type UpdateSponsor = z.infer<typeof updateSponsorSchema>;

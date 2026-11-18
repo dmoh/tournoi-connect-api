@@ -1,6 +1,1398 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/public/sponsor-invitations/{token}": {
+      "get": {
+        "operationId": "PublicSponsorshipsController_view_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tournament": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "city": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name",
+                        "startsAt",
+                        "city"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "club": {
+                      "type": "string"
+                    },
+                    "sponsor": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "email"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "tier": {
+                      "type": "string",
+                      "enum": [
+                        "GOLD",
+                        "SILVER",
+                        "BRONZE",
+                        "FIELD"
+                      ]
+                    },
+                    "field": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "priceCents": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "serviceFeeCents": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "totalCents": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "INVITED",
+                        "PAID"
+                      ]
+                    },
+                    "paidAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "paymentsReady": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "tournament",
+                    "club",
+                    "sponsor",
+                    "tier",
+                    "field",
+                    "priceCents",
+                    "serviceFeeCents",
+                    "totalCents",
+                    "status",
+                    "paidAt",
+                    "paymentsReady"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lien invalide ou remplacé"
+          }
+        },
+        "summary": "Pack proposé au sponsor, prix et état du paiement",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/v1/public/sponsor-invitations/{token}/checkout": {
+      "post": {
+        "operationId": "PublicSponsorshipsController_checkout_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lien invalide ou remplacé"
+          },
+          "409": {
+            "description": "Pack déjà payé ou plus proposé"
+          },
+          "503": {
+            "description": "Le club n’encaisse pas en ligne"
+          }
+        },
+        "summary": "Page de paiement Stripe du pack (versé au club)",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/v1/organizer/tournament-sponsors/{id}/invite-link": {
+      "post": {
+        "operationId": "OrganizerSponsorshipsController_inviteLink_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "emailed": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "url",
+                    "emailed"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Sponsor hors du club"
+          },
+          "409": {
+            "description": "Sponsor déjà payé"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Nouveau lien de paiement (l’ancien ne marche plus), envoyé par email au sponsor",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/public/registrations/{code}": {
+      "get": {
+        "operationId": "PublicRegistrationsController_invite_v1",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "tournament": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "sport": {
+                          "type": "string",
+                          "enum": [
+                            "football",
+                            "handball",
+                            "basketball",
+                            "volleyball",
+                            "rugby"
+                          ]
+                        },
+                        "organizer": {
+                          "type": "string"
+                        },
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "endsAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "venue": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "city": {
+                              "type": "string"
+                            },
+                            "lat": {
+                              "type": "number"
+                            },
+                            "lng": {
+                              "type": "number"
+                            },
+                            "outdoor": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "city",
+                            "lat",
+                            "lng",
+                            "outdoor"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "categories": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "teamCount": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "maxTeams": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "feeCents": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "REGISTRATION_OPEN",
+                            "REGISTRATION_CLOSED",
+                            "IN_PROGRESS",
+                            "COMPLETED"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name",
+                        "sport",
+                        "organizer",
+                        "startsAt",
+                        "endsAt",
+                        "venue",
+                        "categories",
+                        "teamCount",
+                        "maxTeams",
+                        "feeCents",
+                        "status"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "quote": {
+                      "type": "object",
+                      "properties": {
+                        "feeCents": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "serviceFeeCents": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "totalCents": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "feeCents",
+                        "serviceFeeCents",
+                        "totalCents"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "open": {
+                      "type": "boolean"
+                    },
+                    "full": {
+                      "type": "boolean"
+                    },
+                    "paymentsReady": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "tournament",
+                    "quote",
+                    "open",
+                    "full",
+                    "paymentsReady"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lien inconnu"
+          }
+        },
+        "summary": "Écran 08 : tournoi, prix, places et paiements du lien",
+        "tags": [
+          "registrations"
+        ]
+      }
+    },
+    "/api/v1/tournaments/{code}/registrations": {
+      "post": {
+        "operationId": "RegistrationsController_register_v1",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "teamName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 60
+                  },
+                  "club": {
+                    "default": "",
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "managerName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 80
+                  },
+                  "phone": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 30
+                  },
+                  "players": {
+                    "minItems": 1,
+                    "maxItems": 30,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "firstName": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "lastName": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "number": {
+                          "default": "",
+                          "type": "string",
+                          "pattern": "^\\d{0,3}$"
+                        }
+                      },
+                      "required": [
+                        "firstName",
+                        "lastName"
+                      ]
+                    }
+                  },
+                  "acceptRules": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  }
+                },
+                "required": [
+                  "teamName",
+                  "managerName",
+                  "phone",
+                  "players",
+                  "acceptRules"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "orderId": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "tournamentSlug": {
+                      "type": "string"
+                    },
+                    "tournamentName": {
+                      "type": "string"
+                    },
+                    "startsAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "teamName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_PAYMENT",
+                        "CONFIRMED",
+                        "WAITLISTED",
+                        "EXPIRED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "quote": {
+                      "type": "object",
+                      "properties": {
+                        "feeCents": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "serviceFeeCents": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "totalCents": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "feeCents",
+                        "serviceFeeCents",
+                        "totalCents"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "waitlistPosition": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "checkoutUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    }
+                  },
+                  "required": [
+                    "orderId",
+                    "code",
+                    "tournamentSlug",
+                    "tournamentName",
+                    "startsAt",
+                    "teamName",
+                    "status",
+                    "quote",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "409": {
+            "description": "Inscriptions fermées"
+          },
+          "503": {
+            "description": "Paiements du club non activés"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Inscrire son équipe : confirmée (gratuit), en attente de paiement (Stripe Checkout) ou en liste d’attente",
+        "tags": [
+          "registrations"
+        ]
+      }
+    },
+    "/api/v1/registrations": {
+      "get": {
+        "operationId": "RegistrationsController_mine_v1",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[\\w-]+$"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "orderId": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "tournamentSlug": {
+                            "type": "string"
+                          },
+                          "tournamentName": {
+                            "type": "string"
+                          },
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "teamName": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING_PAYMENT",
+                              "CONFIRMED",
+                              "WAITLISTED",
+                              "EXPIRED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "quote": {
+                            "type": "object",
+                            "properties": {
+                              "feeCents": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "serviceFeeCents": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "totalCents": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "feeCents",
+                              "serviceFeeCents",
+                              "totalCents"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "waitlistPosition": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "checkoutUrl": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "expiresAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
+                        },
+                        "required": [
+                          "orderId",
+                          "code",
+                          "tournamentSlug",
+                          "tournamentName",
+                          "startsAt",
+                          "teamName",
+                          "status",
+                          "quote",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nextCursor": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Limite ou curseur invalide"
+          },
+          "401": {
+            "description": "Connexion requise"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mes équipes : mes inscriptions, plus récentes en tête",
+        "tags": [
+          "registrations"
+        ]
+      }
+    },
+    "/api/v1/registrations/{id}": {
+      "get": {
+        "operationId": "RegistrationsController_one_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "orderId": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "tournamentSlug": {
+                      "type": "string"
+                    },
+                    "tournamentName": {
+                      "type": "string"
+                    },
+                    "startsAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "teamName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_PAYMENT",
+                        "CONFIRMED",
+                        "WAITLISTED",
+                        "EXPIRED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "quote": {
+                      "type": "object",
+                      "properties": {
+                        "feeCents": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "serviceFeeCents": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "totalCents": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "feeCents",
+                        "serviceFeeCents",
+                        "totalCents"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "waitlistPosition": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "checkoutUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    }
+                  },
+                  "required": [
+                    "orderId",
+                    "code",
+                    "tournamentSlug",
+                    "tournamentName",
+                    "startsAt",
+                    "teamName",
+                    "status",
+                    "quote",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Inscription introuvable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Une de mes inscriptions (retour du paiement)",
+        "tags": [
+          "registrations"
+        ]
+      }
+    },
+    "/api/v1/registrations/{id}/checkout": {
+      "post": {
+        "operationId": "RegistrationsController_retry_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "orderId": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "tournamentSlug": {
+                      "type": "string"
+                    },
+                    "tournamentName": {
+                      "type": "string"
+                    },
+                    "startsAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "teamName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING_PAYMENT",
+                        "CONFIRMED",
+                        "WAITLISTED",
+                        "EXPIRED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "quote": {
+                      "type": "object",
+                      "properties": {
+                        "feeCents": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "serviceFeeCents": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "totalCents": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "feeCents",
+                        "serviceFeeCents",
+                        "totalCents"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "waitlistPosition": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "checkoutUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    }
+                  },
+                  "required": [
+                    "orderId",
+                    "code",
+                    "tournamentSlug",
+                    "tournamentName",
+                    "startsAt",
+                    "teamName",
+                    "status",
+                    "quote",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "409": {
+            "description": "Inscriptions fermées"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reprendre un paiement expiré, s’il reste une place",
+        "tags": [
+          "registrations"
+        ]
+      }
+    },
+    "/api/v1/organizer/tournaments/{slug}/registrations": {
+      "get": {
+        "operationId": "OrganizerRegistrationsController_list_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[\\w-]+$"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "createdAt",
+              "type": "string",
+              "enum": [
+                "createdAt",
+                "-createdAt",
+                "teamName",
+                "-teamName"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING_PAYMENT",
+                "CONFIRMED",
+                "WAITLISTED",
+                "EXPIRED",
+                "CANCELLED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "teamName": {
+                            "type": "string"
+                          },
+                          "club": {
+                            "type": "string"
+                          },
+                          "managerName": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "phone": {
+                            "type": "string"
+                          },
+                          "players": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING_PAYMENT",
+                              "CONFIRMED",
+                              "WAITLISTED",
+                              "EXPIRED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "totalCents": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "teamName",
+                          "club",
+                          "managerName",
+                          "email",
+                          "phone",
+                          "players",
+                          "status",
+                          "totalCents",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nextCursor": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Tri, statut, limite ou curseur invalide"
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Tournoi hors du club"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Inscriptions d’un tournoi du club : tri, filtre de statut, pagination",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/organizer/payments": {
+      "get": {
+        "operationId": "OrganizerRegistrationsController_payments_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "available": {
+                      "type": "boolean"
+                    },
+                    "connected": {
+                      "type": "boolean"
+                    },
+                    "chargesEnabled": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "available",
+                    "connected",
+                    "chargesEnabled"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Paiements en ligne du club (Stripe Connect)",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/organizer/payments/onboarding": {
+      "post": {
+        "operationId": "OrganizerRegistrationsController_onboarding_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Stripe a refusé la demande"
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "503": {
+            "description": "Paiements non configurés"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activer les paiements : lien vers la vérification Stripe",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
     "/api/v1/organizer/tournaments/{slug}/draw": {
       "get": {
         "operationId": "BracketController_view_v1",
@@ -5052,6 +6444,9 @@
                             "type": "integer",
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
+                          },
+                          "paidOnline": {
+                            "type": "boolean"
                           }
                         },
                         "required": [
@@ -5061,7 +6456,8 @@
                           "status",
                           "tier",
                           "impressions",
-                          "clicks"
+                          "clicks",
+                          "paidOnline"
                         ],
                         "additionalProperties": false
                       }
@@ -5242,6 +6638,16 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "paidOnline": {
+                      "type": "boolean"
+                    },
+                    "inviteUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "emailed": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -5251,7 +6657,10 @@
                     "status",
                     "tier",
                     "impressions",
-                    "clicks"
+                    "clicks",
+                    "paidOnline",
+                    "inviteUrl",
+                    "emailed"
                   ],
                   "additionalProperties": false
                 }
@@ -7150,1131 +8559,6 @@
         "summary": "Rejoindre le club avec le compte de l’adresse invitée",
         "tags": [
           "clubs"
-        ]
-      }
-    },
-    "/api/v1/public/registrations/{code}": {
-      "get": {
-        "operationId": "PublicRegistrationsController_invite_v1",
-        "parameters": [
-          {
-            "name": "code",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "string"
-                    },
-                    "tournament": {
-                      "type": "object",
-                      "properties": {
-                        "slug": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "sport": {
-                          "type": "string",
-                          "enum": [
-                            "football",
-                            "handball",
-                            "basketball",
-                            "volleyball",
-                            "rugby"
-                          ]
-                        },
-                        "organizer": {
-                          "type": "string"
-                        },
-                        "startsAt": {
-                          "type": "string",
-                          "format": "date-time",
-                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                        },
-                        "endsAt": {
-                          "type": "string",
-                          "format": "date-time",
-                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                        },
-                        "venue": {
-                          "type": "object",
-                          "properties": {
-                            "name": {
-                              "type": "string"
-                            },
-                            "city": {
-                              "type": "string"
-                            },
-                            "lat": {
-                              "type": "number"
-                            },
-                            "lng": {
-                              "type": "number"
-                            },
-                            "outdoor": {
-                              "type": "boolean"
-                            }
-                          },
-                          "required": [
-                            "name",
-                            "city",
-                            "lat",
-                            "lng",
-                            "outdoor"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "categories": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "teamCount": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "maxTeams": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "feeCents": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "status": {
-                          "type": "string",
-                          "enum": [
-                            "REGISTRATION_OPEN",
-                            "REGISTRATION_CLOSED",
-                            "IN_PROGRESS",
-                            "COMPLETED"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "slug",
-                        "name",
-                        "sport",
-                        "organizer",
-                        "startsAt",
-                        "endsAt",
-                        "venue",
-                        "categories",
-                        "teamCount",
-                        "maxTeams",
-                        "feeCents",
-                        "status"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "quote": {
-                      "type": "object",
-                      "properties": {
-                        "feeCents": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "serviceFeeCents": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "totalCents": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        }
-                      },
-                      "required": [
-                        "feeCents",
-                        "serviceFeeCents",
-                        "totalCents"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "open": {
-                      "type": "boolean"
-                    },
-                    "full": {
-                      "type": "boolean"
-                    },
-                    "paymentsReady": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "tournament",
-                    "quote",
-                    "open",
-                    "full",
-                    "paymentsReady"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Lien inconnu"
-          }
-        },
-        "summary": "Écran 08 : tournoi, prix, places et paiements du lien",
-        "tags": [
-          "registrations"
-        ]
-      }
-    },
-    "/api/v1/tournaments/{code}/registrations": {
-      "post": {
-        "operationId": "RegistrationsController_register_v1",
-        "parameters": [
-          {
-            "name": "code",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "teamName": {
-                    "type": "string",
-                    "minLength": 2,
-                    "maxLength": 60
-                  },
-                  "club": {
-                    "default": "",
-                    "type": "string",
-                    "maxLength": 80
-                  },
-                  "managerName": {
-                    "type": "string",
-                    "minLength": 2,
-                    "maxLength": 80
-                  },
-                  "phone": {
-                    "type": "string",
-                    "minLength": 6,
-                    "maxLength": 30
-                  },
-                  "players": {
-                    "minItems": 1,
-                    "maxItems": 30,
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "firstName": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 40
-                        },
-                        "lastName": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 40
-                        },
-                        "number": {
-                          "default": "",
-                          "type": "string",
-                          "pattern": "^\\d{0,3}$"
-                        }
-                      },
-                      "required": [
-                        "firstName",
-                        "lastName"
-                      ]
-                    }
-                  },
-                  "acceptRules": {
-                    "type": "boolean",
-                    "enum": [
-                      true
-                    ]
-                  }
-                },
-                "required": [
-                  "teamName",
-                  "managerName",
-                  "phone",
-                  "players",
-                  "acceptRules"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "orderId": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "tournamentSlug": {
-                      "type": "string"
-                    },
-                    "tournamentName": {
-                      "type": "string"
-                    },
-                    "startsAt": {
-                      "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                    },
-                    "teamName": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "PENDING_PAYMENT",
-                        "CONFIRMED",
-                        "WAITLISTED",
-                        "EXPIRED",
-                        "CANCELLED"
-                      ]
-                    },
-                    "quote": {
-                      "type": "object",
-                      "properties": {
-                        "feeCents": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "serviceFeeCents": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "totalCents": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        }
-                      },
-                      "required": [
-                        "feeCents",
-                        "serviceFeeCents",
-                        "totalCents"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "waitlistPosition": {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
-                    },
-                    "checkoutUrl": {
-                      "type": "string",
-                      "format": "uri"
-                    },
-                    "expiresAt": {
-                      "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                    }
-                  },
-                  "required": [
-                    "orderId",
-                    "code",
-                    "tournamentSlug",
-                    "tournamentName",
-                    "startsAt",
-                    "teamName",
-                    "status",
-                    "quote",
-                    "createdAt"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Connexion requise"
-          },
-          "409": {
-            "description": "Inscriptions fermées"
-          },
-          "503": {
-            "description": "Paiements du club non activés"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Inscrire son équipe : confirmée (gratuit), en attente de paiement (Stripe Checkout) ou en liste d’attente",
-        "tags": [
-          "registrations"
-        ]
-      }
-    },
-    "/api/v1/registrations": {
-      "get": {
-        "operationId": "RegistrationsController_mine_v1",
-        "parameters": [
-          {
-            "name": "cursor",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 512,
-              "pattern": "^[\\w-]+$"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "default": 20,
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 50
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "orderId": {
-                            "type": "string"
-                          },
-                          "code": {
-                            "type": "string"
-                          },
-                          "tournamentSlug": {
-                            "type": "string"
-                          },
-                          "tournamentName": {
-                            "type": "string"
-                          },
-                          "startsAt": {
-                            "type": "string",
-                            "format": "date-time",
-                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                          },
-                          "teamName": {
-                            "type": "string"
-                          },
-                          "status": {
-                            "type": "string",
-                            "enum": [
-                              "PENDING_PAYMENT",
-                              "CONFIRMED",
-                              "WAITLISTED",
-                              "EXPIRED",
-                              "CANCELLED"
-                            ]
-                          },
-                          "quote": {
-                            "type": "object",
-                            "properties": {
-                              "feeCents": {
-                                "type": "integer",
-                                "minimum": -9007199254740991,
-                                "maximum": 9007199254740991
-                              },
-                              "serviceFeeCents": {
-                                "type": "integer",
-                                "minimum": -9007199254740991,
-                                "maximum": 9007199254740991
-                              },
-                              "totalCents": {
-                                "type": "integer",
-                                "minimum": -9007199254740991,
-                                "maximum": 9007199254740991
-                              }
-                            },
-                            "required": [
-                              "feeCents",
-                              "serviceFeeCents",
-                              "totalCents"
-                            ],
-                            "additionalProperties": false
-                          },
-                          "waitlistPosition": {
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
-                          "checkoutUrl": {
-                            "type": "string",
-                            "format": "uri"
-                          },
-                          "expiresAt": {
-                            "type": "string",
-                            "format": "date-time",
-                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time",
-                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                          }
-                        },
-                        "required": [
-                          "orderId",
-                          "code",
-                          "tournamentSlug",
-                          "tournamentName",
-                          "startsAt",
-                          "teamName",
-                          "status",
-                          "quote",
-                          "createdAt"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "nextCursor": {
-                      "nullable": true,
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "items",
-                    "nextCursor"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Limite ou curseur invalide"
-          },
-          "401": {
-            "description": "Connexion requise"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Mes équipes : mes inscriptions, plus récentes en tête",
-        "tags": [
-          "registrations"
-        ]
-      }
-    },
-    "/api/v1/registrations/{id}": {
-      "get": {
-        "operationId": "RegistrationsController_one_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "orderId": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "tournamentSlug": {
-                      "type": "string"
-                    },
-                    "tournamentName": {
-                      "type": "string"
-                    },
-                    "startsAt": {
-                      "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                    },
-                    "teamName": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "PENDING_PAYMENT",
-                        "CONFIRMED",
-                        "WAITLISTED",
-                        "EXPIRED",
-                        "CANCELLED"
-                      ]
-                    },
-                    "quote": {
-                      "type": "object",
-                      "properties": {
-                        "feeCents": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "serviceFeeCents": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "totalCents": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        }
-                      },
-                      "required": [
-                        "feeCents",
-                        "serviceFeeCents",
-                        "totalCents"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "waitlistPosition": {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
-                    },
-                    "checkoutUrl": {
-                      "type": "string",
-                      "format": "uri"
-                    },
-                    "expiresAt": {
-                      "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                    }
-                  },
-                  "required": [
-                    "orderId",
-                    "code",
-                    "tournamentSlug",
-                    "tournamentName",
-                    "startsAt",
-                    "teamName",
-                    "status",
-                    "quote",
-                    "createdAt"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Connexion requise"
-          },
-          "404": {
-            "description": "Inscription introuvable"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Une de mes inscriptions (retour du paiement)",
-        "tags": [
-          "registrations"
-        ]
-      }
-    },
-    "/api/v1/registrations/{id}/checkout": {
-      "post": {
-        "operationId": "RegistrationsController_retry_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "orderId": {
-                      "type": "string"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "tournamentSlug": {
-                      "type": "string"
-                    },
-                    "tournamentName": {
-                      "type": "string"
-                    },
-                    "startsAt": {
-                      "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                    },
-                    "teamName": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "PENDING_PAYMENT",
-                        "CONFIRMED",
-                        "WAITLISTED",
-                        "EXPIRED",
-                        "CANCELLED"
-                      ]
-                    },
-                    "quote": {
-                      "type": "object",
-                      "properties": {
-                        "feeCents": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "serviceFeeCents": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "totalCents": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        }
-                      },
-                      "required": [
-                        "feeCents",
-                        "serviceFeeCents",
-                        "totalCents"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "waitlistPosition": {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
-                    },
-                    "checkoutUrl": {
-                      "type": "string",
-                      "format": "uri"
-                    },
-                    "expiresAt": {
-                      "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                    }
-                  },
-                  "required": [
-                    "orderId",
-                    "code",
-                    "tournamentSlug",
-                    "tournamentName",
-                    "startsAt",
-                    "teamName",
-                    "status",
-                    "quote",
-                    "createdAt"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Connexion requise"
-          },
-          "409": {
-            "description": "Inscriptions fermées"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Reprendre un paiement expiré, s’il reste une place",
-        "tags": [
-          "registrations"
-        ]
-      }
-    },
-    "/api/v1/organizer/tournaments/{slug}/registrations": {
-      "get": {
-        "operationId": "OrganizerRegistrationsController_list_v1",
-        "parameters": [
-          {
-            "name": "X-Organization",
-            "in": "header",
-            "description": "Club concerné (slug), si le compte en a plusieurs",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "cursor",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 512,
-              "pattern": "^[\\w-]+$"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "default": 20,
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 50
-            }
-          },
-          {
-            "name": "sort",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "default": "createdAt",
-              "type": "string",
-              "enum": [
-                "createdAt",
-                "-createdAt",
-                "teamName",
-                "-teamName"
-              ]
-            }
-          },
-          {
-            "name": "status",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "PENDING_PAYMENT",
-                "CONFIRMED",
-                "WAITLISTED",
-                "EXPIRED",
-                "CANCELLED"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "teamName": {
-                            "type": "string"
-                          },
-                          "club": {
-                            "type": "string"
-                          },
-                          "managerName": {
-                            "type": "string"
-                          },
-                          "email": {
-                            "nullable": true,
-                            "type": "string"
-                          },
-                          "phone": {
-                            "type": "string"
-                          },
-                          "players": {
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
-                          "status": {
-                            "type": "string",
-                            "enum": [
-                              "PENDING_PAYMENT",
-                              "CONFIRMED",
-                              "WAITLISTED",
-                              "EXPIRED",
-                              "CANCELLED"
-                            ]
-                          },
-                          "totalCents": {
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time",
-                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "teamName",
-                          "club",
-                          "managerName",
-                          "email",
-                          "phone",
-                          "players",
-                          "status",
-                          "totalCents",
-                          "createdAt"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "nextCursor": {
-                      "nullable": true,
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "items",
-                    "nextCursor"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Tri, statut, limite ou curseur invalide"
-          },
-          "401": {
-            "description": "Connexion requise"
-          },
-          "404": {
-            "description": "Tournoi hors du club"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Inscriptions d’un tournoi du club : tri, filtre de statut, pagination",
-        "tags": [
-          "organizer"
-        ]
-      }
-    },
-    "/api/v1/organizer/payments": {
-      "get": {
-        "operationId": "OrganizerRegistrationsController_payments_v1",
-        "parameters": [
-          {
-            "name": "X-Organization",
-            "in": "header",
-            "description": "Club concerné (slug), si le compte en a plusieurs",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "available": {
-                      "type": "boolean"
-                    },
-                    "connected": {
-                      "type": "boolean"
-                    },
-                    "chargesEnabled": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "available",
-                    "connected",
-                    "chargesEnabled"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Connexion requise"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Paiements en ligne du club (Stripe Connect)",
-        "tags": [
-          "organizer"
-        ]
-      }
-    },
-    "/api/v1/organizer/payments/onboarding": {
-      "post": {
-        "operationId": "OrganizerRegistrationsController_onboarding_v1",
-        "parameters": [
-          {
-            "name": "X-Organization",
-            "in": "header",
-            "description": "Club concerné (slug), si le compte en a plusieurs",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "url": {
-                      "type": "string",
-                      "format": "uri"
-                    }
-                  },
-                  "required": [
-                    "url"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Stripe a refusé la demande"
-          },
-          "401": {
-            "description": "Connexion requise"
-          },
-          "503": {
-            "description": "Paiements non configurés"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Activer les paiements : lien vers la vérification Stripe",
-        "tags": [
-          "organizer"
         ]
       }
     },
