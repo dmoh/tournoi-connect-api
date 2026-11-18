@@ -401,6 +401,15 @@ model TournamentSponsor {
   field        String?
   invitedAt    DateTime?        @map("invited_at") @db.Timestamptz
   paidAt       DateTime?        @map("paid_at") @db.Timestamptz
+  /// Empreinte (SHA-256) du lien de paiement envoyé au sponsor ; le lien lui-même n'est pas gardé.
+  inviteTokenHash   String?     @unique @map("invite_token_hash")
+  /// Dernière page de paiement Stripe ouverte par le sponsor.
+  checkoutSessionId String?     @unique @map("checkout_session_id")
+  /// Paiement en ligne (Stripe) ; vide pour un paiement marqué à la main.
+  paymentIntentId   String?     @unique @map("payment_intent_id")
+  /// Prix du pack et frais de service payés en ligne, en centimes.
+  amountCents       Int?        @map("amount_cents")
+  serviceFeeCents   Int?        @map("service_fee_cents")
   audience     AudienceHourly[]
 
   @@unique([tournamentId, sponsorId])

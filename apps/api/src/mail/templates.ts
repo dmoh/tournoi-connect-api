@@ -198,3 +198,145 @@ export function contentHiddenMail(
 </div></body></html>`;
   return { to, subject, text, html };
 }
+
+/** Montant en euros (« 963,00 € »), comme sur la page de paiement. */
+export const eurosLabel = (cents: number) =>
+  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(
+    cents / 100,
+  );
+
+const TIER_NAME = {
+  GOLD: 'Or',
+  SILVER: 'Argent',
+  BRONZE: 'Bronze',
+  FIELD: 'Terrain',
+} as const;
+
+function sponsorCard(
+  title: string,
+  lines: readonly string[],
+  button?: { label: string; url: string },
+): string {
+  return `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+<div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
+<p style="margin:0 0 8px;font-size:15px">${escape(title)}</p>
+${lines.map((l, i) => `<p style="margin:0 0 ${i === lines.length - 1 ? 20 : 6}px;font-size:${i === 0 ? 20 : 14}px;${i === 0 ? 'font-weight:700;color:#1e3a8a' : 'color:#5c6a7f'}">${escape(l)}</p>`).join('\n')}
+${button ? `<a href="${escape(button.url)}" style="display:inline-block;background:#1e3a8a;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 20px;border-radius:12px">${escape(button.label)}</a>` : ''}
+</div></body></html>`;
+}
+
+/** Invitation d'un sponsor à régler son pack en ligne (lien personnel). */
+export function sponsorInvitationMail(
+  to: string,
+  info: {
+    club: string;
+    tournament: string;
+    sponsor: string;
+    tier: keyof typeof TIER_NAME;
+    totalCents: number;
+    url: string;
+  },
+): MailMessage {
+  const pack = `Pack ${TIER_NAME[info.tier]}`;
+  const subject = `${info.club} vous propose le ${pack} du ${info.tournament}`;
+  const text = [
+    `${info.club} invite ${info.sponsor} à soutenir le ${info.tournament} avec le ${pack}.`,
+    `Montant : ${eurosLabel(info.totalCents)}, frais de service compris.`,
+    '',
+    `Voir le pack et payer en ligne : ${info.url}`,
+    '',
+    'Le paiement est sécurisé par Stripe et versé au club. Ce lien vous est personnel.',
+    '',
+    'Tournoi Connect',
+  ].join('\n');
+  const html = sponsorCard(
+    `${info.club} vous invite`,
+    [
+      pack,
+      info.tournament,
+      `${eurosLabel(info.totalCents)}, frais de service compris`,
+    ],
+    { label: 'Voir le pack et payer', url: info.url },
+  );
+  return { to, subject, text, html };
+}
+
+/** Reçu du paiement en ligne d'un pack sponsor (le vendeur est le club). */
+export function sponsorReceiptMail(
+  to: string,
+  info: {
+    club: string;
+    tournament: string;
+    sponsor: string;
+    tier: keyof typeof TIER_NAME;
+    amountCents: number;
+    serviceFeeCents: number;
+    date: string;
+    url: string;
+  },
+): MailMessage {
+  const pack = `Pack ${TIER_NAME[info.tier]}`;
+  const total = info.amountCents + info.serviceFeeCents;
+  const subject = `Reçu : ${pack} du ${info.tournament}`;
+  const lines = [
+    `${pack} · ${info.tournament}`,
+    `Sponsor : ${info.sponsor}`,
+    `Vendu par : ${info.club}`,
+    `Pack : ${eurosLabel(info.amountCents)}`,
+    `Frais de service Tournoi Connect : ${eurosLabel(info.serviceFeeCents)}`,
+    `Total payé le ${info.date} : ${eurosLabel(total)}`,
+  ];
+  const text = [
+    'Merci pour votre soutien : votre paiement est bien reçu.',
+    '',
+    ...lines,
+    '',
+    `Votre pack sur la page du tournoi : ${info.url}`,
+    '',
+    'Ce reçu n’est pas une facture. Pour une facture, adressez-vous au club.',
+    '',
+    'Tournoi Connect',
+  ].join('\n');
+  const html = sponsorCard(
+    'Paiement reçu, merci !',
+    [
+      ...lines,
+      'Ce reçu n’est pas une facture. Pour une facture, adressez-vous au club.',
+    ],
+    { label: 'Voir le tournoi', url: info.url },
+  );
+  return { to, subject, text, html };
+}
+
+/** Avis au club : un sponsor a payé son pack en ligne. */
+export function sponsorPaidClubMail(
+  to: string,
+  info: {
+    sponsor: string;
+    tournament: string;
+    tier: keyof typeof TIER_NAME;
+    amountCents: number;
+    url: string;
+  },
+): MailMessage {
+  const pack = `Pack ${TIER_NAME[info.tier]}`;
+  const subject = `${info.sponsor} a payé le ${pack} du ${info.tournament}`;
+  const text = [
+    `${info.sponsor} a payé en ligne le ${pack} du ${info.tournament} (${eurosLabel(info.amountCents)} pour le club).`,
+    'Son logo s’affiche maintenant sur la page du tournoi.',
+    '',
+    `Vos sponsors : ${info.url}`,
+    '',
+    'Tournoi Connect',
+  ].join('\n');
+  const html = sponsorCard(
+    'Sponsor payé',
+    [
+      info.sponsor,
+      `${pack} · ${info.tournament}`,
+      `${eurosLabel(info.amountCents)} pour le club`,
+    ],
+    { label: 'Voir mes sponsors', url: info.url },
+  );
+  return { to, subject, text, html };
+}

@@ -8,6 +8,10 @@ import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
 import { BracketModule } from './bracket/bracket.module.js';
 import { MailModule } from './mail/mail.module.js';
+import {
+  SponsorInvitesModule,
+  SponsorshipsModule,
+} from './sponsorships/sponsorships.module.js';
 import { MediaModule } from './media/media.module.js';
 import { MaintenanceModule } from './maintenance/maintenance.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
@@ -28,6 +32,8 @@ import { QueueModule } from './queue/queue.module.js';
     DatabaseModule,
     QueueModule.forRoot(),
     MailModule,
+    SponsorInvitesModule,
+    SponsorshipsModule,
     BracketModule,
     MediaModule,
     AuthModule,
