@@ -48,7 +48,6 @@ import {
   organizerTournamentSchema,
   scheduleResultSchema,
   scheduleSchema,
-  sponsorRowSchema,
   updateSponsorSchema,
   type CreatedPost,
   type CreatePost,
@@ -59,7 +58,6 @@ import {
   type OrganizerTournament,
   type Schedule,
   type ScheduleResult,
-  type SponsorRow,
   type UpdateSponsor,
 } from './organizer.schemas.js';
 import { OrganizerService } from './organizer.service.js';

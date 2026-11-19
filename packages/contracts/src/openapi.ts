@@ -1865,6 +1865,10 @@ export interface operations {
                         /** Format: date-time */
                         endsAt: string | null;
                         overrunMinutes: number;
+                        swiss: {
+                            rounds: number;
+                            drawn: number;
+                        } | null;
                     };
                 };
             };
@@ -1929,6 +1933,10 @@ export interface operations {
                         /** Format: date-time */
                         endsAt: string | null;
                         overrunMinutes: number;
+                        swiss: {
+                            rounds: number;
+                            drawn: number;
+                        } | null;
                     };
                 };
             };
@@ -3079,6 +3087,9 @@ export interface operations {
                         feeCents: number;
                         /** @enum {string} */
                         status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED";
+                        /** @enum {string} */
+                        format: "single-group" | "groups-knockout" | "knockout" | "swiss";
+                        swissRounds?: number;
                         teams: {
                             id: string;
                             name: string;
@@ -3089,7 +3100,7 @@ export interface operations {
                         matches: {
                             id: string;
                             /** @enum {string} */
-                            phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "third-place" | "final";
+                            phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "third-place" | "final" | "swiss";
                             group?: string;
                             field: string;
                             /** Format: date-time */
@@ -3103,6 +3114,7 @@ export interface operations {
                             /** @enum {string} */
                             status: "SCHEDULED" | "LIVE" | "FINISHED";
                             minute?: number;
+                            round?: number;
                             /** @enum {string} */
                             winner?: "home" | "away";
                         }[];
@@ -3118,6 +3130,8 @@ export interface operations {
                                 goalsAgainst: number;
                                 bonus: number;
                                 points: number;
+                                buchholz?: number;
+                                byes?: number;
                             }[];
                         }[];
                         rules: {
@@ -3175,11 +3189,11 @@ export interface operations {
                             startsAt: string;
                             phases: {
                                 /** @enum {string} */
-                                phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "third-place" | "final";
+                                phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "third-place" | "final" | "swiss";
                                 matches: {
                                     id: string;
                                     /** @enum {string} */
-                                    phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "third-place" | "final";
+                                    phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "third-place" | "final" | "swiss";
                                     group?: string;
                                     field: string;
                                     /** Format: date-time */
@@ -3193,6 +3207,7 @@ export interface operations {
                                     /** @enum {string} */
                                     status: "SCHEDULED" | "LIVE" | "FINISHED";
                                     minute?: number;
+                                    round?: number;
                                     /** @enum {string} */
                                     winner?: "home" | "away";
                                 }[];
@@ -4039,7 +4054,7 @@ export interface operations {
                         tournamentName: string;
                         matchId: string;
                         /** @enum {string} */
-                        phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "third-place" | "final";
+                        phase: "groups" | "round-of-32" | "round-of-16" | "quarter" | "semi" | "third-place" | "final" | "swiss";
                         field: string;
                         /** Format: date-time */
                         startsAt: string;

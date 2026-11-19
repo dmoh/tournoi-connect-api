@@ -22,6 +22,7 @@ export const reporterMatchSchema = z.object({
     'semi',
     'third-place',
     'final',
+    'swiss',
   ]),
   field: z.string(),
   startsAt: z.iso.datetime({ offset: true }),
