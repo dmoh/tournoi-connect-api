@@ -1508,6 +1508,27 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "swiss": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "rounds": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "drawn": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "rounds",
+                        "drawn"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -1518,7 +1539,8 @@
                     "groups",
                     "matches",
                     "endsAt",
-                    "overrunMinutes"
+                    "overrunMinutes",
+                    "swiss"
                   ],
                   "additionalProperties": false
                 }
@@ -1673,6 +1695,27 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "swiss": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "rounds": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "drawn": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "rounds",
+                        "drawn"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -1683,7 +1726,8 @@
                     "groups",
                     "matches",
                     "endsAt",
-                    "overrunMinutes"
+                    "overrunMinutes",
+                    "swiss"
                   ],
                   "additionalProperties": false
                 }
@@ -4375,6 +4419,20 @@
                         "COMPLETED"
                       ]
                     },
+                    "format": {
+                      "type": "string",
+                      "enum": [
+                        "single-group",
+                        "groups-knockout",
+                        "knockout",
+                        "swiss"
+                      ]
+                    },
+                    "swissRounds": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
                     "teams": {
                       "type": "array",
                       "items": {
@@ -4422,7 +4480,8 @@
                               "quarter",
                               "semi",
                               "third-place",
-                              "final"
+                              "final",
+                              "swiss"
                             ]
                           },
                           "group": {
@@ -4469,6 +4528,11 @@
                             ]
                           },
                           "minute": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "round": {
                             "type": "integer",
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
@@ -4547,6 +4611,16 @@
                                   "maximum": 9007199254740991
                                 },
                                 "points": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "buchholz": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "byes": {
                                   "type": "integer",
                                   "minimum": -9007199254740991,
                                   "maximum": 9007199254740991
@@ -4660,6 +4734,7 @@
                     "maxTeams",
                     "feeCents",
                     "status",
+                    "format",
                     "teams",
                     "matches",
                     "standings",
@@ -4760,7 +4835,8 @@
                                     "quarter",
                                     "semi",
                                     "third-place",
-                                    "final"
+                                    "final",
+                                    "swiss"
                                   ]
                                 },
                                 "matches": {
@@ -4780,7 +4856,8 @@
                                           "quarter",
                                           "semi",
                                           "third-place",
-                                          "final"
+                                          "final",
+                                          "swiss"
                                         ]
                                       },
                                       "group": {
@@ -4827,6 +4904,11 @@
                                         ]
                                       },
                                       "minute": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "round": {
                                         "type": "integer",
                                         "minimum": -9007199254740991,
                                         "maximum": 9007199254740991
@@ -6920,7 +7002,8 @@
                         "quarter",
                         "semi",
                         "third-place",
-                        "final"
+                        "final",
+                        "swiss"
                       ]
                     },
                     "field": {

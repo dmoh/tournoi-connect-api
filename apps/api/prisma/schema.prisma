@@ -48,6 +48,8 @@ enum Phase {
   /// Petite finale (match pour la 3e place).
   third_place
   final
+  /// Ronde de système suisse (appariée au fil des résultats).
+  swiss
 }
 
 enum MatchStatus {
@@ -163,6 +165,8 @@ model Tournament {
   hiddenAt             DateTime?           @map("hidden_at") @db.Timestamptz
   /// Graine du dernier tirage des poules : le même tirage se refait à l'identique.
   drawSeed             String?             @map("draw_seed")
+  /// Système suisse : nombre de rondes, fixé au tirage de la première.
+  swissRounds          Int?                @map("swiss_rounds")
   /// Règles de classement choisies par l'organisateur (points, départages) ;
   /// vide : celles du sport (moteur, SPORT_RULES).
   rankingRules         Json?               @map("ranking_rules")
@@ -192,6 +196,8 @@ model Team {
   shortName    String        @map("short_name")
   club         String
   group        String?
+  /// Système suisse : rondes où l'équipe a été exempte (victoire sans but).
+  byeRounds    Int[]         @default([]) @map("bye_rounds")
   players      Player[]
   registration Registration?
 
@@ -219,6 +225,8 @@ model Match {
   code            String
   phase           Phase
   group           String?
+  /// Numéro de ronde du système suisse (null pour les autres formats).
+  round           Int?
   field           String
   startsAt        DateTime        @map("starts_at") @db.Timestamptz
   homeTeamCode    String?         @map("home_team_code")
