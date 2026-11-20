@@ -2,6 +2,9 @@ locals {
   prefix     = "tournoi-connect-${var.name}"
   ssm_prefix = "/tournoi-connect/${var.name}"
   host_path  = "host/${var.name}"
+
+  # « Tournoi Connect <noreply@…> » → « noreply@… », comparé par ses:FromAddress.
+  mail_from_address = one(regex("<?([^<>\\s]+@[^<>\\s]+)>?\\s*$", var.mail_from))
 }
 
 data "aws_region" "current" {}
@@ -92,10 +95,21 @@ data "aws_iam_policy_document" "host" {
       "arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter${local.ssm_prefix}/*",
     ]
   }
+  # SES vérifie le droit sur l'identité de l'expéditeur, et aussi sur celle du
+  # destinataire quand elle existe dans SES (adresses vérifiées du bac à sable).
+  # D'où toutes les identités du compte, mais seulement depuis l'adresse d'envoi.
   statement {
-    sid       = "EnvoyerLesEmails"
-    actions   = ["ses:SendEmail", "ses:SendRawEmail"]
-    resources = [var.ses_identity_arn]
+    sid     = "EnvoyerLesEmails"
+    actions = ["ses:SendEmail", "ses:SendRawEmail"]
+    resources = [
+      var.ses_identity_arn,
+      "arn:aws:ses:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:identity/*",
+    ]
+    condition {
+      test     = "StringEquals"
+      variable = "ses:FromAddress"
+      values   = [local.mail_from_address]
+    }
   }
   statement {
     sid       = "GererLesPhotos"
