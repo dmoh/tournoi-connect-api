@@ -532,6 +532,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/tournaments/{slug}/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Direct du tournoi : scores des matchs en cours ou terminés depuis moins de 30 min (sondage léger, cache 2 s, ETag) */
+        get: operations["PublicController_live_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/tournaments/{slug}/matches/{matchId}/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Direct d’un match : score, statut, minute, dernier événement (sondage léger, cache 2 s, ETag) */
+        get: operations["PublicController_matchLive_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/tournaments/{slug}/news": {
         parameters: {
             query?: never;
@@ -3209,6 +3243,97 @@ export interface operations {
                 content?: never;
             };
             /** @description Tournoi inconnu ou non publié */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicController_live_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        asOf: string;
+                        /** @enum {string} */
+                        status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED";
+                        matches: {
+                            id: string;
+                            /** @enum {string} */
+                            status: "SCHEDULED" | "LIVE" | "FINISHED";
+                            scoreHome: number;
+                            scoreAway: number;
+                            minute?: number;
+                            /** @enum {string} */
+                            winner?: "home" | "away";
+                            /** Format: date-time */
+                            updatedAt: string | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description Tournoi inconnu ou non publié */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicController_matchLive_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        asOf: string;
+                        /** @enum {string} */
+                        status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED";
+                        match: {
+                            id: string;
+                            /** @enum {string} */
+                            status: "SCHEDULED" | "LIVE" | "FINISHED";
+                            scoreHome: number;
+                            scoreAway: number;
+                            minute?: number;
+                            /** @enum {string} */
+                            winner?: "home" | "away";
+                            /** Format: date-time */
+                            updatedAt: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Match ou tournoi inconnu */
             404: {
                 headers: {
                     [name: string]: unknown;
