@@ -64,6 +64,11 @@ export const registrationSchema = z.object({
   checkoutUrl: z.url().optional(),
   /** Fin de la place tenue pendant le paiement. */
   expiresAt: z.iso.datetime({ offset: true }).optional(),
+  /**
+   * Place proposée depuis la liste d'attente : tenue jusqu'à cette date
+   * limite de paiement (48 h). Absent pour une inscription directe.
+   */
+  paymentDueAt: z.iso.datetime({ offset: true }).optional(),
   createdAt: z.iso.datetime({ offset: true }),
 });
 
@@ -78,6 +83,10 @@ export const organizerRegistrationSchema = z.object({
   players: z.number().int(),
   status: registrationStatusSchema,
   totalCents: z.number().int(),
+  /** Rang dans la liste d'attente (WAITLISTED). */
+  waitlistPosition: z.number().int().optional(),
+  /** Place proposée depuis la liste d'attente : date limite du paiement. */
+  paymentDueAt: z.iso.datetime({ offset: true }).optional(),
   createdAt: z.iso.datetime({ offset: true }),
 });
 

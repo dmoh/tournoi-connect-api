@@ -16,7 +16,9 @@ import type {
   Follows,
   MatchNotification,
   PushConfig,
+  PushNotification,
   Subscribe,
+  UserNotification,
 } from './push.schemas.js';
 
 const PREFERENCE = {
@@ -52,7 +54,7 @@ export class PushService {
     private readonly clock: Clock,
     @Optional()
     @InjectQueue(PUSH_QUEUE)
-    private readonly queue?: Queue<MatchNotification>,
+    private readonly queue?: Queue<PushNotification>,
   ) {}
 
   config(): PushConfig {
@@ -142,6 +144,45 @@ export class PushService {
     }
   }
 
+  /** Prévient les appareils d'un compte ; sans Redis, tout de suite. */
+  async notifyUser(notification: UserNotification): Promise<void> {
+    if (!this.sender.publicKey) {
+      return;
+    }
+    if (this.queue) {
+      await this.queue.add('user', notification, {
+        jobId: userNotificationJobId(notification),
+      });
+    } else {
+      await this.deliverToUser(notification);
+    }
+  }
+
+  /** Appareils reliés au compte (un compte supprimé n'en a plus). */
+  async deliverToUser(
+    notification: UserNotification,
+  ): Promise<{ sent: number; gone: number }> {
+    const total = { sent: 0, gone: 0 };
+    let after: string | undefined;
+    for (;;) {
+      const batch = await this.prisma.pushSubscription.findMany({
+        where: {
+          userId: notification.userId,
+          ...(after ? { id: { gt: after } } : {}),
+        },
+        orderBy: { id: 'asc' },
+        take: PUSH_BATCH,
+      });
+      const result = await this.deliverBatch(userPayload(notification), batch);
+      total.sent += result.sent;
+      total.gone += result.gone;
+      if (batch.length < PUSH_BATCH) {
+        return total;
+      }
+      after = batch.at(-1)!.id;
+    }
+  }
+
   /**
    * Envoie la notification aux appareils qui suivent le tournoi ou l'une des
    * équipes (suivis de l'appareil ou du compte relié), lus par lots de
@@ -152,9 +193,10 @@ export class PushService {
   ): Promise<{ sent: number; gone: number }> {
     const total = { sent: 0, gone: 0 };
     let after: string | undefined;
+    const payload = matchPayload(notification);
     for (;;) {
       const batch = await this.subscribers(notification, after);
-      const result = await this.deliverBatch(notification, batch);
+      const result = await this.deliverBatch(payload, batch);
       total.sent += result.sent;
       total.gone += result.gone;
       if (batch.length < PUSH_BATCH) {
@@ -196,30 +238,9 @@ export class PushService {
   }
 
   private async deliverBatch(
-    notification: MatchNotification,
+    payload: PushPayload,
     targets: { id: string; endpoint: string; p256dh: string; auth: string }[],
   ): Promise<{ sent: number; gone: number }> {
-    const slug = notification.tournamentSlug;
-    const payload = {
-      notification: {
-        title: notification.title,
-        body: notification.body,
-        icon: '/icons/icon-192x192.png',
-        badge: '/icons/icon-96x96.png',
-        lang: 'fr',
-        // Une notification par match : le score suivant remplace le précédent.
-        tag: `match-${slug}-${notification.matchCode}`,
-        renotify: true,
-        data: {
-          onActionClick: {
-            default: {
-              operation: 'navigateLastFocusedOrOpen',
-              url: `/t/${slug}/m/${notification.matchCode}`,
-            },
-          },
-        },
-      },
-    };
     // Adresses hors des services push connus (anciens abonnements) : jamais contactées.
     const reachable = targets.filter((t) => isPushEndpoint(t.endpoint));
     const goneIds = targets
@@ -266,6 +287,60 @@ export class PushService {
 }
 
 const unique = (list: readonly string[]) => [...new Set(list)];
+
+/** Charge utile lue par le service worker Angular (titre, corps, page ouverte au clic). */
+type PushPayload = ReturnType<typeof payloadFor>;
+
+function payloadFor(info: {
+  title: string;
+  body: string;
+  tag: string;
+  url: string;
+}) {
+  return {
+    notification: {
+      title: info.title,
+      body: info.body,
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-96x96.png',
+      lang: 'fr',
+      tag: info.tag,
+      renotify: true,
+      data: {
+        onActionClick: {
+          default: {
+            operation: 'navigateLastFocusedOrOpen',
+            url: info.url,
+          },
+        },
+      },
+    },
+  };
+}
+
+/** Une notification par match : le score suivant remplace le précédent. */
+function matchPayload(notification: MatchNotification): PushPayload {
+  const slug = notification.tournamentSlug;
+  return payloadFor({
+    title: notification.title,
+    body: notification.body,
+    tag: `match-${slug}-${notification.matchCode}`,
+    url: `/t/${slug}/m/${notification.matchCode}`,
+  });
+}
+
+function userPayload(notification: UserNotification): PushPayload {
+  return payloadFor(notification);
+}
+
+/** Identifiant BullMQ d'une notification de compte : son événement source. */
+export function userNotificationJobId(notification: UserNotification): string {
+  const digest = createHash('sha256')
+    .update(JSON.stringify([notification.userId, notification.eventId]))
+    .digest('base64url')
+    .slice(0, 32);
+  return `user-${digest}`;
+}
 
 /** Équipes du match au format des suivis (« slug/code »). */
 function teamKeys(notification: MatchNotification): string[] {

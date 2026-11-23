@@ -10,6 +10,8 @@ import { PrismaService } from '../database/prisma.service.js';
 import { accountDeletedMail } from '../mail/templates.js';
 import { Mailer } from '../mail/mailer.js';
 import { MediaService, VISIBLE_PHOTO } from '../media/media.service.js';
+import { holdingWhere } from '../registrations/registration-state.js';
+import { WaitlistService } from '../registrations/waitlist.service.js';
 import type { AccountExport } from './account.schemas.js';
 
 /** Nom laissé sur une inscription confirmée dont le responsable est parti. */
@@ -29,6 +31,7 @@ export class AccountService {
     private readonly clock: Clock,
     private readonly mailer: Mailer,
     private readonly media: MediaService,
+    private readonly waitlist: WaitlistService,
   ) {}
 
   async export(userId: string): Promise<AccountExport> {
@@ -161,6 +164,8 @@ export class AccountService {
         'Les comptes de test ne peuvent pas être supprimés.',
       );
     }
+    /** Tournois où une place tenue est rendue. */
+    const freed: string[] = [];
     await this.prisma.$transaction(async (tx) => {
       const owned = await tx.membership.findMany({
         where: { userId, role: 'OWNER' },
@@ -188,9 +193,19 @@ export class AccountService {
       }
       // Les places tenues et la liste d'attente sont rendues ; les équipes
       // confirmées restent au tournoi, sans les coordonnées du responsable.
+      const held = await tx.registration.findMany({
+        where: { managerId: userId, ...holdingWhere(this.clock.now()) },
+        select: { tournamentId: true },
+      });
+      freed.push(...new Set(held.map((r) => r.tournamentId)));
       await tx.registration.updateMany({
         where: { managerId: userId, status: 'PENDING_PAYMENT' },
-        data: { status: 'EXPIRED', expiresAt: null, checkoutUrl: null },
+        data: {
+          status: 'EXPIRED',
+          expiresAt: null,
+          paymentDueAt: null,
+          checkoutUrl: null,
+        },
       });
       await tx.registration.updateMany({
         where: { managerId: userId, status: 'WAITLISTED' },
@@ -215,6 +230,10 @@ export class AccountService {
       await tx.user.delete({ where: { id: userId } });
     });
     await this.media.scheduleCleanup();
+    // Les places rendues profitent à la liste d'attente (worker).
+    for (const tournamentId of freed) {
+      await this.waitlist.placeFreed(tournamentId, `${userId}-deleted`);
+    }
     await this.mailer.send(accountDeletedMail(user.email));
   }
 }

@@ -6,15 +6,23 @@ import { MailProcessor } from './mail/mail.processor.js';
 import { MaintenanceModule } from './maintenance/maintenance.module.js';
 import { MaintenanceProcessor } from './maintenance/maintenance.processor.js';
 import { PushProcessor } from './push/push.processor.js';
+import { RegistrationsModule } from './registrations/registrations.module.js';
+import { WaitlistProcessor } from './registrations/waitlist.processor.js';
 
 /**
  * Contexte du worker : l'application complète plus les processeurs BullMQ,
  * enregistrés seulement si Redis est configuré.
  */
 @Module({
-  imports: [AppModule, AudienceModule, MaintenanceModule],
+  imports: [AppModule, AudienceModule, MaintenanceModule, RegistrationsModule],
   providers: process.env['REDIS_URL']
-    ? [AudienceProcessor, MailProcessor, MaintenanceProcessor, PushProcessor]
+    ? [
+        AudienceProcessor,
+        MailProcessor,
+        MaintenanceProcessor,
+        PushProcessor,
+        WaitlistProcessor,
+      ]
     : [],
 })
 export class WorkerModule {}

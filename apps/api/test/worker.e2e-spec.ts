@@ -25,6 +25,8 @@ describe('Worker (e2e)', () => {
     const { PushProcessor } = await import('../src/push/push.processor.js');
     const { AudienceProcessor } =
       await import('../src/audience/audience.processor.js');
+    const { WaitlistProcessor } =
+      await import('../src/registrations/waitlist.processor.js');
 
     const moduleRef = await Test.createTestingModule({
       imports: [WorkerModule],
@@ -34,6 +36,7 @@ describe('Worker (e2e)', () => {
       MailProcessor,
       PushProcessor,
       AudienceProcessor,
+      WaitlistProcessor,
     ]) {
       expect(moduleRef.get(processor)).toBeInstanceOf(processor);
     }

@@ -10,6 +10,8 @@ export const MAIL_QUEUE = 'mail';
 export const MAINTENANCE_QUEUE = 'maintenance';
 /** File des notifications web push (coup d'envoi, buts, résultats). */
 export const PUSH_QUEUE = 'push';
+/** Liste d'attente : promotion quand une place se libère, échéance des places proposées. */
+export const WAITLIST_QUEUE = 'waitlist';
 
 /**
  * Files BullMQ (ADR-010). Sans REDIS_URL (tests, poste sans Redis), aucune
@@ -57,6 +59,15 @@ export class QueueModule {
             backoff: { type: 'exponential', delay: 60_000 },
             removeOnComplete: 30,
             removeOnFail: 100,
+          },
+        }),
+        BullModule.registerQueue({
+          name: WAITLIST_QUEUE,
+          defaultJobOptions: {
+            attempts: 5,
+            backoff: { type: 'exponential', delay: 5000 },
+            removeOnComplete: 1000,
+            removeOnFail: 5000,
           },
         }),
         BullModule.registerQueue({

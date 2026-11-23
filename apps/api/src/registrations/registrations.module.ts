@@ -11,6 +11,7 @@ import {
 } from './registrations.controller.js';
 import { RegistrationsService } from './registrations.service.js';
 import { STRIPE } from './registrations.tokens.js';
+import { WaitlistService } from './waitlist.service.js';
 
 @Module({
   controllers: [
@@ -21,6 +22,7 @@ import { STRIPE } from './registrations.tokens.js';
   ],
   providers: [
     RegistrationsService,
+    WaitlistService,
     OrganizerGuard,
     {
       provide: STRIPE,
@@ -31,6 +33,6 @@ import { STRIPE } from './registrations.tokens.js';
         ),
     },
   ],
-  exports: [STRIPE],
+  exports: [STRIPE, WaitlistService],
 })
 export class RegistrationsModule {}

@@ -577,7 +577,8 @@ model Invitation {
 }
 
 enum RegistrationStatus {
-  /// Place tenue pendant le paiement (Stripe Checkout, 30 minutes).
+  /// Place tenue pendant le paiement (Stripe Checkout, 30 minutes), ou
+  /// proposée depuis la liste d'attente jusqu'à `paymentDueAt`.
   PENDING_PAYMENT
   CONFIRMED
   WAITLISTED
@@ -611,6 +612,9 @@ model Registration {
   checkoutUrl       String?            @map("checkout_url")
   /// Fin de la place tenue pendant le paiement.
   expiresAt         DateTime?          @map("expires_at") @db.Timestamptz
+  /// Place proposée depuis la liste d'attente : la tenir jusqu'à cette date
+  /// limite de paiement (48 h) ; vide pour une inscription directe.
+  paymentDueAt      DateTime?          @map("payment_due_at") @db.Timestamptz
   paymentIntentId   String?            @map("payment_intent_id")
   paidAt            DateTime?          @map("paid_at") @db.Timestamptz
   teamId            String?            @unique @map("team_id")
@@ -618,6 +622,8 @@ model Registration {
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz
 
   @@index([tournamentId, status])
+  /// Offres de la liste d'attente arrivées à échéance (balayage du worker).
+  @@index([status, paymentDueAt])
   @@index([managerId])
   /// Mes équipes paginées : (createdAt, id) décroissants.
   @@index([managerId, createdAt, id])

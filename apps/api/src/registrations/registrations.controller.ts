@@ -35,6 +35,7 @@ import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { AuthGuard, CurrentUser, type AuthUser } from '../auth/auth.guard.js';
 import { Clock } from '../common/clock.js';
+import { Idempotent } from '../common/idempotency/idempotent.decorator.js';
 import { openApi } from '../common/openapi-schema.js';
 import {
   pageQuerySchema,
@@ -52,6 +53,7 @@ import { verifyStripeSignature } from '../payments/stripe-signature.js';
 import {
   onboardingSchema,
   organizerRegistrationPageSchema,
+  organizerRegistrationSchema,
   organizerRegistrationsQuerySchema,
   paymentsStatusSchema,
   registerSchema,
@@ -66,6 +68,7 @@ import {
   type RegistrationView,
 } from './registrations.schemas.js';
 import { RegistrationsService } from './registrations.service.js';
+import { WaitlistService } from './waitlist.service.js';
 
 const IDEMPOTENCY = /^[\w-]{8,100}$/;
 
@@ -101,7 +104,10 @@ export class PublicRegistrationsController {
 @UseGuards(AuthGuard)
 @Controller()
 export class RegistrationsController {
-  constructor(private readonly registrations: RegistrationsService) {}
+  constructor(
+    private readonly registrations: RegistrationsService,
+    private readonly waitlist: WaitlistService,
+  ) {}
 
   @Post('tournaments/:code/registrations')
   @RateLimited('registration')
@@ -155,7 +161,8 @@ export class RegistrationsController {
   @Post('registrations/:id/checkout')
   @HttpCode(200)
   @ApiOperation({
-    summary: 'Reprendre un paiement expiré, s’il reste une place',
+    summary:
+      'Payer une place proposée depuis la liste d’attente, ou reprendre un paiement expiré s’il reste une place',
   })
   @ApiOkResponse({ schema: openApi(registrationSchema) })
   @ApiConflictResponse({ description: 'Inscriptions fermées' })
@@ -164,6 +171,25 @@ export class RegistrationsController {
     @CurrentUser() user: AuthUser,
   ): Promise<RegistrationView> {
     return this.registrations.retryCheckout(id, user.id);
+  }
+
+  @Post('registrations/:id/decline')
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      'Renoncer : quitter la liste d’attente ou refuser la place proposée (l’équipe suivante est promue)',
+  })
+  @ApiOkResponse({ schema: openApi(registrationSchema) })
+  @ApiNotFoundResponse({ description: 'Inscription introuvable' })
+  @ApiConflictResponse({
+    description: 'Équipe déjà inscrite : désistement auprès de l’organisateur',
+  })
+  async decline(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<RegistrationView> {
+    await this.waitlist.decline(id, user.id);
+    return this.registrations.view(id, user.id);
   }
 }
 
@@ -241,6 +267,8 @@ export class OrganizerRegistrationsController {
   constructor(
     @Inject(RegistrationsService)
     private readonly registrations: RegistrationsService,
+    @Inject(WaitlistService)
+    private readonly waitlist: WaitlistService,
   ) {}
 
   @Get('tournaments/:slug/registrations')
@@ -263,6 +291,32 @@ export class OrganizerRegistrationsController {
       req.organizationSlug!,
       slug,
       query,
+    );
+  }
+
+  @Post('tournaments/:slug/registrations/:id/promote')
+  @Idempotent()
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      'Promouvoir une équipe de la liste d’attente : inscrite (gratuit) ou place proposée 48 h (payant)',
+  })
+  @ApiOkResponse({ schema: openApi(organizerRegistrationSchema) })
+  @ApiNotFoundResponse({ description: 'Tournoi ou inscription hors du club' })
+  @ApiConflictResponse({
+    description:
+      'Tournoi complet, inscriptions fermées, inscription hors liste d’attente, ou requête de même clé encore en cours',
+  })
+  async promote(
+    @Req() req: OrganizerRequest,
+    @Param('slug') slug: string,
+    @Param('id') id: string,
+  ): Promise<OrganizerRegistration> {
+    await this.waitlist.promoteManually(req.organizationSlug!, slug, id);
+    return this.registrations.organizerRegistration(
+      req.organizationSlug!,
+      slug,
+      id,
     );
   }
 

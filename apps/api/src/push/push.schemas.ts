@@ -66,3 +66,22 @@ export interface MatchNotification {
    */
   eventId?: string;
 }
+
+/**
+ * Notification adressée aux appareils d'un compte (place libérée depuis la
+ * liste d'attente, inscription confirmée), déposée dans la file du worker.
+ */
+export interface UserNotification {
+  kind: 'user';
+  userId: string;
+  title: string;
+  body: string;
+  /** Page ouverte au clic (chemin de la PWA). */
+  url: string;
+  /** Regroupe les notifications d'un même sujet ; la dernière remplace la précédente. */
+  tag: string;
+  /** Rend le dépôt dans la file idempotent (inscription et transition). */
+  eventId: string;
+}
+
+export type PushNotification = MatchNotification | UserNotification;
