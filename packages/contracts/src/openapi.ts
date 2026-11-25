@@ -188,6 +188,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizer/billing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Identité de facturation du club et prochain numéro de facture */
+        get: operations["OrganizerInvoicesController_profile_v1"];
+        /** Renseigne l’identité légale du club (raison sociale, siège, SIRET ou RNA, TVA) */
+        put: operations["OrganizerInvoicesController_updateProfile_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Factures du club, les plus récentes en premier */
+        get: operations["OrganizerInvoicesController_list_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/invoices/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Une facture du club */
+        get: operations["OrganizerInvoicesController_get_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournament-sponsors/{id}/invoice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Établit la facture d’un pack payé (ou rend celle déjà émise) et l’envoie au sponsor */
+        post: operations["OrganizerInvoicesController_issue_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/invoices/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Facture d’un pack sponsor (lien personnel) */
+        get: operations["PublicInvoicesController_view_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizer/tournaments/{slug}/draw": {
         parameters: {
             query?: never;
@@ -1819,6 +1905,355 @@ export interface operations {
             };
             /** @description Paiements non configurés */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerInvoicesController_profile_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        legalName: string | null;
+                        street: string | null;
+                        postalCode: string | null;
+                        city: string | null;
+                        siret: string | null;
+                        rna: string | null;
+                        vatRegistered: boolean;
+                        vatNumber: string | null;
+                        vatExemptionNote: string;
+                        complete: boolean;
+                        nextNumber: string;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerInvoicesController_updateProfile_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    legalName: string;
+                    street: string;
+                    postalCode: string;
+                    city: string;
+                    siret?: string | null;
+                    rna?: string | null;
+                    vatRegistered: boolean;
+                    vatNumber?: string | null;
+                    vatExemptionNote?: string | null;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        legalName: string | null;
+                        street: string | null;
+                        postalCode: string | null;
+                        city: string | null;
+                        siret: string | null;
+                        rna: string | null;
+                        vatRegistered: boolean;
+                        vatNumber: string | null;
+                        vatExemptionNote: string;
+                        complete: boolean;
+                        nextNumber: string;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerInvoicesController_list_v1: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            number: string;
+                            /** Format: date-time */
+                            issuedAt: string;
+                            sponsor: string;
+                            tournament: string;
+                            totalCents: number;
+                        }[];
+                        nextCursor: string | null;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerInvoicesController_get_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                number: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        number: string;
+                        /** Format: date-time */
+                        issuedAt: string;
+                        /** Format: date-time */
+                        paidAt: string;
+                        seller: {
+                            legalName: string;
+                            street: string;
+                            postalCode: string;
+                            city: string;
+                            siret: string | null;
+                            rna: string | null;
+                            vatNumber: string | null;
+                        };
+                        buyer: {
+                            name: string;
+                            street: string;
+                            postalCode: string;
+                            city: string;
+                            country: string;
+                            email: string | null;
+                        };
+                        label: string;
+                        tournament: {
+                            slug: string;
+                            name: string;
+                        };
+                        netCents: number;
+                        vatRate: number;
+                        vatCents: number;
+                        totalCents: number;
+                        vatNote: string | null;
+                        paidOnline: boolean;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Facture hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerInvoicesController_issue_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    buyer?: {
+                        name?: string;
+                        street: string;
+                        postalCode: string;
+                        city: string;
+                        /** @default FR */
+                        country?: string;
+                    };
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        number: string;
+                        /** Format: date-time */
+                        issuedAt: string;
+                        /** Format: date-time */
+                        paidAt: string;
+                        seller: {
+                            legalName: string;
+                            street: string;
+                            postalCode: string;
+                            city: string;
+                            siret: string | null;
+                            rna: string | null;
+                            vatNumber: string | null;
+                        };
+                        buyer: {
+                            name: string;
+                            street: string;
+                            postalCode: string;
+                            city: string;
+                            country: string;
+                            email: string | null;
+                        };
+                        label: string;
+                        tournament: {
+                            slug: string;
+                            name: string;
+                        };
+                        netCents: number;
+                        vatRate: number;
+                        vatCents: number;
+                        totalCents: number;
+                        vatNote: string | null;
+                        paidOnline: boolean;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sponsor hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pack non payé, identité du club incomplète ou adresse du sponsor inconnue */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicInvoicesController_view_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        number: string;
+                        /** Format: date-time */
+                        issuedAt: string;
+                        /** Format: date-time */
+                        paidAt: string;
+                        seller: {
+                            legalName: string;
+                            street: string;
+                            postalCode: string;
+                            city: string;
+                            siret: string | null;
+                            rna: string | null;
+                            vatNumber: string | null;
+                        };
+                        buyer: {
+                            name: string;
+                            street: string;
+                            postalCode: string;
+                            city: string;
+                            country: string;
+                            email: string | null;
+                        };
+                        label: string;
+                        tournament: {
+                            slug: string;
+                            name: string;
+                        };
+                        netCents: number;
+                        vatRate: number;
+                        vatCents: number;
+                        totalCents: number;
+                        vatNote: string | null;
+                        paidOnline: boolean;
+                    };
+                };
+            };
+            /** @description Lien invalide */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3818,6 +4253,8 @@ export interface operations {
                             impressions: number;
                             clicks: number;
                             paidOnline: boolean;
+                            invoiceNumber: string | null;
+                            billingAddressKnown: boolean;
                         }[];
                         prospects: {
                             id: string;
@@ -3891,6 +4328,8 @@ export interface operations {
                         impressions: number;
                         clicks: number;
                         paidOnline: boolean;
+                        invoiceNumber: string | null;
+                        billingAddressKnown: boolean;
                         /** Format: uri */
                         inviteUrl: string;
                         emailed: boolean;

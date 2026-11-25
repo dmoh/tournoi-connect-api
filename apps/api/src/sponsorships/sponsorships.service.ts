@@ -118,6 +118,8 @@ export class SponsorshipsService {
       cancelUrl: back,
       expiresAt,
       metadata: { sponsorship: row.id, tournament: row.tournament.slug },
+      // Adresse du sponsor : mention obligatoire de la facture du club.
+      billingAddress: true,
       idempotencyKey: `sponsor-checkout-${row.id}-${expiresAt.getTime()}`,
     });
     await this.prisma.tournamentSponsor.update({

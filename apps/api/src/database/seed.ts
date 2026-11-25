@@ -22,6 +22,9 @@ import {
  * production.
  */
 export async function seedDemo(prisma: PrismaClient): Promise<void> {
+  // Les factures bloquent la suppression d'un club (conservation légale) :
+  // seules les données de démonstration les effacent.
+  await prisma.invoice.deleteMany();
   await prisma.organization.deleteMany();
   await prisma.user.deleteMany({
     where: { email: { endsWith: '@example.org' } },

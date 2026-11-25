@@ -118,6 +118,23 @@ model Organization {
   referredById         String?         @map("referred_by_id")
   referredBy           Organization?   @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
   referrals            Organization[]  @relation("Referrals")
+  /// Facturation (lot 15) : identité légale du club, vendeur des packs sponsors.
+  legalName            String?         @map("legal_name")
+  /// Adresse du siège : rue (une ou plusieurs lignes), code postal, ville.
+  billingStreet        String?         @map("billing_street")
+  billingPostalCode    String?         @map("billing_postal_code")
+  billingCity          String?         @map("billing_city")
+  /// SIRET (14 chiffres) ou, pour une association sans SIRET, numéro RNA.
+  siret                String?
+  rna                  String?
+  /// Club assujetti à la TVA : 20 % sur les packs, numéro intracommunautaire.
+  vatRegistered        Boolean         @default(false) @map("vat_registered")
+  vatNumber            String?         @map("vat_number")
+  /// Mention portée sur la facture d'un club non assujetti.
+  vatExemptionNote     String?         @map("vat_exemption_note")
+  /// Dernier numéro de facture attribué : la suite est continue, sans trou.
+  invoiceSequence      Int             @default(0) @map("invoice_sequence")
+  invoices             Invoice[]
 
   @@unique([externalSource, externalId])
   @@map("organization")
@@ -418,6 +435,9 @@ model TournamentSponsor {
   /// Prix du pack et frais de service payés en ligne, en centimes.
   amountCents       Int?        @map("amount_cents")
   serviceFeeCents   Int?        @map("service_fee_cents")
+  /// Adresse de facturation saisie par le sponsor sur la page de paiement.
+  billingAddress    Json?       @map("billing_address")
+  invoice           Invoice?
   audience     AudienceHourly[]
 
   @@unique([tournamentId, sponsorId])
@@ -813,4 +833,36 @@ model Photo {
   @@index([tournamentId, createdAt])
   @@index([matchId])
   @@map("photo")
+}
+
+/// Facture d'un pack sponsor, émise au nom du club (lot 15). Figée à
+/// l'émission : vendeur, acheteur et montants ne changent plus.
+model Invoice {
+  id                  String            @id @default(cuid(2))
+  organizationId      String            @map("organization_id")
+  organization        Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  tournamentSponsorId String            @unique @map("tournament_sponsor_id")
+  tournamentSponsor   TournamentSponsor @relation(fields: [tournamentSponsorId], references: [id], onDelete: Restrict)
+  /// Rang dans la suite du club (1, 2, 3…) et numéro affiché (« FA-2026-0001 »).
+  sequence            Int
+  number              String
+  issuedAt            DateTime          @map("issued_at") @db.Timestamptz
+  paidAt              DateTime          @map("paid_at") @db.Timestamptz
+  /// Identité du club et du sponsor au jour de l'émission.
+  seller              Json
+  buyer               Json
+  label               String
+  /// Montants en centimes : hors taxe, TVA (taux en points de base) et TTC.
+  netCents            Int               @map("net_cents")
+  vatRateBp           Int               @map("vat_rate_bp")
+  vatCents            Int               @map("vat_cents")
+  totalCents          Int               @map("total_cents")
+  /// Paiement en ligne (Stripe), vide pour un pack réglé directement au club.
+  paymentIntentId     String?           @map("payment_intent_id")
+  /// Empreinte (SHA-256) du lien de consultation envoyé au sponsor.
+  accessTokenHash     String            @unique @map("access_token_hash")
+
+  @@unique([organizationId, sequence])
+  @@unique([organizationId, number])
+  @@map("invoice")
 }
