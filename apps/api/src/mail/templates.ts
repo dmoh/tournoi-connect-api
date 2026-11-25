@@ -273,9 +273,14 @@ export function sponsorReceiptMail(
     serviceFeeCents: number;
     date: string;
     url: string;
+    /** Lien de la facture du club, émise avec le paiement ; sinon null. */
+    invoiceUrl?: string | null;
   },
 ): MailMessage {
   const pack = `Pack ${TIER_NAME[info.tier]}`;
+  const invoiceLine = info.invoiceUrl
+    ? `La facture du club pour votre pack : ${info.invoiceUrl}`
+    : 'Ce reçu n’est pas une facture : le club vous l’enverra dès qu’elle sera établie.';
   const total = info.amountCents + info.serviceFeeCents;
   const subject = `Reçu : ${pack} du ${info.tournament}`;
   const lines = [
@@ -293,7 +298,7 @@ export function sponsorReceiptMail(
     '',
     `Votre pack sur la page du tournoi : ${info.url}`,
     '',
-    'Ce reçu n’est pas une facture. Pour une facture, adressez-vous au club.',
+    invoiceLine,
     '',
     'Tournoi Connect',
   ].join('\n');
@@ -301,10 +306,50 @@ export function sponsorReceiptMail(
     'Paiement reçu, merci !',
     [
       ...lines,
-      'Ce reçu n’est pas une facture. Pour une facture, adressez-vous au club.',
+      info.invoiceUrl
+        ? 'La facture du club est prête.'
+        : 'Ce reçu n’est pas une facture : le club vous l’enverra dès qu’elle sera établie.',
     ],
-    { label: 'Voir le tournoi', url: info.url },
+    info.invoiceUrl
+      ? { label: 'Voir la facture', url: info.invoiceUrl }
+      : { label: 'Voir le tournoi', url: info.url },
   );
+  return { to, subject, text, html };
+}
+
+/** Facture du club envoyée au sponsor (émise après coup ou à sa demande). */
+export function sponsorInvoiceMail(
+  to: string,
+  info: {
+    club: string;
+    tournament: string;
+    number: string;
+    totalCents: number;
+    url: string;
+  },
+): MailMessage {
+  const subject = `Facture ${info.number} : ${info.club}`;
+  const lines = [
+    `Facture ${info.number}`,
+    `Émise par : ${info.club}`,
+    `Partenariat : ${info.tournament}`,
+    `Montant acquitté : ${eurosLabel(info.totalCents)}`,
+  ];
+  const text = [
+    'Bonjour,',
+    '',
+    `Voici la facture de ${info.club} pour votre partenariat.`,
+    '',
+    ...lines,
+    '',
+    `Consulter, imprimer ou enregistrer en PDF : ${info.url}`,
+    '',
+    'Tournoi Connect',
+  ].join('\n');
+  const html = sponsorCard('Votre facture', lines, {
+    label: 'Voir la facture',
+    url: info.url,
+  });
   return { to, subject, text, html };
 }
 
@@ -317,13 +362,19 @@ export function sponsorPaidClubMail(
     tier: keyof typeof TIER_NAME;
     amountCents: number;
     url: string;
+    /** Numéro de la facture émise avec le paiement, null si elle attend le club. */
+    invoiceNumber?: string | null;
   },
 ): MailMessage {
   const pack = `Pack ${TIER_NAME[info.tier]}`;
   const subject = `${info.sponsor} a payé le ${pack} du ${info.tournament}`;
+  const invoiceLine = info.invoiceNumber
+    ? `La facture ${info.invoiceNumber} lui a été envoyée.`
+    : 'Pour lui envoyer sa facture, complétez l’identité de facturation du club (Paiements), puis « Établir la facture ».';
   const text = [
     `${info.sponsor} a payé en ligne le ${pack} du ${info.tournament} (${eurosLabel(info.amountCents)} pour le club).`,
     'Son logo s’affiche maintenant sur la page du tournoi.',
+    invoiceLine,
     '',
     `Vos sponsors : ${info.url}`,
     '',
