@@ -155,6 +155,42 @@ export const dayMatchesSchema = z.object({
   ),
 });
 
+/**
+ * Score d'un match tel que le sonde la page publique : seulement ce qui bouge
+ * pendant le direct, et la date du dernier événement enregistré (null sans
+ * événement) pour savoir si le fil a changé.
+ */
+export const liveMatchSchema = matchSchema
+  .pick({
+    id: true,
+    status: true,
+    scoreHome: true,
+    scoreAway: true,
+    minute: true,
+    winner: true,
+  })
+  .extend({
+    updatedAt: z.iso.datetime({ offset: true }).nullable(),
+  });
+
+/**
+ * Direct d'un tournoi : matchs en cours et matchs terminés depuis moins de
+ * 30 minutes, avec le statut du tournoi (le sondage s'arrête quand il est
+ * terminé) et l'heure du serveur (`asOf`, « mis à jour il y a… »).
+ */
+export const tournamentLiveSchema = z.object({
+  asOf: z.iso.datetime({ offset: true }),
+  status: publicStatusSchema,
+  matches: z.array(liveMatchSchema),
+});
+
+/** Direct d'un seul match (page du match), quel que soit son statut. */
+export const matchLiveSchema = z.object({
+  asOf: z.iso.datetime({ offset: true }),
+  status: publicStatusSchema,
+  match: liveMatchSchema,
+});
+
 /** Pages de tournoi à référencer (sitemap.xml de la PWA). */
 export const sitemapSchema = z.object({
   tournaments: z.array(
@@ -166,6 +202,9 @@ export type SearchQuery = z.infer<typeof searchQuerySchema>;
 export type DayQuery = z.infer<typeof dayQuerySchema>;
 export type DayMatches = z.infer<typeof dayMatchesSchema>;
 export type PublicMatch = z.infer<typeof matchSchema>;
+export type LiveMatch = z.infer<typeof liveMatchSchema>;
+export type TournamentLive = z.infer<typeof tournamentLiveSchema>;
+export type MatchLive = z.infer<typeof matchLiveSchema>;
 export type Sitemap = z.infer<typeof sitemapSchema>;
 export type TournamentSummary = z.infer<typeof tournamentSummarySchema>;
 export type NearbyTournament = z.infer<typeof nearbyTournamentSchema>;

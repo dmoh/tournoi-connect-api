@@ -94,6 +94,8 @@ Préfixe `/api/v1` ; détail et schémas dans Swagger (`/api/docs`) et `apps/api
 | `GET /public/tournaments?lat&lng&radiusKm&sport&cursor&limit`             | public       | tournois en cours ou à venir dans le rayon, paginés (distance, date, id)   |
 | `GET /public/tournaments/:slug`                                           | public       | page publique : équipes, matchs, classements (moteur)                      |
 | `GET /public/tournaments/:slug/matches?day`                               | public       | matchs d'une journée de Paris, par créneau puis phase ; journées           |
+| `GET /public/tournaments/:slug/live`                                      | public       | direct : scores des matchs en cours ou finis depuis < 30 min (cache 2 s)   |
+| `GET /public/tournaments/:slug/matches/:id/live`                          | public       | direct d'un match : score, statut, minute, dernier événement (cache 2 s)   |
 | `GET /public/tournaments/:slug/news?cursor&limit`                         | public       | fil News paginé, une carte sponsorisée au plus pour quatre éléments        |
 | `GET /public/tournaments/:slug/sponsors`                                  | public       | bannière Or, bandeau partagé (6 au plus), sponsors de terrain              |
 | `POST /public/posts/:postId/votes`                                        | public       | vote à un sondage                                                          |
@@ -162,6 +164,7 @@ Listes volontairement non paginées, bornées :
 | `GET /public/tournaments/:slug` (équipes, matchs) | 128 équipes (maxTeams), 1000 matchs                                        |
 | `GET /public/tournaments/:slug/matches?day=`      | une journée (1000 matchs au plus), 60 journées listées                     |
 | `GET /public/tournaments/:slug/matches/:id/feed`  | 1000 événements (un match)                                                 |
+| `GET /public/tournaments/:slug/live`              | 1000 matchs en cours ou finis depuis moins de 30 minutes                   |
 | `GET /public/tournaments/:slug/sponsors`          | 100 sponsors payés (limités par les packs)                                 |
 | `GET /organizer/tournaments/:slug/sponsors`       | 4 packs, 200 sponsors du tournoi, 200 prospects ; audience cumulée en base |
 | `GET /organizer/payments`                         | pas une liste (état du compte Stripe)                                      |
@@ -175,28 +178,30 @@ Listes volontairement non paginées, bornées :
 
 `@fastify/rate-limit`, fenêtre fixe, valeurs dans `apps/api/src/common/rate-limit.ts` (`RATE_LIMITS`, posées par `@RateLimited` sur la route). Au-delà : `429` en `problem+json` avec `Retry-After` (secondes). L'IP est celle du client transmise par Caddy (`X-Forwarded-For` lu seulement depuis l'adresse locale ou le réseau privé Docker). Les limites métier (5 codes par adresse et par heure, 30 invitations par club et par heure) s'ajoutent à celles-ci.
 
-| Route                                                  | Limite                         | Clé             |
-| ------------------------------------------------------ | ------------------------------ | --------------- |
-| `POST /auth/code`                                      | 10 / min ; 5 / 10 min          | IP ; email      |
-| `POST /auth/verify`                                    | 10 / min                       | IP              |
-| `POST /auth/refresh`                                   | 30 / min                       | IP              |
-| `GET /auth/oauth/:provider/start`, `…/callback`        | 20 / min                       | IP              |
-| `POST /public/audience`                                | 300 / min                      | IP              |
-| `POST /public/posts/:postId/votes`                     | 60 / min                       | IP              |
-| `POST /public/tournaments/:slug/matches/:id/reactions` | 120 / min                      | IP              |
-| `PUT /push/subscriptions`                              | 30 / min                       | IP              |
-| `POST /tournaments/:code/registrations`                | 10 / 10 min                    | compte          |
-| `POST /reporter/:token/events`                         | 15 / 30 s (1 / 2 s, rafale 15) | lien rapporteur |
-| `POST /organizer/invitations`                          | 20 / min                       | IP              |
+| Route                                                      | Limite                                                                  | Clé             |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------- | --------------- |
+| `POST /auth/code`                                          | 10 / min ; 5 / 10 min                                                   | IP ; email      |
+| `POST /auth/verify`                                        | 10 / min                                                                | IP              |
+| `POST /auth/refresh`                                       | 30 / min                                                                | IP              |
+| `GET /auth/oauth/:provider/start`, `…/callback`            | 20 / min                                                                | IP              |
+| `POST /public/audience`                                    | 300 / min                                                               | IP              |
+| `POST /public/posts/:postId/votes`                         | 60 / min                                                                | IP              |
+| `POST /public/tournaments/:slug/matches/:id/reactions`     | 120 / min                                                               | IP              |
+| `GET /public/tournaments/:slug/live`, `…/matches/:id/live` | 1800 / min (150 pages ouvertes derrière une IP, sondage toutes les 5 s) | IP              |
+| `PUT /push/subscriptions`                                  | 30 / min                                                                | IP              |
+| `POST /tournaments/:code/registrations`                    | 10 / 10 min                                                             | compte          |
+| `POST /reporter/:token/events`                             | 15 / 30 s (1 / 2 s, rafale 15)                                          | lien rapporteur |
+| `POST /organizer/invitations`                              | 20 / min                                                                | IP              |
 
 Les tests e2e multiplient les limites par 1000 (`createTestApp`), sauf `rate-limit.e2e-spec.ts` qui vérifie les vraies.
 
 ## Décisions provisoires
 
-| Décision                                                                   | Pourquoi                                                              | Remplacée par                                            |
-| -------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------- |
-| Distance haversine en SQL, préfiltrée par une boîte lat/lng indexée        | Démarrer sans PostGIS ; résultats identiques à l'échelle d'une région | `ST_DWithin` et index GiST (plan, section 4)             |
-| Dédoublonnage des impressions par session côté PWA                         | Redis ne sert encore qu'aux files BullMQ                              | Clé Redis par session et emplacement                     |
-| Sans `REDIS_URL`, les événements d'audience s'écrivent directement en base | Tests et poste local sans Redis                                       | Redis obligatoire hors tests                             |
-| Classements calculés à la lecture avec `computeStandings` du moteur        | Volume de démonstration                                               | Classements matérialisés à la validation d'un score (P4) |
-| Compteurs des limites de débit en mémoire                                  | Un seul serveur d'API                                                 | Store Redis de `@fastify/rate-limit`                     |
+| Décision                                                                   | Pourquoi                                                              | Remplacée par                                                        |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Distance haversine en SQL, préfiltrée par une boîte lat/lng indexée        | Démarrer sans PostGIS ; résultats identiques à l'échelle d'une région | `ST_DWithin` et index GiST (plan, section 4)                         |
+| Dédoublonnage des impressions par session côté PWA                         | Redis ne sert encore qu'aux files BullMQ                              | Clé Redis par session et emplacement                                 |
+| Sans `REDIS_URL`, les événements d'audience s'écrivent directement en base | Tests et poste local sans Redis                                       | Redis obligatoire hors tests                                         |
+| Classements calculés à la lecture avec `computeStandings` du moteur        | Volume de démonstration                                               | Classements matérialisés à la validation d'un score (P4)             |
+| Compteurs des limites de débit en mémoire                                  | Un seul serveur d'API                                                 | Store Redis de `@fastify/rate-limit`                                 |
+| Direct par sondage HTTP léger (`/live`, `Cache-Control` 2 s, ETag et 304)  | Un seul t3a.small : ni SSE ni WebSocket à tenir ouverts               | SSE ou WebSocket derrière Redis quand l'API aura plusieurs instances |
