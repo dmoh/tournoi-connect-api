@@ -23,6 +23,7 @@ import {
   type Page,
   type PageQuery,
 } from '../common/pagination.js';
+import { PublicCache } from '../common/public-cache.js';
 import { RateLimited } from '../common/rate-limit.js';
 import {
   audienceEventSchema,
@@ -44,16 +45,20 @@ import {
 import {
   dayMatchesSchema,
   dayQuerySchema,
+  matchLiveSchema,
   nearbyPageSchema,
   searchQuerySchema,
   sitemapSchema,
   tournamentDetailSchema,
+  tournamentLiveSchema,
   type DayMatches,
   type DayQuery,
+  type MatchLive,
   type NearbyTournament,
   type SearchQuery,
   type Sitemap,
   type TournamentDetail,
+  type TournamentLive,
 } from './public.schemas.js';
 import { PublicService } from './public.service.js';
 
@@ -119,6 +124,35 @@ export class PublicController {
     @Query({ schema: dayQuerySchema }) query: DayQuery,
   ): Promise<DayMatches> {
     return this.service.matchesByDay(slug, query.day);
+  }
+
+  @Get('tournaments/:slug/live')
+  @RateLimited('live')
+  @PublicCache()
+  @ApiOperation({
+    summary:
+      'Direct du tournoi : scores des matchs en cours ou terminés depuis moins de 30 min (sondage léger, cache 2 s, ETag)',
+  })
+  @ApiOkResponse({ schema: openApi(tournamentLiveSchema) })
+  @ApiNotFoundResponse({ description: 'Tournoi inconnu ou non publié' })
+  live(@Param('slug') slug: string): Promise<TournamentLive> {
+    return this.service.live(slug);
+  }
+
+  @Get('tournaments/:slug/matches/:matchId/live')
+  @RateLimited('live')
+  @PublicCache()
+  @ApiOperation({
+    summary:
+      'Direct d’un match : score, statut, minute, dernier événement (sondage léger, cache 2 s, ETag)',
+  })
+  @ApiOkResponse({ schema: openApi(matchLiveSchema) })
+  @ApiNotFoundResponse({ description: 'Match ou tournoi inconnu' })
+  matchLive(
+    @Param('slug') slug: string,
+    @Param('matchId') matchId: string,
+  ): Promise<MatchLive> {
+    return this.service.matchLive(slug, matchId);
   }
 
   @Get('tournaments/:slug/news')

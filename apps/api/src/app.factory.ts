@@ -9,6 +9,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { OpenAPIObject } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
 import { ProblemDetailsFilter } from './common/problem-details.filter.js';
+import { registerPublicCache } from './common/public-cache.js';
 import {
   registerRateLimits,
   type RateLimitSettings,
@@ -45,6 +46,7 @@ export async function configureApp(
   app.useGlobalFilters(new ProblemDetailsFilter());
   await app.register(helmet);
   await registerRateLimits(app, settings.rateLimit);
+  registerPublicCache(app);
   return app;
 }
 

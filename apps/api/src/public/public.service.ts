@@ -39,11 +39,14 @@ import {
 } from './public-mapping.js';
 import type {
   DayMatches,
+  LiveMatch,
+  MatchLive,
   NearbyTournament,
   PublicMatch,
   SearchQuery,
   Sitemap,
   TournamentDetail,
+  TournamentLive,
 } from './public.schemas.js';
 import type { Match } from '../generated/prisma/client.js';
 import { z } from 'zod';
@@ -72,6 +75,20 @@ export const MAX_MATCH_EVENTS = 1000;
 export const MAX_PAID_SPONSORS = 100;
 /** Journées d'un tournoi lues pour les ancres `?day=`. */
 const MAX_DAYS = 60;
+/** Un match terminé reste dans le direct du tournoi ce temps-là. */
+export const LIVE_WINDOW_MS = 30 * 60 * 1000;
+
+/** Ligne du direct telle que lue en SQL (colonnes snake_case, enums en texte). */
+interface LiveRow {
+  tournament_status: string;
+  code: string | null;
+  status: string | null;
+  score_home: number | null;
+  score_away: number | null;
+  minute: number | null;
+  winner_side: string | null;
+  updated_at: Date | null;
+}
 
 const explorerCursor = z.tuple([
   z.number().nonnegative(),
@@ -478,6 +495,95 @@ export class PublicService {
     }
   }
 
+  /**
+   * Direct d'un tournoi : matchs en cours et matchs terminés depuis moins de
+   * 30 minutes (date de leur dernier événement), en une requête. Le tournoi
+   * est lu dans la même requête : masqué ou non publié, il répond 404 comme
+   * les autres lectures publiques ; sans match en direct, la liste est vide.
+   */
+  async live(slug: string): Promise<TournamentLive> {
+    const now = this.clock.now();
+    const since = new Date(now.getTime() - LIVE_WINDOW_MS);
+    const rows = await this.prisma.$queryRaw<LiveRow[]>`
+      SELECT t.status::text AS tournament_status,
+             lm.code, lm.status, lm.score_home, lm.score_away, lm.minute,
+             lm.winner_side, lm.updated_at
+      FROM tournament t
+      LEFT JOIN LATERAL (
+        SELECT m.code, m.status::text AS status, m.score_home, m.score_away,
+               m.minute, m.winner_side::text AS winner_side,
+               e.created_at AS updated_at
+        FROM match m
+        LEFT JOIN LATERAL (
+          SELECT created_at FROM match_event
+          WHERE match_id = m.id
+          ORDER BY seq DESC
+          LIMIT 1
+        ) e ON true
+        WHERE m.tournament_id = t.id
+          AND (m.status::text = 'LIVE'
+            OR (m.status::text = 'FINISHED' AND e.created_at >= ${since}))
+        ORDER BY m.starts_at, m.code
+        LIMIT ${MAX_MATCHES}
+      ) lm ON true
+      WHERE t.slug = ${slug}
+        AND t.status::text IN (${Prisma.join([...PUBLIC_STATUSES])})
+        AND t.hidden_at IS NULL`;
+    const first = rows[0];
+    if (!first) {
+      throw new NotFoundException('Tournoi introuvable.');
+    }
+    return {
+      asOf: toIso(now),
+      status: first.tournament_status as TournamentLive['status'],
+      matches: rows.flatMap((row) => (row.code ? [toLiveMatch(row)] : [])),
+    };
+  }
+
+  /** Direct d'un match (page du match), quel que soit son statut. */
+  async matchLive(slug: string, code: string): Promise<MatchLive> {
+    const match = await this.prisma.match.findFirst({
+      where: {
+        code,
+        tournament: {
+          slug,
+          status: { in: [...PUBLIC_STATUSES] },
+          hiddenAt: null,
+        },
+      },
+      select: {
+        code: true,
+        status: true,
+        scoreHome: true,
+        scoreAway: true,
+        minute: true,
+        winnerSide: true,
+        tournament: { select: { status: true } },
+        events: {
+          orderBy: { seq: 'desc' },
+          take: 1,
+          select: { createdAt: true },
+        },
+      },
+    });
+    if (!match) {
+      throw new NotFoundException('Match introuvable.');
+    }
+    return {
+      asOf: toIso(this.clock.now()),
+      status: match.tournament.status as MatchLive['status'],
+      match: toLiveMatch({
+        code: match.code,
+        status: match.status,
+        score_home: match.scoreHome,
+        score_away: match.scoreAway,
+        minute: match.minute,
+        winner_side: match.winnerSide,
+        updated_at: match.events[0]?.createdAt ?? null,
+      }),
+    };
+  }
+
   /** Fil du direct d'un match : événements rejoués, réactions, dernière mise à jour. */
   async matchFeed(slug: string, code: string): Promise<MatchFeed> {
     const matchId = await this.publicMatchId(slug, code);
@@ -621,6 +727,21 @@ function toPublicMatch(m: Match): PublicMatch {
     ...(m.winnerSide
       ? { winner: m.winnerSide === 'HOME' ? 'home' : 'away' }
       : {}),
+  };
+}
+
+/** Score du direct, à partir d'une ligne SQL (enums en texte). */
+function toLiveMatch(row: Omit<LiveRow, 'tournament_status'>): LiveMatch {
+  return {
+    id: row.code ?? '',
+    status: row.status as LiveMatch['status'],
+    scoreHome: row.score_home ?? 0,
+    scoreAway: row.score_away ?? 0,
+    ...(row.minute === null ? {} : { minute: row.minute }),
+    ...(row.winner_side
+      ? { winner: row.winner_side === 'HOME' ? 'home' : 'away' }
+      : {}),
+    updatedAt: row.updated_at ? toIso(row.updated_at) : null,
   };
 }
 

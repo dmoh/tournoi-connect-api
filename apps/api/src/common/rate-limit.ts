@@ -1,9 +1,6 @@
 import rateLimit, { normalizeIP } from '@fastify/rate-limit';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import {
-  RouteConfig,
-  type NestFastifyApplication,
-} from '@nestjs/platform-fastify';
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type {
   FastifyInstance,
   FastifyReply,
@@ -14,6 +11,7 @@ import { createHash } from 'node:crypto';
 import { AuthKeys, normalizeEmail } from '../auth/auth-keys.js';
 import { AUTH_KEYS } from '../auth/auth.tokens.js';
 import { Clock } from './clock.js';
+import { mergeRouteConfig } from './route-config.js';
 
 /**
  * Ce que compte une limite : l'IP du client (vue à travers Caddy, voir
@@ -59,6 +57,11 @@ export const RATE_LIMITS = {
   vote: [{ key: 'ip', max: 60, windowMs: MINUTE }],
   /** Réactions du direct (emoji). */
   reaction: [{ key: 'ip', max: 120, windowMs: MINUTE }],
+  /**
+   * Scores du direct, sondés toutes les 5 s par chaque page ouverte : 150
+   * spectateurs derrière la même IP (Wi-Fi du club) avant la limite.
+   */
+  live: [{ key: 'ip', max: 1800, windowMs: MINUTE }],
   /** Abonnement d'un navigateur aux notifications. */
   pushSubscribe: [{ key: 'ip', max: 30, windowMs: MINUTE }],
   /** Inscription d'une équipe (Idempotency-Key : les rejeux comptent aussi). */
@@ -93,7 +96,7 @@ declare module 'fastify' {
 
 /** Applique à la route les limites nommées de RATE_LIMITS. */
 export const RateLimited = (policy: RateLimitPolicy): MethodDecorator =>
-  RouteConfig({ rateLimitPolicy: policy });
+  mergeRouteConfig({ rateLimitPolicy: policy });
 
 export interface RateLimitSettings {
   /**
