@@ -81,7 +81,7 @@ export class OrganizerService {
       }),
       this.prisma.tournamentSponsor.findMany({
         where: { tournamentId: tournament.id },
-        include: { sponsor: true },
+        include: { sponsor: true, invoice: { select: { number: true } } },
         orderBy: { id: 'asc' },
         take: MAX_TOURNAMENT_SPONSORS,
       }),
@@ -127,6 +127,8 @@ export class OrganizerService {
           impressions: totals.get(r.id)?.impressions ?? 0,
           clicks: totals.get(r.id)?.clicks ?? 0,
           paidOnline: r.paymentIntentId !== null,
+          invoiceNumber: r.invoice?.number ?? null,
+          billingAddressKnown: r.billingAddress !== null,
         }))
         .sort(
           (a, b) =>
@@ -220,6 +222,8 @@ export class OrganizerService {
         impressions: 0,
         clicks: 0,
         paidOnline: false,
+        invoiceNumber: null,
+        billingAddressKnown: false,
       } satisfies SponsorRow;
     });
     // Lien de paiement personnel, envoyé par email au sponsor s'il a une adresse.

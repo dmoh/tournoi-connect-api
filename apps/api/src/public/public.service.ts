@@ -1,7 +1,11 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import type { Queue } from 'bullmq';
-import { computeStandings, rulesFor } from '@dmoh/tournoi-connect-engine';
+import {
+  computeStandings,
+  computeSwissStandings,
+  rulesFor,
+} from '@dmoh/tournoi-connect-engine';
 import { storedRules } from '../common/ranking-rules.schema.js';
 import {
   AudienceWriter,
@@ -27,6 +31,7 @@ import { composeFeed } from './feed.js';
 import { replayFeed } from './match-feed.js';
 import {
   DISCOVERABLE_STATUSES,
+  FORMAT_KIND,
   PUBLIC_STATUSES,
   toIso,
   toPublicPhase,
@@ -196,25 +201,44 @@ export class PublicService {
       throw new NotFoundException('Tournoi introuvable.');
     }
     const rules = rulesFor(t.sport, storedRules(t.rankingRules));
-    const standings = computeStandings(
-      t.teams.map((team) => ({
-        id: team.code,
-        name: team.name,
-        group: team.group,
-      })),
+    const results = (phase: 'groups' | 'swiss') =>
       t.matches
-        .filter((m) => m.phase === 'groups')
+        .filter((m) => m.phase === phase)
         .map((m) => ({
           homeTeamId: m.homeTeamCode,
           awayTeamId: m.awayTeamCode,
           scoreHome: m.scoreHome,
           scoreAway: m.scoreAway,
           finished: m.status === 'FINISHED',
-        })),
-      rules,
-    );
+        }));
+    const swiss = t.format === 'SWISS';
+    const standings = swiss
+      ? t.matches.length === 0
+        ? []
+        : [
+            {
+              group: '',
+              rows: computeSwissStandings(
+                t.teams.map((team) => ({ id: team.code, name: team.name })),
+                results('swiss'),
+                t.teams.flatMap((team) => team.byeRounds.map(() => team.code)),
+                rules,
+              ),
+            },
+          ]
+      : computeStandings(
+          t.teams.map((team) => ({
+            id: team.code,
+            name: team.name,
+            group: team.group,
+          })),
+          results('groups'),
+          rules,
+        );
     return {
       ...toSummary(t),
+      format: FORMAT_KIND[t.format],
+      ...(t.swissRounds ? { swissRounds: t.swissRounds } : {}),
       teams: t.teams.map((team) => ({
         id: team.code,
         name: team.name,
@@ -593,6 +617,7 @@ function toPublicMatch(m: Match): PublicMatch {
     scoreAway: m.scoreAway,
     status: m.status,
     ...(m.minute === null ? {} : { minute: m.minute }),
+    ...(m.round === null ? {} : { round: m.round }),
     ...(m.winnerSide
       ? { winner: m.winnerSide === 'HOME' ? 'home' : 'away' }
       : {}),

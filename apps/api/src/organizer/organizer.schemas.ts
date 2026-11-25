@@ -17,6 +17,10 @@ export const sponsorRowSchema = z.object({
   clicks: z.number().int(),
   /** Payé en ligne par le sponsor (Stripe) ; faux s'il a été marqué payé à la main. */
   paidOnline: z.boolean(),
+  /** Numéro de la facture du club pour ce pack, null tant qu'elle n'est pas émise. */
+  invoiceNumber: z.string().nullable(),
+  /** Adresse de facturation du sponsor connue (saisie en payant en ligne). */
+  billingAddressKnown: z.boolean(),
 });
 
 /** Sponsor invité : son lien de paiement personnel, montré une seule fois. */

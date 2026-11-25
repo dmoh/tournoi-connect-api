@@ -22,7 +22,10 @@ import { PrismaService } from '../database/prisma.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { Registration, Tournament } from '../generated/prisma/client.js';
 import { Mailer } from '../mail/mailer.js';
-import { SponsorInvites } from '../sponsorships/sponsor-invites.service.js';
+import {
+  SponsorInvites,
+  type SponsorBilling,
+} from '../sponsorships/sponsor-invites.service.js';
 import {
   registrationConfirmedMail,
   registrationRefundedMail,
@@ -74,6 +77,30 @@ function sponsorshipOf(object: Record<string, unknown>): string | null {
     'sponsorship'
   ];
   return typeof value === 'string' && value ? value : null;
+}
+
+/**
+ * Adresse de facturation saisie sur la page Stripe (customer_details), pour
+ * la facture du club ; null si Stripe n'en rend pas de complète.
+ */
+function billingOf(object: Record<string, unknown>): SponsorBilling | null {
+  const details = object['customer_details'] as
+    Record<string, unknown> | undefined;
+  const address = details?.['address'] as Record<string, unknown> | undefined;
+  const line1 = text(address?.['line1']);
+  const postalCode = text(address?.['postal_code']);
+  const city = text(address?.['city']);
+  if (!line1 || !postalCode || !city) {
+    return null;
+  }
+  const line2 = text(address?.['line2']);
+  return {
+    name: text(details?.['name']),
+    street: line2 ? `${line1}\n${line2}` : line1,
+    postalCode,
+    city,
+    country: text(address?.['country']) ?? 'FR',
+  };
 }
 
 interface PaidSession {
@@ -442,6 +469,7 @@ export class RegistrationsService {
                           Record<string, unknown> | undefined
                       )?.['email'],
                     ) ?? text(object['customer_email']),
+                  billing: billingOf(object),
                 })
               : null;
           }

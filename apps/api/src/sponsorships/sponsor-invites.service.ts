@@ -5,6 +5,7 @@ import { Clock } from '../common/clock.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
+import { InvoicesService } from '../invoices/invoices.service.js';
 import { Mailer } from '../mail/mailer.js';
 import {
   sponsorInvitationMail,
@@ -30,6 +31,17 @@ export interface SponsorPaidSession {
   sponsorshipId: string;
   /** Adresse saisie sur la page de paiement, pour le reçu. */
   email: string | null;
+  /** Adresse de facturation saisie sur la page de paiement. */
+  billing?: SponsorBilling | null;
+}
+
+/** Adresse de facturation du sponsor (page Stripe), pour la facture du club. */
+export interface SponsorBilling {
+  name: string | null;
+  street: string;
+  postalCode: string;
+  city: string;
+  country: string;
 }
 
 /**
@@ -47,6 +59,7 @@ export class SponsorInvites {
     private readonly clock: Clock,
     private readonly mailer: Mailer,
     private readonly config: ConfigService<Env, true>,
+    private readonly invoices: InvoicesService,
   ) {}
 
   /** Nouveau lien (l'ancien ne marche plus), envoyé au sponsor s'il a une adresse. */
@@ -130,8 +143,11 @@ export class SponsorInvites {
         status: 'PAID',
         paidAt: now,
         paymentIntentId: session.paymentIntent,
+        ...(session.billing ? { billingAddress: { ...session.billing } } : {}),
       },
     });
+    // Facture du club émise avec le paiement si son identité est complète.
+    const invoice = await this.invoices.issue(tx, row.id);
     const owners = await tx.membership.findMany({
       where: {
         organizationId: row.tournament.organizationId,
@@ -156,12 +172,18 @@ export class SponsorInvites {
         url: this.appUrl(`/t/${row.tournament.slug}`),
       };
       if (receiptTo) {
-        await this.mailer.send(sponsorReceiptMail(receiptTo, info));
+        await this.mailer.send(
+          sponsorReceiptMail(receiptTo, {
+            ...info,
+            invoiceUrl: invoice?.url ?? null,
+          }),
+        );
       }
       for (const owner of owners) {
         await this.mailer.send(
           sponsorPaidClubMail(owner.user.email, {
             ...info,
+            invoiceNumber: invoice?.invoice.number ?? null,
             url: this.appUrl(
               `/organizer/sponsors?t=${encodeURIComponent(row.tournament.slug)}`,
             ),

@@ -165,15 +165,12 @@ describe('Tirage, calendrier et phase finale (e2e)', () => {
     );
   });
 
-  it('refuse un tirage sans équipes, en système suisse, ou hors du club', async () => {
+  it('refuse un tirage sans équipes ou hors du club', async () => {
     const empty = await tournamentWith(1);
     expect(
       (await call('POST', `/tournaments/${empty.slug}/draw`, {})).statusCode,
     ).toBe(409);
     const swiss = await tournamentWith(6, 'swiss');
-    expect(
-      (await call('POST', `/tournaments/${swiss.slug}/draw`, {})).statusCode,
-    ).toBe(422);
     const staff = await login(app, 'benevole@example.org');
     expect(
       (await call('POST', `/tournaments/${swiss.slug}/draw`, {}, staff))

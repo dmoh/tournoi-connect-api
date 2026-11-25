@@ -29,9 +29,17 @@ export {
 } from './schedule.js';
 export {
   computeStandings,
+  computeSwissStandings,
   FOOTBALL_POINTS,
   type GroupResult,
   type GroupStanding,
   type StandingRow,
   type StandingTeam,
+  type SwissStandingRow,
 } from './standings.js';
+export {
+  pairSwissRound,
+  swissRoundCount,
+  type SwissInput,
+  type SwissRound,
+} from './swiss.js';
