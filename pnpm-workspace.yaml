@@ -1,6 +1,11 @@
 packages:
   - apps/*
   - packages/*
+
+overrides:
+  # GHSA-7589-6fvf-x4pw (ReDoS, élevée) : effect <= 3.22.0, tiré par prisma > @prisma/config.
+  # Version corrigée de la même majeure ; à retirer quand Prisma la tirera lui-même.
+  effect: 3.22.4
 minimumReleaseAgeExclude:
   - '@nestjs/common@12.4.2'
   - '@nestjs/core@12.4.2'
