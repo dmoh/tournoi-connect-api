@@ -88,46 +88,52 @@ Toute autre adresse crée un compte neuf au premier code (prénom et nom demand�
 
 Préfixe `/api/v1` ; détail et schémas dans Swagger (`/api/docs`) et `apps/api/openapi.json`.
 
-| Route                                                                     | Accès        | Rôle                                                                     |
-| ------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------ |
-| `GET /health/live`, `GET /health/ready`                                   | public       | sondes (ready vérifie Postgres)                                          |
-| `GET /public/tournaments?lat&lng&radiusKm&sport&cursor&limit`             | public       | tournois en cours ou à venir dans le rayon, paginés (distance, date, id) |
-| `GET /public/tournaments/:slug`                                           | public       | page publique : équipes, matchs, classements (moteur)                    |
-| `GET /public/tournaments/:slug/matches?day`                               | public       | matchs d'une journée de Paris, par créneau puis phase ; journées         |
-| `GET /public/tournaments/:slug/live`                                      | public       | direct : scores des matchs en cours ou finis depuis < 30 min (cache 2 s) |
-| `GET /public/tournaments/:slug/matches/:id/live`                          | public       | direct d'un match : score, statut, minute, dernier événement (cache 2 s) |
-| `GET /public/tournaments/:slug/news?cursor&limit`                         | public       | fil News paginé, une carte sponsorisée au plus pour quatre éléments      |
-| `GET /public/tournaments/:slug/sponsors`                                  | public       | bannière Or, bandeau partagé (6 au plus), sponsors de terrain            |
-| `POST /public/posts/:postId/votes`                                        | public       | vote à un sondage                                                        |
-| `POST /public/audience`                                                   | public       | impression ou clic d'un sponsor, cumulé par heure                        |
-| `PUT /organizer/tournaments/:slug/schedule`                               | admin        | publier le planning (terrain et heure des matchs à venir)                |
-| `DELETE /organizer/tournaments/:slug/matches/:matchId/reporter-links`     | bénévole     | révoquer les liens de la table de marque d'un match                      |
-| `GET /public/registrations/:code`                                         | public       | lien d'inscription : prix avec frais, places, paiements du club          |
-| `POST /tournaments/:code/registrations`                                   | connecté     | inscrire son équipe (Idempotency-Key) : payée, gratuite ou attente       |
-| `GET /registrations?cursor&limit`, `GET /registrations/:id`               | connecté     | mes équipes (responsable d'équipe), paginées                             |
-| `POST /registrations/:id/checkout`                                        | connecté     | reprendre un paiement expiré, s'il reste une place                       |
-| `POST /payments/stripe/webhook`                                           | Stripe       | paiement confirmé ou remboursé, expiré, compte validé (signature)        |
-| `GET /organizer/tournaments/:slug/registrations?cursor&limit&sort&status` | admin        | inscriptions d'un tournoi du club : tri, filtre de statut, paginées      |
-| `GET /organizer/payments`                                                 | admin        | paiements en ligne du club (Stripe Connect)                              |
-| `POST /organizer/payments/onboarding`                                     | propriétaire | lien d'activation des paiements (vérification Stripe)                    |
-| `GET /push/config`                                                        | public       | clé publique VAPID (null sans notifications)                             |
-| `PUT /push/subscriptions`                                                 | public       | abonner ce navigateur (suivis, préférences ; compte si connecté)         |
-| `POST /push/subscriptions/delete`                                         | public       | désabonner ce navigateur                                                 |
-| `GET`, `PUT /me/follows`                                                  | connecté     | suivis du compte (tournois, équipes « slug/code »)                       |
-| `POST /me/follows/merge`                                                  | connecté     | ajouter les suivis de l'appareil à ceux du compte                        |
-| `POST /clubs`                                                             | connecté     | créer un club (on en devient propriétaire)                               |
-| `GET /organizer/tournaments?cursor&limit`                                 | bénévole     | tournois du club, les plus proches en premier, paginés                   |
-| `GET /organizer/members?cursor&limit`                                     | bénévole     | membres du club (paginés) et invitations en attente                      |
-| `POST /organizer/invitations`                                             | admin        | inviter par email (lien de 7 jours, réservé à l'adresse)                 |
-| `DELETE /organizer/invitations/:id`                                       | admin        | annuler une invitation                                                   |
-| `PATCH /organizer/members/:userId`                                        | propriétaire | changer un rôle (toujours un propriétaire au moins)                      |
-| `DELETE /organizer/members/:userId`                                       | bénévole     | quitter le club, ou retirer un membre de rôle inférieur                  |
-| `GET /invitations/:token`                                                 | public       | invitation lue par son lien (adresse masquée)                            |
-| `POST /invitations/:token/accept`                                         | connecté     | rejoindre le club, avec le compte de l'adresse invitée                   |
-| `GET /organizer/tournaments/:slug/sponsors`                               | organisateur | packs, sponsors et audience, prospects du club                           |
-| `POST /organizer/tournaments/:slug/sponsors`                              | organisateur | inviter un sponsor (pack épuisé : 409)                                   |
-| `PATCH /organizer/tournament-sponsors/:id`                                | organisateur | marquer payé hors Stripe                                                 |
-| `POST /organizer/tournaments/:slug/posts`                                 | organisateur | publier une annonce ou un sondage                                        |
+| Route                                                                     | Accès        | Rôle                                                                       |
+| ------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------- |
+| `GET /health/live`, `GET /health/ready`                                   | public       | sondes (ready vérifie Postgres)                                            |
+| `GET /public/tournaments?lat&lng&radiusKm&sport&cursor&limit`             | public       | tournois en cours ou à venir dans le rayon, paginés (distance, date, id)   |
+| `GET /public/tournaments/:slug`                                           | public       | page publique : équipes, matchs, classements (moteur)                      |
+| `GET /public/tournaments/:slug/matches?day`                               | public       | matchs d'une journée de Paris, par créneau puis phase ; journées           |
+| `GET /public/tournaments/:slug/live`                                      | public       | direct : scores des matchs en cours ou finis depuis < 30 min (cache 2 s)   |
+| `GET /public/tournaments/:slug/matches/:id/live`                          | public       | direct d'un match : score, statut, minute, dernier événement (cache 2 s)   |
+| `GET /public/tournaments/:slug/news?cursor&limit`                         | public       | fil News paginé, une carte sponsorisée au plus pour quatre éléments        |
+| `GET /public/tournaments/:slug/sponsors`                                  | public       | bannière Or, bandeau partagé (6 au plus), sponsors de terrain              |
+| `POST /public/posts/:postId/votes`                                        | public       | vote à un sondage                                                          |
+| `POST /public/audience`                                                   | public       | impression ou clic d'un sponsor, cumulé par heure                          |
+| `PUT /organizer/tournaments/:slug/schedule`                               | admin        | publier le planning (terrain et heure des matchs à venir)                  |
+| `DELETE /organizer/tournaments/:slug/matches/:matchId/reporter-links`     | bénévole     | révoquer les liens de la table de marque d'un match                        |
+| `GET /public/registrations/:code`                                         | public       | lien d'inscription : prix avec frais, places, paiements du club            |
+| `POST /tournaments/:code/registrations`                                   | connecté     | inscrire son équipe (Idempotency-Key) : payée, gratuite ou attente         |
+| `GET /registrations?cursor&limit`, `GET /registrations/:id`               | connecté     | mes équipes (responsable d'équipe), paginées                               |
+| `POST /registrations/:id/checkout`                                        | connecté     | payer une place proposée (liste d'attente) ou reprendre un paiement expiré |
+| `POST /registrations/:id/decline`                                         | connecté     | renoncer : quitter la liste d'attente ou refuser la place proposée         |
+| `POST /payments/stripe/webhook`                                           | Stripe       | paiement confirmé ou remboursé, expiré, compte validé (signature)          |
+| `GET /organizer/tournaments/:slug/registrations?cursor&limit&sort&status` | admin        | inscriptions d'un tournoi du club : tri, filtre de statut, paginées        |
+| `POST /organizer/tournaments/:slug/registrations/:id/promote`             | admin        | promouvoir une équipe de la liste d'attente (Idempotency-Key)              |
+| `GET /organizer/payments`                                                 | admin        | paiements en ligne du club (Stripe Connect)                                |
+| `POST /organizer/payments/onboarding`                                     | propriétaire | lien d'activation des paiements (vérification Stripe)                      |
+| `GET /push/config`                                                        | public       | clé publique VAPID (null sans notifications)                               |
+| `PUT /push/subscriptions`                                                 | public       | abonner ce navigateur (suivis, préférences ; compte si connecté)           |
+| `POST /push/subscriptions/delete`                                         | public       | désabonner ce navigateur                                                   |
+| `GET`, `PUT /me/follows`                                                  | connecté     | suivis du compte (tournois, équipes « slug/code »)                         |
+| `POST /me/follows/merge`                                                  | connecté     | ajouter les suivis de l'appareil à ceux du compte                          |
+| `POST /clubs`                                                             | connecté     | créer un club (on en devient propriétaire)                                 |
+| `GET /organizer/tournaments?cursor&limit`                                 | bénévole     | tournois du club, les plus proches en premier, paginés                     |
+| `GET /organizer/members?cursor&limit`                                     | bénévole     | membres du club (paginés) et invitations en attente                        |
+| `POST /organizer/invitations`                                             | admin        | inviter par email (lien de 7 jours, réservé à l'adresse)                   |
+| `DELETE /organizer/invitations/:id`                                       | admin        | annuler une invitation                                                     |
+| `PATCH /organizer/members/:userId`                                        | propriétaire | changer un rôle (toujours un propriétaire au moins)                        |
+| `DELETE /organizer/members/:userId`                                       | bénévole     | quitter le club, ou retirer un membre de rôle inférieur                    |
+| `GET /invitations/:token`                                                 | public       | invitation lue par son lien (adresse masquée)                              |
+| `POST /invitations/:token/accept`                                         | connecté     | rejoindre le club, avec le compte de l'adresse invitée                     |
+| `GET /organizer/tournaments/:slug/sponsors`                               | organisateur | packs, sponsors et audience, prospects du club                             |
+| `POST /organizer/tournaments/:slug/sponsors`                              | organisateur | inviter un sponsor (pack épuisé : 409)                                     |
+| `PATCH /organizer/tournament-sponsors/:id`                                | organisateur | marquer payé hors Stripe                                                   |
+| `POST /organizer/tournaments/:slug/posts`                                 | organisateur | publier une annonce ou un sondage                                          |
+
+## Liste d'attente
+
+Quand le tournoi est complet, l'inscription part en `WAITLISTED` sans paiement. Dès qu'une place se libère (page de paiement expirée, désistement, compte supprimé, tournoi agrandi), l'API dépose une tâche dans la file `waitlist` et le worker (`WaitlistProcessor`) promeut la plus ancienne équipe en attente sous le verrou du tournoi, jamais au-delà de la capacité : inscrite aussitôt si le tournoi est gratuit, sinon place tenue 48 heures (`paymentDueAt`) avec email et push au responsable, qui paie depuis Mes équipes (`POST /registrations/:id/checkout`, page Stripe de 31 minutes) ou renonce (`decline`). À l'échéance, une tâche différée fait expirer l'offre et promeut la suivante ; un balayage toutes les dix minutes rattrape les places rendues sans webhook. L'organisateur voit le rang et l'échéance dans le tableau des inscriptions et peut promouvoir à la main. Rien n'est encaissé avant la promotion.
 
 ## Pagination
 

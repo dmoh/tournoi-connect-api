@@ -88,6 +88,44 @@ export function registrationConfirmedMail(
 }
 
 /**
+ * Place libérée pour une équipe en liste d'attente d'un tournoi payant : elle
+ * est tenue jusqu'à la date limite, le paiement se fait depuis Mes équipes.
+ */
+export function waitlistOfferMail(
+  to: string,
+  info: {
+    team: string;
+    tournament: string;
+    date: string;
+    amount: string;
+    dueDate: string;
+    url: string;
+  },
+): MailMessage {
+  const subject = `Une place s’est libérée pour ${info.team} au ${info.tournament}`;
+  const hold = `La place de ${info.team} au ${info.tournament} (${info.date}) est tenue jusqu’au ${info.dueDate}. Passé ce délai, elle est proposée à l’équipe suivante.`;
+  const text = [
+    hold,
+    '',
+    `Payer la place (${info.amount}) : ${info.url}`,
+    '',
+    'Rien n’est prélevé avant votre paiement. Si vous ne souhaitez plus participer, renoncez à la place depuis la même page.',
+    '',
+    'Tournoi Connect',
+  ].join('\n');
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+<div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
+<p style="margin:0 0 8px;font-size:15px">Une place s’est libérée</p>
+<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.team)}</p>
+<p style="margin:0 0 16px;font-size:14px;color:#5c6a7f">${escape(info.tournament)} · ${escape(info.date)}</p>
+<p style="margin:0 0 20px;font-size:15px">${escape(hold)}</p>
+<a href="${escape(info.url)}" style="display:inline-block;background:#1e3a8a;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 20px;border-radius:12px">Payer la place (${escape(info.amount)})</a>
+<p style="margin:20px 0 0;font-size:13px;color:#5c6a7f">Rien n’est prélevé avant votre paiement. Si vous ne souhaitez plus participer, renoncez à la place depuis la même page.</p>
+</div></body></html>`;
+  return { to, subject, text, html };
+}
+
+/**
  * Paiement reçu mais non retenu, intégralement remboursé : tournoi complet
  * entre-temps, ou second paiement d'une inscription déjà réglée.
  */

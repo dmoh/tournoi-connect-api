@@ -19,7 +19,7 @@ import {
 } from '../common/pagination.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../database/prisma.service.js';
-import type { Prisma } from '../generated/prisma/client.js';
+import { Prisma } from '../generated/prisma/client.js';
 import type { Registration, Tournament } from '../generated/prisma/client.js';
 import { Mailer } from '../mail/mailer.js';
 import {
@@ -36,12 +36,19 @@ import {
   StripeClient,
   StripeError,
 } from '../payments/stripe-client.js';
+import { HOLD_MINUTES, registrationQuote } from './pricing.js';
 import {
-  HOLD_MINUTES,
-  registrationQuote,
-  shortName,
-  teamCodeBase,
-} from './pricing.js';
+  DAY_FORMAT,
+  EURO_FORMAT,
+  createTeam,
+  displayedStatus,
+  holdingWhere,
+  holdsPlace,
+  lapsedWhere,
+  occupiedPlaces,
+  registrationOpen,
+} from './registration-state.js';
+import { WaitlistService } from './waitlist.service.js';
 import type {
   OrganizerRegistration,
   OrganizerRegistrationsQuery,
@@ -53,7 +60,6 @@ import type {
 import { STRIPE } from './registrations.tokens.js';
 
 type Tx = Prisma.TransactionClient;
-type StoredPlayer = { firstName: string; lastName: string; number: string };
 
 /** Événement du webhook Stripe, signature vérifiée. */
 export interface StripeEvent {
@@ -110,23 +116,12 @@ interface PaidSession {
 const text = (v: unknown): string | null =>
   typeof v === 'string' && v.length > 0 ? v : null;
 
-const EURO_FORMAT = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-});
-
-const DAY_FORMAT = new Intl.DateTimeFormat('fr-FR', {
-  timeZone: 'Europe/Paris',
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-});
-
 /**
  * Inscriptions d'équipe par leur responsable : place tenue 31 minutes pendant
  * le paiement Stripe Checkout (argent versé au compte Connect du club, frais
- * de service à la plateforme), liste d'attente quand le tournoi est complet,
- * équipe créée à la confirmation.
+ * de service à la plateforme), liste d'attente quand le tournoi est complet
+ * (promue par WaitlistService quand une place se libère), équipe créée à la
+ * confirmation.
  */
 @Injectable()
 export class RegistrationsService {
@@ -139,6 +134,7 @@ export class RegistrationsService {
     private readonly config: ConfigService<Env, true>,
     @Inject(STRIPE) private readonly stripe: StripeClient,
     private readonly sponsorInvites: SponsorInvites,
+    private readonly waitlist: WaitlistService,
   ) {}
 
   async invite(code: string): Promise<RegistrationInvite> {
@@ -159,14 +155,10 @@ export class RegistrationsService {
       code,
       tournament: toSummary(tournament),
       quote: registrationQuote(tournament.feeCents),
-      open: this.isOpen(tournament, now),
+      open: registrationOpen(tournament, now),
       full:
-        (await this.occupied(
-          this.prisma,
-          tournament.id,
-          tournament.teamCount,
-          now,
-        )) >= tournament.maxTeams,
+        (await occupiedPlaces(this.prisma, tournament, now)) >=
+        tournament.maxTeams,
       paymentsReady:
         tournament.feeCents === 0 ||
         (this.stripe.enabled && tournament.organization.stripeChargesEnabled),
@@ -202,7 +194,7 @@ export class RegistrationsService {
     ) {
       throw new NotFoundException('Lien d’inscription inconnu.');
     }
-    if (!this.isOpen(tournament, now)) {
+    if (!registrationOpen(tournament, now)) {
       throw new ConflictException(
         'Les inscriptions de ce tournoi sont fermées.',
       );
@@ -227,9 +219,7 @@ export class RegistrationsService {
       const fresh = await tx.tournament.findUniqueOrThrow({
         where: { id: tournament.id },
       });
-      const full =
-        (await this.occupied(tx, fresh.id, fresh.teamCount, now)) >=
-        fresh.maxTeams;
+      const full = (await occupiedPlaces(tx, fresh, now)) >= fresh.maxTeams;
       const created = await tx.registration.create({
         data: {
           tournamentId: tournament.id,
@@ -249,7 +239,7 @@ export class RegistrationsService {
         },
       });
       if (created.status === 'CONFIRMED') {
-        await this.createTeam(tx, fresh, created);
+        await createTeam(tx, fresh, created);
       }
       return created;
     });
@@ -305,19 +295,27 @@ export class RegistrationsService {
     registration: Registration & { tournament: Tournament },
   ): Promise<RegistrationView> {
     const now = this.clock.now();
-    const status =
-      registration.status === 'PENDING_PAYMENT' &&
-      registration.expiresAt &&
-      registration.expiresAt <= now
-        ? 'EXPIRED'
-        : registration.status;
+    const status = displayedStatus(registration, now);
+    // Page de paiement encore ouverte (une place proposée peut n'en avoir aucune).
+    const liveCheckout =
+      status === 'PENDING_PAYMENT' &&
+      registration.checkoutUrl !== null &&
+      registration.expiresAt !== null &&
+      registration.expiresAt > now;
+    // Rang dans la file (createdAt, id) : le même ordre que la promotion.
     const waitlistPosition =
       status === 'WAITLISTED'
         ? (await this.prisma.registration.count({
             where: {
               tournamentId: registration.tournamentId,
               status: 'WAITLISTED',
-              createdAt: { lt: registration.createdAt },
+              OR: [
+                { createdAt: { lt: registration.createdAt } },
+                {
+                  createdAt: registration.createdAt,
+                  id: { lt: registration.id },
+                },
+              ],
             },
           })) + 1
         : undefined;
@@ -335,17 +333,24 @@ export class RegistrationsService {
         totalCents: registration.totalCents,
       },
       ...(waitlistPosition ? { waitlistPosition } : {}),
-      ...(status === 'PENDING_PAYMENT' && registration.checkoutUrl
-        ? { checkoutUrl: registration.checkoutUrl }
+      ...(liveCheckout
+        ? {
+            checkoutUrl: registration.checkoutUrl!,
+            expiresAt: registration.expiresAt!.toISOString(),
+          }
         : {}),
-      ...(status === 'PENDING_PAYMENT' && registration.expiresAt
-        ? { expiresAt: registration.expiresAt.toISOString() }
+      ...(status === 'PENDING_PAYMENT' && registration.paymentDueAt
+        ? { paymentDueAt: registration.paymentDueAt.toISOString() }
         : {}),
       createdAt: registration.createdAt.toISOString(),
     };
   }
 
-  /** Reprend un paiement dont la place a expiré, s'il reste une place. */
+  /**
+   * Ouvre le paiement d'une place proposée depuis la liste d'attente (tenue
+   * jusqu'à `paymentDueAt`, page Stripe de 31 minutes), ou reprend un
+   * paiement dont la place a expiré s'il en reste une.
+   */
   async retryCheckout(id: string, userId: string): Promise<RegistrationView> {
     const now = this.clock.now();
     const registration = await this.prisma.registration.findFirst({
@@ -358,16 +363,31 @@ export class RegistrationsService {
     if (!registration) {
       throw new NotFoundException('Inscription introuvable.');
     }
-    const expired =
-      registration.status === 'EXPIRED' ||
-      (registration.status === 'PENDING_PAYMENT' &&
-        registration.expiresAt !== null &&
-        registration.expiresAt <= now);
-    if (!expired) {
+    const { tournament } = registration;
+    const offered =
+      registration.status === 'PENDING_PAYMENT' &&
+      registration.paymentDueAt !== null &&
+      registration.paymentDueAt > now;
+    const liveCheckout =
+      registration.expiresAt !== null && registration.expiresAt > now;
+    if (offered && !liveCheckout) {
+      const held = await this.prisma.registration.update({
+        where: { id },
+        data: {
+          expiresAt: new Date(now.getTime() + HOLD_MINUTES * 60_000),
+          checkoutSessionId: null,
+          checkoutUrl: null,
+        },
+      });
+      await this.openCheckout(held, tournament, registration.manager!.email, {
+        keepOffer: true,
+      });
       return this.view(id, userId);
     }
-    const { tournament } = registration;
-    if (!this.isOpen(tournament, now)) {
+    if (displayedStatus(registration, now) !== 'EXPIRED') {
+      return this.view(id, userId);
+    }
+    if (!registrationOpen(tournament, now)) {
       throw new ConflictException(
         'Les inscriptions de ce tournoi sont fermées.',
       );
@@ -377,21 +397,21 @@ export class RegistrationsService {
       const fresh = await tx.tournament.findUniqueOrThrow({
         where: { id: tournament.id },
       });
-      const full =
-        (await this.occupied(tx, fresh.id, fresh.teamCount, now)) >=
-        fresh.maxTeams;
+      const full = (await occupiedPlaces(tx, fresh, now)) >= fresh.maxTeams;
       return tx.registration.update({
         where: { id },
         data: full
           ? {
               status: 'WAITLISTED',
               expiresAt: null,
+              paymentDueAt: null,
               checkoutSessionId: null,
               checkoutUrl: null,
             }
           : {
               status: 'PENDING_PAYMENT',
               expiresAt: new Date(now.getTime() + HOLD_MINUTES * 60_000),
+              paymentDueAt: null,
               checkoutSessionId: null,
               checkoutUrl: null,
             },
@@ -469,8 +489,7 @@ export class RegistrationsService {
             : null;
         case 'checkout.session.expired':
         case 'checkout.session.async_payment_failed':
-          await this.releaseHold(tx, objectId);
-          return null;
+          return this.releaseHold(tx, objectId);
         case 'account.updated':
           await this.accountEvent(tx, event, objectId);
           return null;
@@ -560,13 +579,7 @@ export class RegistrationsService {
           registration.status === 'CONFIRMED' ? 'duplicate' : 'full',
         );
     }
-    const taken = await this.occupied(
-      tx,
-      tournament.id,
-      tournament.teamCount,
-      now,
-      registration.id,
-    );
+    const taken = await occupiedPlaces(tx, tournament, now, registration.id);
     if (taken >= tournament.maxTeams) {
       const cancelled = await tx.registration.update({
         where: { id: registration.id },
@@ -575,6 +588,7 @@ export class RegistrationsService {
           paidAt: now,
           paymentIntentId: session.paymentIntent,
           expiresAt: null,
+          paymentDueAt: null,
           checkoutUrl: null,
         },
       });
@@ -590,19 +604,46 @@ export class RegistrationsService {
         paidAt: now,
         paymentIntentId: session.paymentIntent,
         expiresAt: null,
+        paymentDueAt: null,
         checkoutUrl: null,
       },
     });
-    await this.createTeam(tx, tournament, confirmed);
+    await createTeam(tx, tournament, confirmed);
     return () => this.mailConfirmation(confirmed.id);
   }
 
-  /** Session expirée ou paiement différé refusé : la place est rendue. */
-  private async releaseHold(tx: Tx, sessionId: string): Promise<void> {
-    await tx.registration.updateMany({
-      where: { checkoutSessionId: sessionId, status: 'PENDING_PAYMENT' },
+  /**
+   * Session expirée ou paiement différé refusé : la place est rendue et la
+   * liste d'attente promue (après validation). Une place proposée depuis la
+   * liste d'attente reste tenue jusqu'à son échéance : seule la page de
+   * paiement se ferme.
+   */
+  private async releaseHold(
+    tx: Tx,
+    sessionId: string,
+  ): Promise<(() => Promise<void>) | null> {
+    const held = await tx.registration.findUnique({
+      where: { checkoutSessionId: sessionId },
+    });
+    if (!held || held.status !== 'PENDING_PAYMENT') {
+      return null;
+    }
+    const now = this.clock.now();
+    if (held.paymentDueAt !== null && held.paymentDueAt > now) {
+      await tx.registration.update({
+        where: { id: held.id },
+        data: { checkoutUrl: null, expiresAt: null },
+      });
+      return null;
+    }
+    const wasHolding = holdsPlace(held, now);
+    await tx.registration.update({
+      where: { id: held.id },
       data: { status: 'EXPIRED', checkoutUrl: null },
     });
+    return wasHolding
+      ? () => this.waitlist.placeFreed(held.tournamentId, `${held.id}-expired`)
+      : null;
   }
 
   /** account.updated : appliqué sauf si un événement plus récent du compte l'a été. */
@@ -712,7 +753,50 @@ export class RegistrationsService {
       query.limit,
       page.cursorOf,
     );
-    const items = kept.map((r): OrganizerRegistration => ({
+    const positions = await this.waitlistPositions(
+      tournament.id,
+      kept.filter((r) => r.status === 'WAITLISTED').map((r) => r.id),
+    );
+    const items = kept.map((r) =>
+      this.toOrganizerRow(r, now, positions.get(r.id)),
+    );
+    return { items, nextCursor };
+  }
+
+  /** Une inscription d'un tournoi du club (après une promotion à la main) ; 404 hors du club. */
+  async organizerRegistration(
+    organizationSlug: string,
+    slug: string,
+    id: string,
+  ): Promise<OrganizerRegistration> {
+    const registration = await this.prisma.registration.findFirst({
+      where: {
+        id,
+        tournament: { slug, organization: { slug: organizationSlug } },
+      },
+      include: { manager: { select: { email: true } } },
+    });
+    if (!registration) {
+      throw new NotFoundException('Inscription introuvable.');
+    }
+    const positions = await this.waitlistPositions(
+      registration.tournamentId,
+      registration.status === 'WAITLISTED' ? [id] : [],
+    );
+    return this.toOrganizerRow(
+      registration,
+      this.clock.now(),
+      positions.get(id),
+    );
+  }
+
+  private toOrganizerRow(
+    r: Registration & { manager: { email: string } | null },
+    now: Date,
+    waitlistPosition: number | undefined,
+  ): OrganizerRegistration {
+    const status = displayedStatus(r, now);
+    return {
       id: r.id,
       teamName: r.teamName,
       club: r.club,
@@ -720,38 +804,49 @@ export class RegistrationsService {
       email: r.manager?.email ?? null,
       phone: r.phone,
       players: Array.isArray(r.players) ? r.players.length : 0,
-      status:
-        r.status === 'PENDING_PAYMENT' && r.expiresAt && r.expiresAt <= now
-          ? 'EXPIRED'
-          : r.status,
+      status,
       totalCents: r.totalCents,
+      ...(waitlistPosition ? { waitlistPosition } : {}),
+      ...(status === 'PENDING_PAYMENT' && r.paymentDueAt
+        ? { paymentDueAt: r.paymentDueAt.toISOString() }
+        : {}),
       createdAt: r.createdAt.toISOString(),
-    }));
-    return { items, nextCursor };
+    };
+  }
+
+  /** Rang dans la liste d'attente (createdAt, id) des inscriptions demandées, en une requête. */
+  private async waitlistPositions(
+    tournamentId: string,
+    ids: string[],
+  ): Promise<Map<string, number>> {
+    if (ids.length === 0) {
+      return new Map();
+    }
+    const rows = await this.prisma.$queryRaw<
+      { id: string; position: bigint }[]
+    >`SELECT id, position FROM (
+        SELECT id, row_number() OVER (ORDER BY created_at, id) AS position
+        FROM registration
+        WHERE tournament_id = ${tournamentId} AND status = 'WAITLISTED'
+      ) ranked WHERE id IN (${Prisma.join(ids)})`;
+    return new Map(rows.map((r) => [r.id, Number(r.position)]));
   }
 
   /**
    * Filtre du statut affiché : une place tenue dont le paiement a expiré
-   * s'affiche EXPIRED avant que la tâche de maintenance ne l'écrive.
+   * s'affiche EXPIRED avant que le worker ne l'écrive.
    */
   private displayedStatus(
     status: OrganizerRegistrationsQuery['status'],
     now: Date,
   ): Prisma.RegistrationWhereInput {
-    const lapsed = {
-      status: 'PENDING_PAYMENT' as const,
-      expiresAt: { lte: now },
-    };
     switch (status) {
       case undefined:
         return {};
       case 'EXPIRED':
-        return { OR: [{ status: 'EXPIRED' }, lapsed] };
+        return { OR: [{ status: 'EXPIRED' }, lapsedWhere(now)] };
       case 'PENDING_PAYMENT':
-        return {
-          status: 'PENDING_PAYMENT',
-          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-        };
+        return holdingWhere(now);
       default:
         return { status };
     }
@@ -833,6 +928,7 @@ export class RegistrationsService {
     registration: Registration,
     tournament: Tournament,
     email: string,
+    { keepOffer = false } = {},
   ): Promise<void> {
     const organization = await this.prisma.organization.findUniqueOrThrow({
       where: { id: tournament.organizationId },
@@ -870,96 +966,25 @@ export class RegistrationsService {
         data: { checkoutSessionId: session.id, checkoutUrl: session.url },
       });
     } catch (error) {
-      // Sans page de paiement, la place n'est pas tenue.
-      await this.prisma.registration.update({
-        where: { id: registration.id },
-        data: { status: 'EXPIRED' },
-      });
+      if (keepOffer) {
+        // La place proposée reste tenue jusqu'à son échéance ; le responsable réessaiera.
+        await this.prisma.registration.update({
+          where: { id: registration.id },
+          data: { expiresAt: null },
+        });
+      } else {
+        // Sans page de paiement, la place n'est pas tenue : la liste d'attente en profite.
+        await this.prisma.registration.update({
+          where: { id: registration.id },
+          data: { status: 'EXPIRED' },
+        });
+        await this.waitlist.placeFreed(
+          tournament.id,
+          `${registration.id}-no-checkout`,
+        );
+      }
       throw this.stripeFailure(error);
     }
-  }
-
-  /** Places prises : équipes inscrites et paiements en cours non expirés (sauf `excludeId`). */
-  private async occupied(
-    db: Tx | PrismaService,
-    tournamentId: string,
-    teamCount: number,
-    now: Date,
-    excludeId?: string,
-  ): Promise<number> {
-    const holding = await db.registration.count({
-      where: {
-        tournamentId,
-        status: 'PENDING_PAYMENT',
-        expiresAt: { gt: now },
-        ...(excludeId ? { id: { not: excludeId } } : {}),
-      },
-    });
-    return teamCount + holding;
-  }
-
-  private isOpen(tournament: Tournament, now: Date): boolean {
-    if (tournament.status !== 'REGISTRATION_OPEN') {
-      return false;
-    }
-    // Clôture : jusqu'à la fin du jour indiqué.
-    return (
-      !tournament.registrationDeadline ||
-      now.getTime() <
-        tournament.registrationDeadline.getTime() + 24 * 60 * 60 * 1000
-    );
-  }
-
-  private async createTeam(
-    tx: Tx,
-    tournament: Tournament,
-    registration: Registration,
-  ): Promise<void> {
-    const base = teamCodeBase(registration.teamName);
-    const taken = new Set(
-      (
-        await tx.team.findMany({
-          where: { tournamentId: tournament.id, code: { startsWith: base } },
-          select: { code: true },
-        })
-      ).map((t) => t.code),
-    );
-    let code = base;
-    for (let n = 2; taken.has(code); n += 1) {
-      code = `${base}${n}`;
-    }
-    const players = (registration.players as StoredPlayer[]).map((p, i) => ({
-      number: Number(p.number) || i + 1,
-      name: `${p.firstName} ${p.lastName}`.trim(),
-    }));
-    // Numéros en double ou absents : renumérotés à la suite.
-    const used = new Set<number>();
-    const unique = players.map((p) => {
-      let number = p.number;
-      while (used.has(number)) {
-        number += 100;
-      }
-      used.add(number);
-      return { ...p, number };
-    });
-    const team = await tx.team.create({
-      data: {
-        tournamentId: tournament.id,
-        code,
-        name: registration.teamName,
-        shortName: shortName(registration.teamName),
-        club: registration.club || registration.teamName,
-        players: { create: unique },
-      },
-    });
-    await tx.registration.update({
-      where: { id: registration.id },
-      data: { teamId: team.id },
-    });
-    await tx.tournament.update({
-      where: { id: tournament.id },
-      data: { teamCount: { increment: 1 } },
-    });
   }
 
   private async mailConfirmation(registrationId: string): Promise<void> {

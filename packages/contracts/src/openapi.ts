@@ -129,8 +129,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Reprendre un paiement expiré, s’il reste une place */
+        /** Payer une place proposée depuis la liste d’attente, ou reprendre un paiement expiré s’il reste une place */
         post: operations["RegistrationsController_retry_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registrations/{id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Renoncer : quitter la liste d’attente ou refuser la place proposée (l’équipe suivante est promue) */
+        post: operations["RegistrationsController_decline_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -148,6 +165,23 @@ export interface paths {
         get: operations["OrganizerRegistrationsController_list_v1"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/registrations/{id}/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Promouvoir une équipe de la liste d’attente : inscrite (gratuit) ou place proposée 48 h (payant) */
+        post: operations["OrganizerRegistrationsController_promote_v1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1599,6 +1633,8 @@ export interface operations {
                         /** Format: date-time */
                         expiresAt?: string;
                         /** Format: date-time */
+                        paymentDueAt?: string;
+                        /** Format: date-time */
                         createdAt: string;
                     };
                 };
@@ -1665,6 +1701,8 @@ export interface operations {
                             /** Format: date-time */
                             expiresAt?: string;
                             /** Format: date-time */
+                            paymentDueAt?: string;
+                            /** Format: date-time */
                             createdAt: string;
                         }[];
                         nextCursor: string | null;
@@ -1724,6 +1762,8 @@ export interface operations {
                         /** Format: date-time */
                         expiresAt?: string;
                         /** Format: date-time */
+                        paymentDueAt?: string;
+                        /** Format: date-time */
                         createdAt: string;
                     };
                 };
@@ -1781,6 +1821,8 @@ export interface operations {
                         /** Format: date-time */
                         expiresAt?: string;
                         /** Format: date-time */
+                        paymentDueAt?: string;
+                        /** Format: date-time */
                         createdAt: string;
                     };
                 };
@@ -1793,6 +1835,72 @@ export interface operations {
                 content?: never;
             };
             /** @description Inscriptions fermées */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RegistrationsController_decline_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        orderId: string;
+                        code: string;
+                        tournamentSlug: string;
+                        tournamentName: string;
+                        /** Format: date-time */
+                        startsAt: string;
+                        teamName: string;
+                        /** @enum {string} */
+                        status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
+                        quote: {
+                            feeCents: number;
+                            serviceFeeCents: number;
+                            totalCents: number;
+                        };
+                        waitlistPosition?: number;
+                        /** Format: uri */
+                        checkoutUrl?: string;
+                        /** Format: date-time */
+                        expiresAt?: string;
+                        /** Format: date-time */
+                        paymentDueAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Inscription introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Équipe déjà inscrite : désistement auprès de l’organisateur */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1837,6 +1945,9 @@ export interface operations {
                             /** @enum {string} */
                             status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
                             totalCents: number;
+                            waitlistPosition?: number;
+                            /** Format: date-time */
+                            paymentDueAt?: string;
                             /** Format: date-time */
                             createdAt: string;
                         }[];
@@ -1860,6 +1971,84 @@ export interface operations {
             };
             /** @description Tournoi hors du club */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerRegistrationsController_promote_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+                /** @description Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures. */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                slug: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        teamName: string;
+                        club: string;
+                        managerName: string;
+                        email: string | null;
+                        phone: string;
+                        players: number;
+                        /** @enum {string} */
+                        status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
+                        totalCents: number;
+                        waitlistPosition?: number;
+                        /** Format: date-time */
+                        paymentDueAt?: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Idempotency-Key invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou inscription hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi complet, inscriptions fermées, inscription hors liste d’attente, ou requête de même clé encore en cours */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Idempotency-Key déjà utilisée pour un autre corps */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
