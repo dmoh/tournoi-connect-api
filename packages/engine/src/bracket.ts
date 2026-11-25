@@ -8,7 +8,9 @@ export type Phase =
   | 'quarter'
   | 'semi'
   | 'third_place'
-  | 'final';
+  | 'final'
+  /** Ronde de système suisse (appariée au fil des résultats). */
+  | 'swiss';
 
 /**
  * Origine d'une place de match encore inconnue :
@@ -264,7 +266,7 @@ function planned(
 }
 
 /** Mélange de Fisher-Yates avec un générateur déterministe tiré de la graine. */
-function shuffle<T>(items: T[], seed: string): T[] {
+export function shuffle<T>(items: T[], seed: string): T[] {
   let state = 2166136261;
   for (const char of seed) {
     state = Math.imul(state ^ char.charCodeAt(0), 16777619);

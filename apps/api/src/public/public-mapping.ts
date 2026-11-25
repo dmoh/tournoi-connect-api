@@ -1,4 +1,4 @@
-import type { Phase } from '../generated/prisma/enums.js';
+import type { Phase, TournamentFormat } from '../generated/prisma/enums.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { TournamentSummary } from './public.schemas.js';
 
@@ -22,6 +22,14 @@ export const DISCOVERABLE_STATUSES = [
   'IN_PROGRESS',
 ] as const;
 
+/** Format du tournoi dans les contrats (SINGLE_GROUP ↔ single-group). */
+export const FORMAT_KIND = {
+  SINGLE_GROUP: 'single-group',
+  GROUPS_KNOCKOUT: 'groups-knockout',
+  KNOCKOUT: 'knockout',
+  SWISS: 'swiss',
+} as const satisfies Record<TournamentFormat, string>;
+
 /** round_of_32 (identifiant Prisma) ↔ round-of-32 (contrat). */
 export function toPublicPhase(
   phase: Phase,
@@ -32,7 +40,8 @@ export function toPublicPhase(
   | 'quarter'
   | 'semi'
   | 'third-place'
-  | 'final' {
+  | 'final'
+  | 'swiss' {
   return phase.replaceAll('_', '-') as ReturnType<typeof toPublicPhase>;
 }
 

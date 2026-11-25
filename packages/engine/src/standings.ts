@@ -115,7 +115,75 @@ export function computeStandings(
   });
 }
 
-type Criterion = 'points' | Tiebreaker;
+/** Ligne du classement d'un système suisse. */
+export interface SwissStandingRow extends StandingRow {
+  /** Buchholz : total des points des adversaires rencontrés. */
+  buchholz: number;
+  /** Rondes passées exempt (comptées comme une victoire sans but). */
+  byes: number;
+}
+
+/**
+ * Classement général d'un système suisse : points (une exemption vaut une
+ * victoire sans but), puis Buchholz (total des points des adversaires
+ * rencontrés, qui récompense un parcours plus difficile), puis les critères
+ * de départage du tournoi, puis le nom. Fonction pure et déterministe.
+ */
+export function computeSwissStandings(
+  teams: readonly StandingTeam[],
+  results: readonly GroupResult[],
+  byes: readonly string[],
+  rules: RankingRules = SPORT_RULES.football,
+): SwissStandingRow[] {
+  const rows = new Map<string, SwissStandingRow>();
+  for (const team of teams) {
+    rows.set(team.id, { ...emptyRow(team.id), buchholz: 0, byes: 0 });
+  }
+  const played: Played[] = [];
+  for (const result of results) {
+    if (!result.finished || !result.homeTeamId || !result.awayTeamId) {
+      continue;
+    }
+    const home = rows.get(result.homeTeamId);
+    const away = rows.get(result.awayTeamId);
+    if (!home || !away) {
+      continue;
+    }
+    record(home, result.scoreHome, result.scoreAway, rules);
+    record(away, result.scoreAway, result.scoreHome, rules);
+    played.push({
+      home: result.homeTeamId,
+      away: result.awayTeamId,
+      scoreHome: result.scoreHome,
+      scoreAway: result.scoreAway,
+    });
+  }
+  for (const team of byes) {
+    const row = rows.get(team);
+    if (row) {
+      row.played += 1;
+      row.won += 1;
+      row.byes += 1;
+      row.points += rules.points.win;
+    }
+  }
+  for (const match of played) {
+    rows.get(match.home)!.buchholz += rows.get(match.away)!.points;
+    rows.get(match.away)!.buchholz += rows.get(match.home)!.points;
+  }
+  const names = new Map(teams.map((team) => [team.id, team.name]));
+  const byName = (a: StandingRow, b: StandingRow) =>
+    (names.get(a.teamId) ?? '').localeCompare(names.get(b.teamId) ?? '', 'fr');
+  return rank(
+    [...rows.values()],
+    ['points', 'buchholz', ...rules.tiebreakers],
+    played,
+    rules,
+    byName,
+  ) as SwissStandingRow[];
+}
+
+type Criterion = 'points' | 'buchholz' | Tiebreaker;
 
 /**
  * Classe des équipes critère par critère : les équipes que le premier
@@ -170,6 +238,8 @@ function keyOf(
   switch (criterion) {
     case 'points':
       return [row.points];
+    case 'buchholz':
+      return [(row as Partial<SwissStandingRow>).buchholz ?? 0];
     case 'difference':
       return [row.goalsFor - row.goalsAgainst];
     case 'scored':

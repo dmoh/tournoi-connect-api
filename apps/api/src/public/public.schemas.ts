@@ -21,6 +21,7 @@ export const phaseSchema = z.enum([
   'semi',
   'third-place',
   'final',
+  'swiss',
 ]);
 export const publicStatusSchema = z.enum([
   'REGISTRATION_OPEN',
@@ -78,6 +79,8 @@ export const matchSchema = z.object({
   scoreAway: z.number().int(),
   status: z.enum(['SCHEDULED', 'LIVE', 'FINISHED']),
   minute: z.number().int().optional(),
+  /** Numéro de ronde d'un match de système suisse. */
+  round: z.number().int().optional(),
   /** Vainqueur aux tirs au but d'un match à élimination terminé sur un nul. */
   winner: z.enum(['home', 'away']).optional(),
 });
@@ -93,11 +96,19 @@ export const standingRowSchema = z.object({
   /** Bonus défensifs (rugby), déjà comptés dans les points. */
   bonus: z.number().int(),
   points: z.number().int(),
+  /** Système suisse : total des points des adversaires rencontrés. */
+  buchholz: z.number().int().optional(),
+  /** Système suisse : rondes passées exempt (victoires sans but). */
+  byes: z.number().int().optional(),
 });
 
 export const tournamentDetailSchema = tournamentSummarySchema.extend({
+  format: z.enum(['single-group', 'groups-knockout', 'knockout', 'swiss']),
+  /** Système suisse : nombre de rondes prévues, connu après le tirage. */
+  swissRounds: z.number().int().optional(),
   teams: z.array(teamSchema),
   matches: z.array(matchSchema),
+  /** Classement par poule ; système suisse : un seul classement, groupe vide. */
   standings: z.array(
     z.object({ group: z.string(), rows: z.array(standingRowSchema) }),
   ),

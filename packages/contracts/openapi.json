@@ -1393,6 +1393,942 @@
         ]
       }
     },
+    "/api/v1/organizer/billing": {
+      "get": {
+        "operationId": "OrganizerInvoicesController_profile_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "legalName": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "street": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "postalCode": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "city": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "siret": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "rna": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "vatRegistered": {
+                      "type": "boolean"
+                    },
+                    "vatNumber": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "vatExemptionNote": {
+                      "type": "string"
+                    },
+                    "complete": {
+                      "type": "boolean"
+                    },
+                    "nextNumber": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "legalName",
+                    "street",
+                    "postalCode",
+                    "city",
+                    "siret",
+                    "rna",
+                    "vatRegistered",
+                    "vatNumber",
+                    "vatExemptionNote",
+                    "complete",
+                    "nextNumber"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Identité de facturation du club et prochain numéro de facture",
+        "tags": [
+          "organizer"
+        ]
+      },
+      "put": {
+        "operationId": "OrganizerInvoicesController_updateProfile_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "legalName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 120
+                  },
+                  "street": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "postalCode": {
+                    "type": "string",
+                    "pattern": "^\\d{5}$"
+                  },
+                  "city": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "siret": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "rna": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "vatRegistered": {
+                    "type": "boolean"
+                  },
+                  "vatNumber": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "vatExemptionNote": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "legalName",
+                  "street",
+                  "postalCode",
+                  "city",
+                  "vatRegistered"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "legalName": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "street": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "postalCode": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "city": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "siret": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "rna": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "vatRegistered": {
+                      "type": "boolean"
+                    },
+                    "vatNumber": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "vatExemptionNote": {
+                      "type": "string"
+                    },
+                    "complete": {
+                      "type": "boolean"
+                    },
+                    "nextNumber": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "legalName",
+                    "street",
+                    "postalCode",
+                    "city",
+                    "siret",
+                    "rna",
+                    "vatRegistered",
+                    "vatNumber",
+                    "vatExemptionNote",
+                    "complete",
+                    "nextNumber"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Renseigne l’identité légale du club (raison sociale, siège, SIRET ou RNA, TVA)",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/organizer/invoices": {
+      "get": {
+        "operationId": "OrganizerInvoicesController_list_v1",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[\\w-]+$"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "number": {
+                            "type": "string"
+                          },
+                          "issuedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "sponsor": {
+                            "type": "string"
+                          },
+                          "tournament": {
+                            "type": "string"
+                          },
+                          "totalCents": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "number",
+                          "issuedAt",
+                          "sponsor",
+                          "tournament",
+                          "totalCents"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nextCursor": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Factures du club, les plus récentes en premier",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/organizer/invoices/{number}": {
+      "get": {
+        "operationId": "OrganizerInvoicesController_get_v1",
+        "parameters": [
+          {
+            "name": "number",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "number": {
+                      "type": "string"
+                    },
+                    "issuedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "paidAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "seller": {
+                      "type": "object",
+                      "properties": {
+                        "legalName": {
+                          "type": "string"
+                        },
+                        "street": {
+                          "type": "string"
+                        },
+                        "postalCode": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "siret": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "rna": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "vatNumber": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "legalName",
+                        "street",
+                        "postalCode",
+                        "city",
+                        "siret",
+                        "rna",
+                        "vatNumber"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "buyer": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "street": {
+                          "type": "string"
+                        },
+                        "postalCode": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "country": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "street",
+                        "postalCode",
+                        "city",
+                        "country",
+                        "email"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "tournament": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "netCents": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "vatRate": {
+                      "type": "number"
+                    },
+                    "vatCents": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "totalCents": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "vatNote": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "paidOnline": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "number",
+                    "issuedAt",
+                    "paidAt",
+                    "seller",
+                    "buyer",
+                    "label",
+                    "tournament",
+                    "netCents",
+                    "vatRate",
+                    "vatCents",
+                    "totalCents",
+                    "vatNote",
+                    "paidOnline"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Facture hors du club"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Une facture du club",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/organizer/tournament-sponsors/{id}/invoice": {
+      "post": {
+        "operationId": "OrganizerInvoicesController_issue_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "buyer": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                      },
+                      "street": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 200
+                      },
+                      "postalCode": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 12
+                      },
+                      "city": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      "country": {
+                        "default": "FR",
+                        "type": "string",
+                        "pattern": "^[A-Z]{2}$"
+                      }
+                    },
+                    "required": [
+                      "street",
+                      "postalCode",
+                      "city"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "number": {
+                      "type": "string"
+                    },
+                    "issuedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "paidAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "seller": {
+                      "type": "object",
+                      "properties": {
+                        "legalName": {
+                          "type": "string"
+                        },
+                        "street": {
+                          "type": "string"
+                        },
+                        "postalCode": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "siret": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "rna": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "vatNumber": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "legalName",
+                        "street",
+                        "postalCode",
+                        "city",
+                        "siret",
+                        "rna",
+                        "vatNumber"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "buyer": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "street": {
+                          "type": "string"
+                        },
+                        "postalCode": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "country": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "street",
+                        "postalCode",
+                        "city",
+                        "country",
+                        "email"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "tournament": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "netCents": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "vatRate": {
+                      "type": "number"
+                    },
+                    "vatCents": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "totalCents": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "vatNote": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "paidOnline": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "number",
+                    "issuedAt",
+                    "paidAt",
+                    "seller",
+                    "buyer",
+                    "label",
+                    "tournament",
+                    "netCents",
+                    "vatRate",
+                    "vatCents",
+                    "totalCents",
+                    "vatNote",
+                    "paidOnline"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Sponsor hors du club"
+          },
+          "409": {
+            "description": "Pack non payé, identité du club incomplète ou adresse du sponsor inconnue"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Établit la facture d’un pack payé (ou rend celle déjà émise) et l’envoie au sponsor",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/public/invoices/{token}": {
+      "get": {
+        "operationId": "PublicInvoicesController_view_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "number": {
+                      "type": "string"
+                    },
+                    "issuedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "paidAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "seller": {
+                      "type": "object",
+                      "properties": {
+                        "legalName": {
+                          "type": "string"
+                        },
+                        "street": {
+                          "type": "string"
+                        },
+                        "postalCode": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "siret": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "rna": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "vatNumber": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "legalName",
+                        "street",
+                        "postalCode",
+                        "city",
+                        "siret",
+                        "rna",
+                        "vatNumber"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "buyer": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "street": {
+                          "type": "string"
+                        },
+                        "postalCode": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "country": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "street",
+                        "postalCode",
+                        "city",
+                        "country",
+                        "email"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "tournament": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "netCents": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "vatRate": {
+                      "type": "number"
+                    },
+                    "vatCents": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "totalCents": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "vatNote": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "paidOnline": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "number",
+                    "issuedAt",
+                    "paidAt",
+                    "seller",
+                    "buyer",
+                    "label",
+                    "tournament",
+                    "netCents",
+                    "vatRate",
+                    "vatCents",
+                    "totalCents",
+                    "vatNote",
+                    "paidOnline"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lien invalide"
+          }
+        },
+        "summary": "Facture d’un pack sponsor (lien personnel)",
+        "tags": [
+          "public"
+        ]
+      }
+    },
     "/api/v1/organizer/tournaments/{slug}/draw": {
       "get": {
         "operationId": "BracketController_view_v1",
@@ -1508,6 +2444,27 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "swiss": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "rounds": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "drawn": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "rounds",
+                        "drawn"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -1518,7 +2475,8 @@
                     "groups",
                     "matches",
                     "endsAt",
-                    "overrunMinutes"
+                    "overrunMinutes",
+                    "swiss"
                   ],
                   "additionalProperties": false
                 }
@@ -1673,6 +2631,27 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "swiss": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "rounds": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "drawn": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "rounds",
+                        "drawn"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -1683,7 +2662,8 @@
                     "groups",
                     "matches",
                     "endsAt",
-                    "overrunMinutes"
+                    "overrunMinutes",
+                    "swiss"
                   ],
                   "additionalProperties": false
                 }
@@ -4375,6 +5355,20 @@
                         "COMPLETED"
                       ]
                     },
+                    "format": {
+                      "type": "string",
+                      "enum": [
+                        "single-group",
+                        "groups-knockout",
+                        "knockout",
+                        "swiss"
+                      ]
+                    },
+                    "swissRounds": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
                     "teams": {
                       "type": "array",
                       "items": {
@@ -4422,7 +5416,8 @@
                               "quarter",
                               "semi",
                               "third-place",
-                              "final"
+                              "final",
+                              "swiss"
                             ]
                           },
                           "group": {
@@ -4469,6 +5464,11 @@
                             ]
                           },
                           "minute": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "round": {
                             "type": "integer",
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
@@ -4547,6 +5547,16 @@
                                   "maximum": 9007199254740991
                                 },
                                 "points": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "buchholz": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "byes": {
                                   "type": "integer",
                                   "minimum": -9007199254740991,
                                   "maximum": 9007199254740991
@@ -4660,6 +5670,7 @@
                     "maxTeams",
                     "feeCents",
                     "status",
+                    "format",
                     "teams",
                     "matches",
                     "standings",
@@ -4760,7 +5771,8 @@
                                     "quarter",
                                     "semi",
                                     "third-place",
-                                    "final"
+                                    "final",
+                                    "swiss"
                                   ]
                                 },
                                 "matches": {
@@ -4780,7 +5792,8 @@
                                           "quarter",
                                           "semi",
                                           "third-place",
-                                          "final"
+                                          "final",
+                                          "swiss"
                                         ]
                                       },
                                       "group": {
@@ -4827,6 +5840,11 @@
                                         ]
                                       },
                                       "minute": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "round": {
                                         "type": "integer",
                                         "minimum": -9007199254740991,
                                         "maximum": 9007199254740991
@@ -6674,6 +7692,13 @@
                           },
                           "paidOnline": {
                             "type": "boolean"
+                          },
+                          "invoiceNumber": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "billingAddressKnown": {
+                            "type": "boolean"
                           }
                         },
                         "required": [
@@ -6684,7 +7709,9 @@
                           "tier",
                           "impressions",
                           "clicks",
-                          "paidOnline"
+                          "paidOnline",
+                          "invoiceNumber",
+                          "billingAddressKnown"
                         ],
                         "additionalProperties": false
                       }
@@ -6869,6 +7896,13 @@
                     "paidOnline": {
                       "type": "boolean"
                     },
+                    "invoiceNumber": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "billingAddressKnown": {
+                      "type": "boolean"
+                    },
                     "inviteUrl": {
                       "type": "string",
                       "format": "uri"
@@ -6886,6 +7920,8 @@
                     "impressions",
                     "clicks",
                     "paidOnline",
+                    "invoiceNumber",
+                    "billingAddressKnown",
                     "inviteUrl",
                     "emailed"
                   ],
@@ -7147,7 +8183,8 @@
                         "quarter",
                         "semi",
                         "third-place",
-                        "final"
+                        "final",
+                        "swiss"
                       ]
                     },
                     "field": {

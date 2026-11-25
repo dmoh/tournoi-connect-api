@@ -29,6 +29,8 @@ export interface CheckoutSessionInput {
   expiresAt: Date;
   metadata: Record<string, string>;
   idempotencyKey: string;
+  /** Demande l'adresse de facturation (facture d'un pack sponsor). */
+  billingAddress?: boolean;
 }
 
 export interface RefundInput {
@@ -137,6 +139,9 @@ export class StripeClient {
         cancel_url: input.cancelUrl,
         expires_at: Math.floor(input.expiresAt.getTime() / 1000),
         locale: 'fr',
+        ...(input.billingAddress
+          ? { billing_address_collection: 'required' }
+          : {}),
         line_items: input.lines.map((line) => ({
           quantity: 1,
           price_data: {
