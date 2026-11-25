@@ -24,6 +24,16 @@ export const drawSchema = z.object({
   endsAt: z.iso.datetime({ offset: true }).nullable(),
   /** Minutes au-delà de l'heure de fin du tournoi (0 si le calendrier tient). */
   overrunMinutes: z.number().int(),
+  /**
+   * Système suisse : nombre de rondes prévues et de rondes déjà appariées
+   * (la suivante l'est dès que la précédente est terminée) ; null sinon.
+   */
+  swiss: z
+    .object({
+      rounds: z.number().int(),
+      drawn: z.number().int(),
+    })
+    .nullable(),
 });
 
 export const winnerSchema = z.object({ side: z.enum(['home', 'away']) });
