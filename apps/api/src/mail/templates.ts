@@ -429,3 +429,77 @@ export function sponsorPaidClubMail(
   );
   return { to, subject, text, html };
 }
+
+const REFUND_DELAY =
+  'Il apparaît sur votre compte sous 5 à 10 jours selon votre banque.';
+
+/** Gabarit commun des annulations par le club (désistement, tournoi annulé). */
+function cancellationMail(
+  to: string,
+  subject: string,
+  info: { heading: string; team: string; tournament: string; lines: string[] },
+): MailMessage {
+  const text = [...info.lines.flatMap((l) => [l, '']), 'Tournoi Connect'].join(
+    '\n',
+  );
+  const paragraphs = info.lines
+    .map(
+      (l, i) =>
+        `<p style="margin:0 0 12px;font-size:${i === 0 ? 15 : 14}px${i === 0 ? '' : ';color:#5c6a7f'}">${escape(l)}</p>`,
+    )
+    .join('\n');
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+<div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
+<p style="margin:0 0 8px;font-size:15px">${escape(info.heading)}</p>
+<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.team)}</p>
+<p style="margin:0 0 16px;font-size:14px;color:#5c6a7f">${escape(info.tournament)}</p>
+${paragraphs}
+</div></body></html>`;
+  return { to, subject, text, html };
+}
+
+/** Équipe désistée par l'organisateur, remboursée ou non. */
+export function registrationWithdrawnMail(
+  to: string,
+  info: { team: string; tournament: string; refund: string | null },
+): MailMessage {
+  return cancellationMail(
+    to,
+    `Inscription de ${info.team} annulée au ${info.tournament}`,
+    {
+      heading: 'Inscription annulée',
+      team: info.team,
+      tournament: info.tournament,
+      lines: [
+        `L’organisateur du ${info.tournament} a annulé l’inscription de ${info.team}.`,
+        info.refund
+          ? `Votre paiement de ${info.refund} vous est intégralement remboursé. ${REFUND_DELAY}`
+          : 'Aucun remboursement n’est prévu : pour toute question, répondez à l’organisateur du tournoi.',
+      ],
+    },
+  );
+}
+
+/** Tournoi annulé par le club : motif, et remboursement s'il y a eu paiement. */
+export function tournamentCancelledMail(
+  to: string,
+  info: {
+    team: string;
+    tournament: string;
+    date: string;
+    reason: string;
+    refund: string | null;
+  },
+): MailMessage {
+  return cancellationMail(to, `${info.tournament} est annulé`, {
+    heading: 'Tournoi annulé',
+    team: info.team,
+    tournament: `${info.tournament} · ${info.date}`,
+    lines: [
+      `Le club organisateur a annulé le ${info.tournament}. Motif : ${info.reason}`,
+      info.refund
+        ? `Votre paiement de ${info.refund} vous est intégralement remboursé. ${REFUND_DELAY}`
+        : 'Vous n’aviez rien payé : aucune démarche n’est nécessaire.',
+    ],
+  });
+}

@@ -38,6 +38,7 @@ import {
 } from '../payments/stripe-client.js';
 import { HOLD_MINUTES, registrationQuote } from './pricing.js';
 import {
+  cancellationView,
   DAY_FORMAT,
   EURO_FORMAT,
   createTeam,
@@ -342,6 +343,7 @@ export class RegistrationsService {
       ...(status === 'PENDING_PAYMENT' && registration.paymentDueAt
         ? { paymentDueAt: registration.paymentDueAt.toISOString() }
         : {}),
+      ...cancellationView(registration),
       createdAt: registration.createdAt.toISOString(),
     };
   }
@@ -561,6 +563,10 @@ export class RegistrationsService {
       return null;
     }
     if (registration.status === 'CANCELLED' && samePayment) {
+      // Annulée par le club : son remboursement (ou son absence) est décidé là.
+      if (registration.cancellation) {
+        return null;
+      }
       // Remboursement interrompu : la relance le refait (même clé d'idempotence).
       return () => this.refund(registration, session, 'full');
     }
@@ -806,10 +812,12 @@ export class RegistrationsService {
       players: Array.isArray(r.players) ? r.players.length : 0,
       status,
       totalCents: r.totalCents,
+      paid: r.paidAt !== null && r.paymentIntentId !== null,
       ...(waitlistPosition ? { waitlistPosition } : {}),
       ...(status === 'PENDING_PAYMENT' && r.paymentDueAt
         ? { paymentDueAt: r.paymentDueAt.toISOString() }
         : {}),
+      ...cancellationView(r),
       createdAt: r.createdAt.toISOString(),
     };
   }

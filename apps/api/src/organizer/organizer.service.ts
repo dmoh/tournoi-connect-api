@@ -46,8 +46,8 @@ const FORMATS: Record<CreateTournament['format'], TournamentFormat> = {
 
 /** Statut de la carte organisateur : brouillon, publié (avant ou après le jour J), en cours. */
 function cardStatus(status: TournamentStatus): OrganizerTournament['status'] {
-  if (status === 'DRAFT') {
-    return 'DRAFT';
+  if (status === 'DRAFT' || status === 'CANCELLED') {
+    return status;
   }
   return status === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'PUBLISHED';
 }

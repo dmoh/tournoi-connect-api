@@ -222,6 +222,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizer/tournaments/{slug}/registrations/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Désister une équipe (inscrite, en paiement ou en liste d’attente), remboursée ou non ; la place va à la liste d’attente */
+        post: operations["CancellationsController_withdraw_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/cancellation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Avant d’annuler le tournoi : inscriptions annulées, remboursements, packs sponsors payés */
+        get: operations["CancellationsController_preview_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Annuler le tournoi : équipes remboursées, responsables et suiveurs prévenus, motif affiché au public */
+        post: operations["CancellationsController_cancel_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizer/billing": {
         parameters: {
             query?: never;
@@ -1622,7 +1673,12 @@ export interface operations {
                             maxTeams: number;
                             feeCents: number;
                             /** @enum {string} */
-                            status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED";
+                            status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+                            cancellation?: {
+                                /** Format: date-time */
+                                at: string;
+                                reason: string;
+                            };
                         };
                         quote: {
                             feeCents: number;
@@ -1702,6 +1758,15 @@ export interface operations {
                         expiresAt?: string;
                         /** Format: date-time */
                         paymentDueAt?: string;
+                        cancellation?: {
+                            /** @enum {string} */
+                            kind: "WITHDRAWN" | "TOURNAMENT_CANCELLED";
+                            /** Format: date-time */
+                            at: string;
+                            refundCents: number;
+                            /** Format: date-time */
+                            refundedAt: string | null;
+                        };
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -1770,6 +1835,15 @@ export interface operations {
                             expiresAt?: string;
                             /** Format: date-time */
                             paymentDueAt?: string;
+                            cancellation?: {
+                                /** @enum {string} */
+                                kind: "WITHDRAWN" | "TOURNAMENT_CANCELLED";
+                                /** Format: date-time */
+                                at: string;
+                                refundCents: number;
+                                /** Format: date-time */
+                                refundedAt: string | null;
+                            };
                             /** Format: date-time */
                             createdAt: string;
                         }[];
@@ -1831,6 +1905,15 @@ export interface operations {
                         expiresAt?: string;
                         /** Format: date-time */
                         paymentDueAt?: string;
+                        cancellation?: {
+                            /** @enum {string} */
+                            kind: "WITHDRAWN" | "TOURNAMENT_CANCELLED";
+                            /** Format: date-time */
+                            at: string;
+                            refundCents: number;
+                            /** Format: date-time */
+                            refundedAt: string | null;
+                        };
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -1890,6 +1973,15 @@ export interface operations {
                         expiresAt?: string;
                         /** Format: date-time */
                         paymentDueAt?: string;
+                        cancellation?: {
+                            /** @enum {string} */
+                            kind: "WITHDRAWN" | "TOURNAMENT_CANCELLED";
+                            /** Format: date-time */
+                            at: string;
+                            refundCents: number;
+                            /** Format: date-time */
+                            refundedAt: string | null;
+                        };
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -1949,6 +2041,15 @@ export interface operations {
                         expiresAt?: string;
                         /** Format: date-time */
                         paymentDueAt?: string;
+                        cancellation?: {
+                            /** @enum {string} */
+                            kind: "WITHDRAWN" | "TOURNAMENT_CANCELLED";
+                            /** Format: date-time */
+                            at: string;
+                            refundCents: number;
+                            /** Format: date-time */
+                            refundedAt: string | null;
+                        };
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -2013,9 +2114,19 @@ export interface operations {
                             /** @enum {string} */
                             status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
                             totalCents: number;
+                            paid: boolean;
                             waitlistPosition?: number;
                             /** Format: date-time */
                             paymentDueAt?: string;
+                            cancellation?: {
+                                /** @enum {string} */
+                                kind: "WITHDRAWN" | "TOURNAMENT_CANCELLED";
+                                /** Format: date-time */
+                                at: string;
+                                refundCents: number;
+                                /** Format: date-time */
+                                refundedAt: string | null;
+                            };
                             /** Format: date-time */
                             createdAt: string;
                         }[];
@@ -2079,9 +2190,19 @@ export interface operations {
                         /** @enum {string} */
                         status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
                         totalCents: number;
+                        paid: boolean;
                         waitlistPosition?: number;
                         /** Format: date-time */
                         paymentDueAt?: string;
+                        cancellation?: {
+                            /** @enum {string} */
+                            kind: "WITHDRAWN" | "TOURNAMENT_CANCELLED";
+                            /** Format: date-time */
+                            at: string;
+                            refundCents: number;
+                            /** Format: date-time */
+                            refundedAt: string | null;
+                        };
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -2196,6 +2317,241 @@ export interface operations {
             };
             /** @description Paiements non configurés */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CancellationsController_withdraw_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+                /** @description Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures. */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                slug: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    refund: boolean;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        registration: {
+                            id: string;
+                            teamName: string;
+                            club: string;
+                            managerName: string;
+                            email: string | null;
+                            phone: string;
+                            players: number;
+                            /** @enum {string} */
+                            status: "PENDING_PAYMENT" | "CONFIRMED" | "WAITLISTED" | "EXPIRED" | "CANCELLED";
+                            totalCents: number;
+                            paid: boolean;
+                            waitlistPosition?: number;
+                            /** Format: date-time */
+                            paymentDueAt?: string;
+                            cancellation?: {
+                                /** @enum {string} */
+                                kind: "WITHDRAWN" | "TOURNAMENT_CANCELLED";
+                                /** Format: date-time */
+                                at: string;
+                                refundCents: number;
+                                /** Format: date-time */
+                                refundedAt: string | null;
+                            };
+                            /** Format: date-time */
+                            createdAt: string;
+                        };
+                        drawReset: boolean;
+                    };
+                };
+            };
+            /**
+             * @description Corps invalide
+             *
+             *     Idempotency-Key invalide
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou inscription hors du club, ou rôle insuffisant */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Inscription déjà close, tournoi terminé ou annulé, matchs commencés, ou requête de même clé encore en cours */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Idempotency-Key déjà utilisée pour un autre corps */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CancellationsController_preview_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        name: string;
+                        /** Format: date-time */
+                        startsAt: string;
+                        cancellable: boolean;
+                        /** @enum {string} */
+                        status: "DRAFT" | "PUBLISHED" | "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED" | "ARCHIVED" | "CANCELLED";
+                        registrations: number;
+                        refunds: {
+                            count: number;
+                            totalCents: number;
+                        };
+                        sponsorsPaid: number;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi hors du club, ou rôle insuffisant */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CancellationsController_cancel_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+                /** @description Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures. */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        slug: string;
+                        /** @enum {string} */
+                        status: "CANCELLED";
+                        /** Format: date-time */
+                        cancelledAt: string;
+                        reason: string;
+                        registrations: number;
+                        refunds: {
+                            count: number;
+                            totalCents: number;
+                        };
+                    };
+                };
+            };
+            /**
+             * @description Motif manquant ou trop long
+             *
+             *     Idempotency-Key invalide
+             */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi hors du club, ou rôle insuffisant */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi terminé ou déjà annulé, ou requête de même clé encore en cours */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Idempotency-Key déjà utilisée pour un autre corps */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3899,7 +4255,12 @@ export interface operations {
                             maxTeams: number;
                             feeCents: number;
                             /** @enum {string} */
-                            status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED";
+                            status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+                            cancellation?: {
+                                /** Format: date-time */
+                                at: string;
+                                reason: string;
+                            };
                             distanceKm: number;
                         }[];
                         nextCursor: string | null;
@@ -3978,7 +4339,12 @@ export interface operations {
                         maxTeams: number;
                         feeCents: number;
                         /** @enum {string} */
-                        status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED";
+                        status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+                        cancellation?: {
+                            /** Format: date-time */
+                            at: string;
+                            reason: string;
+                        };
                         /** @enum {string} */
                         format: "single-group" | "groups-knockout" | "knockout" | "swiss";
                         swissRounds?: number;
@@ -4144,7 +4510,7 @@ export interface operations {
                         /** Format: date-time */
                         asOf: string;
                         /** @enum {string} */
-                        status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED";
+                        status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
                         matches: {
                             id: string;
                             /** @enum {string} */
@@ -4190,7 +4556,7 @@ export interface operations {
                         /** Format: date-time */
                         asOf: string;
                         /** @enum {string} */
-                        status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED";
+                        status: "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
                         match: {
                             id: string;
                             /** @enum {string} */
@@ -4565,7 +4931,7 @@ export interface operations {
                             slug: string;
                             name: string;
                             /** @enum {string} */
-                            status: "DRAFT" | "PUBLISHED" | "IN_PROGRESS";
+                            status: "DRAFT" | "PUBLISHED" | "IN_PROGRESS" | "CANCELLED";
                             /** Format: date-time */
                             startsAt: string;
                             city: string;
@@ -4659,7 +5025,7 @@ export interface operations {
                         slug: string;
                         name: string;
                         /** @enum {string} */
-                        status: "DRAFT" | "PUBLISHED" | "IN_PROGRESS";
+                        status: "DRAFT" | "PUBLISHED" | "IN_PROGRESS" | "CANCELLED";
                         /** Format: date-time */
                         startsAt: string;
                         city: string;
@@ -6269,7 +6635,7 @@ export interface operations {
                             slug: string;
                             name: string;
                             /** @enum {string} */
-                            status: "DRAFT" | "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED";
+                            status: "DRAFT" | "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
                             /** Format: date-time */
                             startsAt: string;
                             teamCount: number;

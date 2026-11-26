@@ -29,6 +29,9 @@ enum TournamentStatus {
   IN_PROGRESS
   COMPLETED
   ARCHIVED
+  /// Annulé par le club (intempéries, salle indisponible) : la page publique
+  /// l'annonce, les équipes sont remboursées.
+  CANCELLED
 }
 
 /// Format choisi dans l'assistant (écran 03 de la maquette).
@@ -187,6 +190,9 @@ model Tournament {
   /// Règles de classement choisies par l'organisateur (points, départages) ;
   /// vide : celles du sport (moteur, SPORT_RULES).
   rankingRules         Json?               @map("ranking_rules")
+  /// Annulation par le propriétaire du club : date et motif affiché au public.
+  cancelledAt          DateTime?           @map("cancelled_at") @db.Timestamptz
+  cancellationReason   String?             @map("cancellation_reason")
   reports              Report[]
   photos               Photo[]
   teams                Team[]
@@ -615,6 +621,15 @@ enum RegistrationStatus {
   CANCELLED
 }
 
+/// Origine d'une inscription annulée par le club (vide : remboursement
+/// automatique d'un paiement arrivé trop tard).
+enum Cancellation {
+  /// Équipe désistée par l'organisateur.
+  WITHDRAWN
+  /// Tournoi annulé.
+  TOURNAMENT_CANCELLED
+}
+
 /// Inscription d'une équipe par son responsable (compte connecté). Confirmée,
 /// elle crée l'équipe du tournoi.
 model Registration {
@@ -647,6 +662,13 @@ model Registration {
   paidAt            DateTime?          @map("paid_at") @db.Timestamptz
   teamId            String?            @unique @map("team_id")
   team              Team?              @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  cancellation      Cancellation?
+  cancelledAt       DateTime?          @map("cancelled_at") @db.Timestamptz
+  /// Montant à rendre au responsable après une annulation par le club
+  /// (centimes) ; vide ou 0 : rien à rembourser.
+  refundCents       Int?               @map("refund_cents")
+  /// Remboursement passé chez Stripe (le worker le fait, et le rattrape).
+  refundedAt        DateTime?          @map("refunded_at") @db.Timestamptz
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz
 
   @@index([tournamentId, status])
@@ -658,6 +680,8 @@ model Registration {
   /// Tableau organisateur : tri par date ou par nom d'équipe, puis id.
   @@index([tournamentId, createdAt, id])
   @@index([tournamentId, teamName, id])
+  /// Remboursements en attente (rattrapage du worker).
+  @@index([refundedAt, refundCents])
   @@map("registration")
 }
 

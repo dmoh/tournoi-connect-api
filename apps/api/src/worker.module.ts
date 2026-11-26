@@ -6,6 +6,7 @@ import { MailProcessor } from './mail/mail.processor.js';
 import { MaintenanceModule } from './maintenance/maintenance.module.js';
 import { MaintenanceProcessor } from './maintenance/maintenance.processor.js';
 import { PushProcessor } from './push/push.processor.js';
+import { RefundProcessor } from './registrations/refund.processor.js';
 import { RegistrationsModule } from './registrations/registrations.module.js';
 import { WaitlistProcessor } from './registrations/waitlist.processor.js';
 
@@ -21,6 +22,7 @@ import { WaitlistProcessor } from './registrations/waitlist.processor.js';
         MailProcessor,
         MaintenanceProcessor,
         PushProcessor,
+        RefundProcessor,
         WaitlistProcessor,
       ]
     : [],

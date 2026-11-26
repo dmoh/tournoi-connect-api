@@ -5,7 +5,10 @@ import type {
   Tournament,
 } from '../generated/prisma/client.js';
 import { shortName, teamCodeBase } from './pricing.js';
-import type { RegistrationView } from './registrations.schemas.js';
+import type {
+  CancellationView,
+  RegistrationView,
+} from './registrations.schemas.js';
 
 type Tx = Prisma.TransactionClient;
 type StoredPlayer = { firstName: string; lastName: string; number: string };
@@ -35,6 +38,26 @@ export function registrationOpen(
     now.getTime() <
       tournament.registrationDeadline.getTime() + 24 * 60 * 60 * 1000
   );
+}
+
+/** Annulation par le club, telle que le responsable et le club la lisent. */
+export function cancellationView(
+  r: Pick<
+    Registration,
+    'cancellation' | 'cancelledAt' | 'refundCents' | 'refundedAt'
+  >,
+): { cancellation?: CancellationView } {
+  if (!r.cancellation || !r.cancelledAt) {
+    return {};
+  }
+  return {
+    cancellation: {
+      kind: r.cancellation,
+      at: r.cancelledAt.toISOString(),
+      refundCents: r.refundCents ?? 0,
+      refundedAt: r.refundedAt?.toISOString() ?? null,
+    },
+  };
 }
 
 /** Ce qu'il faut d'une inscription pour savoir si elle tient une place. */
