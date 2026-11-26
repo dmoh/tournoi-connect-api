@@ -122,6 +122,11 @@ export const organizerTournamentSchema = z.object({
   venueName: z.string(),
   categories: z.array(z.string()),
   fields: z.number().int(),
+  /** Édition suivante déjà préparée depuis ce tournoi (la plus récente). */
+  nextEdition: z
+    .object({ slug: z.string(), startsAt: z.iso.datetime({ offset: true }) })
+    .nullable()
+    .optional(),
 });
 
 /**
@@ -206,9 +211,14 @@ export const nextEditionSchema = z.object({
   previous: z.object({
     slug: z.string(),
     name: z.string(),
-    /** Responsables d'équipe confirmés à l'édition précédente (adresses distinctes). */
+    startsAt: z.iso.datetime({ offset: true }),
+    /** Responsables d'équipe à inviter (adresses distinctes, désinscrits exclus). */
     teams: z.number().int(),
+    /** Une autre édition a déjà invité ces équipes : pas de seconde invitation. */
+    invited: z.boolean(),
   }),
+  /** Édition suivante déjà créée depuis ce tournoi (la plus récente). */
+  existing: z.object({ slug: z.string(), name: z.string() }).nullable(),
 });
 
 /** Écran 01 paginé : les plus proches en premier (startsAt, id). */

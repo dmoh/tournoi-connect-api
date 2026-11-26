@@ -30,14 +30,17 @@ export function parisDateTime(date: string, time: string): Date {
   return new Date(asUtc - parisOffsetMinutes(new Date(first)) * 60_000);
 }
 
-/** Jour de Paris d'un instant (« 2026-04-11 »). */
+/** Jour de Paris d'un instant (« 2026-04-11 »), assemblé pièce par pièce (format de locale non garanti). */
 export function parisDate(instant: Date): string {
-  return new Intl.DateTimeFormat('en-CA', {
+  const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: TOURNAMENT_TIME_ZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).format(instant);
+  }).formatToParts(instant);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
 /** Heure de Paris d'un instant (« 09:30 »). */
@@ -56,4 +59,14 @@ export function addDays(date: string, days: number): string {
   return new Date(Date.UTC(year!, month! - 1, day! + days))
     .toISOString()
     .slice(0, 10);
+}
+
+/**
+ * Jour de l'édition suivante : 52 semaines plus tard, le même jour de la
+ * semaine ; 53 si l'on resterait dans la même année (tournoi du 1er ou du
+ * 2 janvier).
+ */
+export function nextEditionDate(date: string): string {
+  const next = addDays(date, 52 * 7);
+  return next.slice(0, 4) === date.slice(0, 4) ? addDays(date, 53 * 7) : next;
 }

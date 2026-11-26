@@ -8,18 +8,35 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Queue } from 'bullmq';
 import { Clock } from '../common/clock.js';
-import { addDays, parisDate, parisTime } from '../common/paris-time.js';
+import {
+  addDays,
+  nextEditionDate,
+  parisDate,
+  parisTime,
+} from '../common/paris-time.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type { TournamentFormat } from '../generated/prisma/enums.js';
 import { Mailer } from '../mail/mailer.js';
 import { editionInviteMail } from '../mail/templates.js';
 import type { NextEdition } from '../organizer/organizer.schemas.js';
+import type { EditionOptOut } from './editions.schemas.js';
 import { EDITION_QUEUE } from '../queue/queue.module.js';
-import { DAY_FORMAT } from '../registrations/registration-state.js';
 
-/** Une édition par an, le même jour de la semaine : 52 semaines plus tard. */
-export const EDITION_SHIFT_DAYS = 52 * 7;
+/** « lundi 8 novembre 2027 » : envoyé un an à l'avance, l'année compte. */
+const DATE_FORMAT = new Intl.DateTimeFormat('fr-FR', {
+  timeZone: 'Europe/Paris',
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+const EUROS = new Intl.NumberFormat('fr-FR', {
+  style: 'currency',
+  currency: 'EUR',
+  minimumFractionDigits: 0,
+});
+
 /** Sans date de clôture connue : une semaine avant le tournoi. */
 const DEFAULT_DEADLINE_DAYS = 7;
 
@@ -65,17 +82,24 @@ export class EditionsService {
   ): Promise<NextEdition> {
     const t = await this.prisma.tournament.findFirst({
       where: { slug, organization: { slug: organizationSlug } },
-      include: { venue: true },
+      include: {
+        venue: true,
+        nextEditions: {
+          orderBy: { startsAt: 'desc' },
+          select: { slug: true, name: true, editionInvitesSentAt: true },
+        },
+      },
     });
     if (!t) {
       throw new NotFoundException('Tournoi introuvable.');
     }
-    const date = addDays(parisDate(t.startsAt), EDITION_SHIFT_DAYS);
+    const startDay = parisDate(t.startsAt);
+    const date = nextEditionDate(startDay);
+    const shift =
+      (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${startDay}T00:00:00Z`)) /
+      86_400_000;
     const deadline = t.registrationDeadline
-      ? addDays(
-          t.registrationDeadline.toISOString().slice(0, 10),
-          EDITION_SHIFT_DAYS,
-        )
+      ? addDays(t.registrationDeadline.toISOString().slice(0, 10), shift)
       : addDays(date, -DEFAULT_DEADLINE_DAYS);
     return {
       draft: {
@@ -105,8 +129,14 @@ export class EditionsService {
       previous: {
         slug: t.slug,
         name: t.name,
-        teams: (await this.recipients(t.id)).length,
+        startsAt: t.startsAt.toISOString(),
+        teams: (await this.recipients(t.id, t.organizationId)).length,
+        // Une autre édition a déjà écrit aux équipes : on ne les relance pas.
+        invited: t.nextEditions.some((e) => e.editionInvitesSentAt !== null),
       },
+      existing: t.nextEditions[0]
+        ? { slug: t.nextEditions[0].slug, name: t.nextEditions[0].name }
+        : null,
     };
   }
 
@@ -144,6 +174,7 @@ export class EditionsService {
           select: {
             id: true,
             name: true,
+            status: true,
             nextEditions: {
               where: { editionInvitesSentAt: { not: null } },
               select: { id: true },
@@ -168,37 +199,122 @@ export class EditionsService {
     if (count === 0) {
       return 0;
     }
-    const recipients = await this.recipients(t.previousEdition.id);
+    const recipients = await this.recipients(
+      t.previousEdition.id,
+      t.organizationId,
+    );
+    // Une invitation par adresse, avec son jeton de désinscription.
+    await this.prisma.editionInvite.createMany({
+      data: recipients.map((email) => ({
+        organizationId: t.organizationId,
+        tournamentId: t.id,
+        email,
+      })),
+      skipDuplicates: true,
+    });
+    const invites = await this.prisma.editionInvite.findMany({
+      where: { tournamentId: t.id, email: { in: recipients } },
+      select: { email: true, token: true },
+    });
     const joinUrl = this.appUrl(`/join/${encodeURIComponent(t.slug)}`);
-    for (const to of recipients) {
+    for (const invite of invites) {
       await this.mailer.send(
-        editionInviteMail(to, {
+        editionInviteMail(invite.email, {
           tournament: t.name,
           previous: t.previousEdition.name,
           club: t.organization.name,
-          date: DAY_FORMAT.format(t.startsAt),
+          date: DATE_FORMAT.format(t.startsAt),
           venue: `${t.venue.name}, ${t.venue.city}`,
+          deadline: t.registrationDeadline
+            ? DATE_FORMAT.format(t.registrationDeadline)
+            : null,
+          fee:
+            t.feeCents > 0
+              ? `${EUROS.format(t.feeCents / 100)} par équipe`
+              : 'Inscription gratuite',
           joinUrl,
+          unsubscribeUrl: this.appUrl(
+            `/editions/desinscription/${invite.token}`,
+          ),
+          oneClickUrl: this.appUrl(
+            `/api/v1/public/edition-invites/${invite.token}/opt-out`,
+          ),
         }),
       );
     }
     this.logger.log(
       `Édition ${t.slug} : ${recipients.length} équipe(s) de l'édition précédente invitée(s).`,
     );
-    return recipients.length;
+    return invites.length;
   }
 
-  /** Adresses distinctes des responsables d'équipe confirmés d'un tournoi. */
-  private async recipients(tournamentId: string): Promise<string[]> {
-    const rows = await this.prisma.registration.findMany({
-      where: { tournamentId, status: 'CONFIRMED', manager: { isNot: null } },
-      select: { manager: { select: { email: true } } },
+  /** Invitation d'un lien de désinscription ; inconnue : 404. */
+  async optOutInfo(token: string): Promise<EditionOptOut> {
+    const invite = await this.prisma.editionInvite.findUnique({
+      where: { token },
+      include: { organization: { select: { id: true, name: true } } },
     });
+    if (!invite) {
+      throw new NotFoundException('Lien de désinscription inconnu.');
+    }
+    const optedOut = await this.prisma.editionInvite.count({
+      where: {
+        organizationId: invite.organizationId,
+        email: invite.email,
+        optedOutAt: { not: null },
+      },
+    });
+    return { club: invite.organization.name, optedOut: optedOut > 0 };
+  }
+
+  /** Désinscription (lien de l'email, ou un clic du client mail) : rejouer ne change rien. */
+  async optOut(token: string): Promise<EditionOptOut> {
+    const invite = await this.prisma.editionInvite.findUnique({
+      where: { token },
+      select: { id: true },
+    });
+    if (!invite) {
+      throw new NotFoundException('Lien de désinscription inconnu.');
+    }
+    await this.prisma.editionInvite.updateMany({
+      where: { id: invite.id, optedOutAt: null },
+      data: { optedOutAt: this.clock.now() },
+    });
+    return this.optOutInfo(token);
+  }
+
+  /**
+   * Adresses distinctes des responsables d'équipe inscrites à un tournoi
+   * (confirmées ; pour un tournoi annulé, celles que l'annulation a rendues),
+   * sans celles qui se sont désinscrites des invitations du club.
+   */
+  private async recipients(
+    tournamentId: string,
+    organizationId: string,
+  ): Promise<string[]> {
+    const [rows, optedOut] = await Promise.all([
+      this.prisma.registration.findMany({
+        where: {
+          tournamentId,
+          manager: { isNot: null },
+          OR: [
+            { status: 'CONFIRMED' },
+            { status: 'CANCELLED', cancellation: 'TOURNAMENT_CANCELLED' },
+          ],
+        },
+        select: { manager: { select: { email: true } } },
+      }),
+      this.prisma.editionInvite.findMany({
+        where: { organizationId, optedOutAt: { not: null } },
+        select: { email: true },
+      }),
+    ]);
+    const excluded = new Set(optedOut.map((o) => o.email));
     return [
       ...new Set(
         rows.flatMap((r) => (r.manager ? [r.manager.email.toLowerCase()] : [])),
       ),
-    ];
+    ].filter((email) => !excluded.has(email));
   }
 
   private appUrl(path: string): string {

@@ -3976,6 +3976,100 @@
         ]
       }
     },
+    "/api/v1/public/edition-invites/{token}": {
+      "get": {
+        "operationId": "PublicEditionInvitesController_info_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "club": {
+                      "type": "string"
+                    },
+                    "optedOut": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "club",
+                    "optedOut"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lien inconnu"
+          }
+        },
+        "summary": "Club et état d’un lien de désinscription",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/v1/public/edition-invites/{token}/opt-out": {
+      "post": {
+        "operationId": "PublicEditionInvitesController_optOut_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "club": {
+                      "type": "string"
+                    },
+                    "optedOut": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "club",
+                    "optedOut"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lien inconnu"
+          }
+        },
+        "summary": "Ne plus recevoir les invitations aux nouvelles éditions du club (rejouable)",
+        "tags": [
+          "public"
+        ]
+      }
+    },
     "/api/v1/public/arrivals/{token}": {
       "get": {
         "operationId": "PublicArrivalsController_view_v1",
@@ -9371,6 +9465,25 @@
                             "type": "integer",
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
+                          },
+                          "nextEdition": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "slug": {
+                                "type": "string"
+                              },
+                              "startsAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                              }
+                            },
+                            "required": [
+                              "slug",
+                              "startsAt"
+                            ],
+                            "additionalProperties": false
                           }
                         },
                         "required": [
@@ -9724,6 +9837,25 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "nextEdition": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "startsAt"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -9989,23 +10121,51 @@
                         "name": {
                           "type": "string"
                         },
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
                         "teams": {
                           "type": "integer",
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
+                        },
+                        "invited": {
+                          "type": "boolean"
                         }
                       },
                       "required": [
                         "slug",
                         "name",
-                        "teams"
+                        "startsAt",
+                        "teams",
+                        "invited"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "existing": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name"
                       ],
                       "additionalProperties": false
                     }
                   },
                   "required": [
                     "draft",
-                    "previous"
+                    "previous",
+                    "existing"
                   ],
                   "additionalProperties": false
                 }

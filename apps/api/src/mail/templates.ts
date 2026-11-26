@@ -583,9 +583,11 @@ export function convocationMail(
 }
 
 /**
- * Nouvelle édition d'un tournoi : le responsable d'une équipe de l'édition
- * précédente inscrit son équipe en un appui. Envoyé une seule fois, quand
- * le club publie l'édition suivante.
+ * Nouvelle édition d'un tournoi : le responsable d'une équipe inscrite à
+ * l'édition précédente inscrit son équipe en un appui. Envoyé une seule fois,
+ * quand le club publie l'édition suivante ; chaque email porte son lien de
+ * désinscription (et l'en-tête List-Unsubscribe en un clic).
+ * Carte de 420 px fixée pour Outlook (moteur Word) par une table fantôme.
  */
 export function editionInviteMail(
   to: string,
@@ -593,35 +595,66 @@ export function editionInviteMail(
     tournament: string;
     previous: string;
     club: string;
+    /** « lundi 8 novembre 2027 » */
     date: string;
     venue: string;
+    /** « vendredi 29 octobre 2027 », ou null sans date de clôture. */
+    deadline: string | null;
+    /** « 60 € par équipe », « Inscription gratuite » */
+    fee: string;
     joinUrl: string;
+    /** Page de désinscription (lien de l'email). */
+    unsubscribeUrl: string;
+    /** Désinscription en un clic (POST, RFC 8058). */
+    oneClickUrl: string;
   },
 ): MailMessage {
-  const subject = `${info.tournament} : les inscriptions sont ouvertes`;
-  const intro = `Votre équipe a participé au ${info.previous}. ${info.club} organise la nouvelle édition, ${info.date}, et vous invite à inscrire votre équipe.`;
-  const why = `Vous recevez cet email car vous avez inscrit une équipe au ${info.previous}. Le club ne vous écrit qu’à la publication d’une nouvelle édition.`;
+  const subject = `${info.club} – ${info.tournament}\u202f: inscriptions ouvertes`;
+  const intro = `Votre équipe était inscrite à « ${info.previous} ». ${info.club} organise la nouvelle édition et vous invite à y inscrire votre équipe.`;
+  const why = `Vous recevez cet email car vous avez inscrit une équipe à « ${info.previous} ». ${info.club} ne vous écrit qu’à la publication d’une nouvelle édition.`;
+  const details = [
+    `Date\u202f: ${info.date}`,
+    `Lieu\u202f: ${info.venue}`,
+    ...(info.deadline ? [`Inscriptions jusqu’au ${info.deadline}`] : []),
+    info.fee,
+  ];
   const text = [
     intro,
     '',
-    `Lieu : ${info.venue}`,
-    `Inscrire mon équipe : ${info.joinUrl}`,
+    ...details,
+    '',
+    `Inscrire mon équipe\u202f: ${info.joinUrl}`,
     '',
     why,
+    `Ne plus recevoir les nouvelles éditions de ce club\u202f: ${info.unsubscribeUrl}`,
     '',
     'Tournoi Connect',
   ].join('\n');
-  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:0;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+  const rows = details
+    .map((line) => `<li style="margin:0 0 6px">${escape(line)}</li>`)
+    .join('');
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7f8fa"><tr><td align="center" style="padding:24px 12px">
-<table role="presentation" width="420" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
-<p style="margin:0 0 8px;font-size:15px">Nouvelle édition</p>
-<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.tournament)}</p>
-<p style="margin:0 0 16px;font-size:14px;color:#5c6a7f">${escape(info.date)} · ${escape(info.venue)}</p>
-<p style="margin:0 0 20px;font-size:15px">${escape(intro)}</p>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1e3a8a" style="border-radius:12px;padding:14px 20px"><a href="${escape(info.joinUrl)}" style="color:#ffffff;text-decoration:none;font-weight:600;font-size:15px">Inscrire mon équipe</a></td></tr></table>
-<p style="margin:20px 0 0;font-size:12px;color:#5c6a7f">${escape(why)}</p>
+<!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
+<p style="margin:0 0 8px;font-size:15px">Nouvelle édition · ${escape(info.club)}</p>
+<p style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.tournament)}</p>
+<p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
+<ul style="margin:0 0 20px;padding-left:20px;font-size:15px">${rows}</ul>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1e3a8a" style="border-radius:12px"><a href="${escape(info.joinUrl)}" style="display:inline-block;padding:14px 20px;mso-padding-alt:0;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px"><!--[if mso]><i style="mso-font-width:150%;mso-text-raise:21pt">&nbsp;</i><![endif]-->Inscrire mon équipe<!--[if mso]><i style="mso-font-width:150%">&nbsp;</i><![endif]--></a></td></tr></table>
+<p style="margin:20px 0 0;font-size:12px;color:#5c6a7f">${escape(why)} <a href="${escape(info.unsubscribeUrl)}" style="color:#5c6a7f">Ne plus recevoir les nouvelles éditions de ce club</a>.</p>
 </td></tr></table>
+<!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table>
 </body></html>`;
-  return { to, subject, text, html };
+  return {
+    to,
+    subject,
+    text,
+    html,
+    headers: {
+      'List-Unsubscribe': `<${info.oneClickUrl}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  };
 }

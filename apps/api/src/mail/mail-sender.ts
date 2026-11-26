@@ -6,6 +6,8 @@ export interface MailMessage {
   subject: string;
   text: string;
   html: string;
+  /** En-têtes en plus (List-Unsubscribe des invitations). */
+  headers?: Record<string, string>;
 }
 
 /** Envoi effectif d'un email (worker, ou directement sans Redis). */
@@ -37,6 +39,16 @@ export class SesMailSender extends MailSender {
               Text: { Data: message.text, Charset: 'UTF-8' },
               Html: { Data: message.html, Charset: 'UTF-8' },
             },
+            ...(message.headers
+              ? {
+                  Headers: Object.entries(message.headers).map(
+                    ([Name, Value]) => ({
+                      Name,
+                      Value,
+                    }),
+                  ),
+                }
+              : {}),
           },
         },
       }),

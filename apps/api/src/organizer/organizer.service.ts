@@ -307,7 +307,14 @@ export class OrganizerService {
         status: { not: 'ARCHIVED' },
         ...page.where,
       },
-      include: { venue: true },
+      include: {
+        venue: true,
+        nextEditions: {
+          orderBy: { startsAt: 'desc' },
+          take: 1,
+          select: { slug: true, startsAt: true },
+        },
+      },
       orderBy: page.orderBy,
       take: page.take,
     });
@@ -323,6 +330,12 @@ export class OrganizerService {
       venueName: t.venue.name,
       categories: t.categories,
       fields: t.fieldCount,
+      nextEdition: t.nextEditions[0]
+        ? {
+            slug: t.nextEditions[0].slug,
+            startsAt: t.nextEditions[0].startsAt.toISOString(),
+          }
+        : null,
     }));
   }
 

@@ -445,6 +445,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/edition-invites/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Club et état d’un lien de désinscription */
+        get: operations["PublicEditionInvitesController_info_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/edition-invites/{token}/opt-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ne plus recevoir les invitations aux nouvelles éditions du club (rejouable) */
+        post: operations["PublicEditionInvitesController_optOut_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/arrivals/{token}": {
         parameters: {
             query?: never;
@@ -3332,6 +3366,68 @@ export interface operations {
             };
         };
     };
+    PublicEditionInvitesController_info_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        club: string;
+                        optedOut: boolean;
+                    };
+                };
+            };
+            /** @description Lien inconnu */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicEditionInvitesController_optOut_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        club: string;
+                        optedOut: boolean;
+                    };
+                };
+            };
+            /** @description Lien inconnu */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     PublicArrivalsController_view_v1: {
         parameters: {
             query?: never;
@@ -5504,6 +5600,11 @@ export interface operations {
                             venueName: string;
                             categories: string[];
                             fields: number;
+                            nextEdition?: {
+                                slug: string;
+                                /** Format: date-time */
+                                startsAt: string;
+                            } | null;
                         }[];
                         nextCursor: string | null;
                     };
@@ -5602,6 +5703,11 @@ export interface operations {
                         venueName: string;
                         categories: string[];
                         fields: number;
+                        nextEdition?: {
+                            slug: string;
+                            /** Format: date-time */
+                            startsAt: string;
+                        } | null;
                     };
                 };
             };
@@ -5694,8 +5800,15 @@ export interface operations {
                         previous: {
                             slug: string;
                             name: string;
+                            /** Format: date-time */
+                            startsAt: string;
                             teams: number;
+                            invited: boolean;
                         };
+                        existing: {
+                            slug: string;
+                            name: string;
+                        } | null;
                     };
                 };
             };

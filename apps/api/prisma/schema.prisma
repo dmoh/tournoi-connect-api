@@ -106,6 +106,7 @@ model Organization {
   members              Membership[]
   invitations          Invitation[]
   reporterLinks        ReporterLink[]
+  editionInvites       EditionInvite[]
   /// Compte Stripe Connect (Express) du club : les inscriptions lui sont versées.
   stripeAccountId      String?         @unique @map("stripe_account_id")
   /// Paiements acceptés par Stripe (vérification du club terminée).
@@ -212,6 +213,7 @@ model Tournament {
   packages             SponsorPackage[]
   sponsors             TournamentSponsor[]
   registrations        Registration[]
+  editionInvites       EditionInvite[]
 
   @@index([status, startsAt])
   @@index([organizationId])
@@ -914,4 +916,23 @@ model Invoice {
   @@unique([organizationId, sequence])
   @@unique([organizationId, number])
   @@map("invoice")
+}
+
+/// Invitation d'un responsable d'équipe à l'édition suivante d'un tournoi :
+/// une par adresse et par édition. Son jeton sert au lien de désinscription ;
+/// une adresse désinscrite n'est plus invitée par le club.
+model EditionInvite {
+  id             String       @id @default(cuid())
+  token          String       @unique @default(dbgenerated("(gen_random_uuid())::text"))
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tournamentId   String       @map("tournament_id")
+  tournament     Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  email          String
+  sentAt         DateTime     @default(now()) @map("sent_at") @db.Timestamptz
+  optedOutAt     DateTime?    @map("opted_out_at") @db.Timestamptz
+
+  @@unique([tournamentId, email])
+  @@index([organizationId, email])
+  @@map("edition_invite")
 }
