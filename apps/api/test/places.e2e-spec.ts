@@ -17,6 +17,11 @@ const MEGEVE: Place = {
 class FakeGeocoder extends Geocoder {
   calls: { query: string; citycode?: string }[] = [];
   down = false;
+  nearestCalls: { lat: number; lng: number }[] = [];
+  nearest(lat: number, lng: number) {
+    this.nearestCalls.push({ lat, lng });
+    return Promise.resolve(lat > 45 && lat < 46 ? MEGEVE : null);
+  }
   municipalities(query: string, options: { limit: number; citycode?: string }) {
     this.calls.push({
       query,
@@ -71,6 +76,15 @@ describe('Communes (e2e)', () => {
     expect((await get('/pas-un-identifiant')).statusCode).toBe(404);
     // Une lettre ne suffit pas.
     expect((await get('?q=m')).statusCode).toBe(400);
+  });
+
+  it('trouve la commune la plus proche d’une position arrondie au kilomètre', async () => {
+    const res = await get('/nearest?lat=45.84371&lng=6.62612');
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ slug: 'megeve-74173' });
+    expect(geocoder.nearestCalls.at(-1)).toEqual({ lat: 45.84, lng: 6.63 });
+    expect((await get('/nearest?lat=10&lng=-30')).statusCode).toBe(404);
+    expect((await get('/nearest?lat=abc&lng=6')).statusCode).toBe(400);
   });
 
   it('dit que la recherche est indisponible si le géocodeur ne répond pas', async () => {

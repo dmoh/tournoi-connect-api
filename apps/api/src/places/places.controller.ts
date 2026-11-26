@@ -9,9 +9,11 @@ import {
 import { openApi } from '../common/openapi-schema.js';
 import { RateLimited } from '../common/rate-limit.js';
 import {
+  nearestQuerySchema,
   placeListSchema,
   placeSchema,
   placeSearchQuerySchema,
+  type NearestQuery,
   type Place,
   type PlaceList,
   type PlaceSearchQuery,
@@ -34,6 +36,20 @@ export class PlacesController {
     @Query({ schema: placeSearchQuerySchema }) query: PlaceSearchQuery,
   ): Promise<PlaceList> {
     return { items: await this.places.search(query.q, query.limit) };
+  }
+
+  @Get('nearest')
+  @RateLimited('places')
+  @ApiOperation({
+    summary:
+      'Commune la plus proche d’une position (arrondie au kilomètre, jamais gardée)',
+  })
+  @ApiOkResponse({ schema: openApi(placeSchema) })
+  @ApiNotFoundResponse({ description: 'Aucune commune française à proximité' })
+  nearest(
+    @Query({ schema: nearestQuerySchema }) query: NearestQuery,
+  ): Promise<Place> {
+    return this.places.nearest(query.lat, query.lng);
   }
 
   @Get(':slug')

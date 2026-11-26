@@ -39,6 +39,22 @@ export class PlacesService {
     );
   }
 
+  /** Commune la plus proche ; la position est arrondie au kilomètre avant tout. */
+  async nearest(lat: number, lng: number): Promise<Place> {
+    const rounded = (v: number) => Math.round(v * 100) / 100;
+    const places = await this.cached(
+      `n:${rounded(lat)}:${rounded(lng)}`,
+      async () => {
+        const place = await this.geocoder.nearest(rounded(lat), rounded(lng));
+        return place ? [place] : [];
+      },
+    );
+    if (!places[0]) {
+      throw new NotFoundException('Aucune commune française à proximité.');
+    }
+    return places[0];
+  }
+
   async bySlug(slug: string): Promise<Place> {
     const match = SLUG.exec(slug.toLowerCase());
     if (!match) {

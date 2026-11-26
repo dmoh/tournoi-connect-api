@@ -10,6 +10,9 @@ export abstract class Geocoder {
     query: string,
     options: { limit: number; citycode?: string },
   ): Promise<Place[]>;
+
+  /** Commune la plus proche d'un point, ou null en mer ou hors de France. */
+  abstract nearest(lat: number, lng: number): Promise<Place | null>;
 }
 
 /** Délai au-delà duquel le géocodeur est jugé indisponible. */
@@ -40,6 +43,19 @@ export class GeoplateformeGeocoder extends Geocoder {
     if (options.citycode) {
       url.searchParams.set('citycode', options.citycode);
     }
+    return this.places(url);
+  }
+
+  async nearest(lat: number, lng: number): Promise<Place | null> {
+    const url = new URL(`${this.base}/reverse`);
+    url.searchParams.set('lat', String(lat));
+    url.searchParams.set('lon', String(lng));
+    url.searchParams.set('type', 'municipality');
+    url.searchParams.set('limit', '1');
+    return (await this.places(url))[0] ?? null;
+  }
+
+  private async places(url: URL): Promise<Place[]> {
     const response = await fetch(url, {
       signal: AbortSignal.timeout(TIMEOUT_MS),
       headers: { accept: 'application/json' },

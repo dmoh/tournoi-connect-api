@@ -325,6 +325,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/places/nearest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Commune la plus proche d’une position (arrondie au kilomètre, jamais gardée) */
+        get: operations["PlacesController_nearest_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/places/{slug}": {
         parameters: {
             query?: never;
@@ -2564,6 +2581,50 @@ export interface operations {
                         }[];
                     };
                 };
+            };
+            /** @description Géocodeur indisponible */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PlacesController_nearest_v1: {
+        parameters: {
+            query: {
+                lat: number;
+                lng: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        slug: string;
+                        name: string;
+                        postcode: string;
+                        citycode: string;
+                        department: string;
+                        lat: number;
+                        lng: number;
+                    };
+                };
+            };
+            /** @description Aucune commune française à proximité */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Géocodeur indisponible */
             503: {

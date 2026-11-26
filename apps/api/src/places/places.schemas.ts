@@ -18,8 +18,18 @@ export const placeSearchQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(10).default(6),
 });
 
+/**
+ * Position de l'appareil, arrondie au kilomètre par l'application (deux
+ * décimales) : elle sert à trouver la commune, elle n'est pas gardée.
+ */
+export const nearestQuerySchema = z.object({
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+});
+
 export const placeListSchema = z.object({ items: z.array(placeSchema) });
 
 export type Place = z.infer<typeof placeSchema>;
 export type PlaceSearchQuery = z.infer<typeof placeSearchQuerySchema>;
+export type NearestQuery = z.infer<typeof nearestQuerySchema>;
 export type PlaceList = z.infer<typeof placeListSchema>;

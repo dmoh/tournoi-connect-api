@@ -2736,6 +2736,88 @@
         ]
       }
     },
+    "/api/v1/public/places/nearest": {
+      "get": {
+        "operationId": "PlacesController_nearest_v1",
+        "parameters": [
+          {
+            "name": "lat",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            }
+          },
+          {
+            "name": "lng",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "slug": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "postcode": {
+                      "type": "string"
+                    },
+                    "citycode": {
+                      "type": "string"
+                    },
+                    "department": {
+                      "type": "string"
+                    },
+                    "lat": {
+                      "type": "number"
+                    },
+                    "lng": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "slug",
+                    "name",
+                    "postcode",
+                    "citycode",
+                    "department",
+                    "lat",
+                    "lng"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Aucune commune française à proximité"
+          },
+          "503": {
+            "description": "Géocodeur indisponible"
+          }
+        },
+        "summary": "Commune la plus proche d’une position (arrondie au kilomètre, jamais gardée)",
+        "tags": [
+          "public"
+        ]
+      }
+    },
     "/api/v1/public/places/{slug}": {
       "get": {
         "operationId": "PlacesController_bySlug_v1",
