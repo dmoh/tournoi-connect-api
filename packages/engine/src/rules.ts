@@ -80,6 +80,20 @@ export const SPORT_RULES: Record<Sport, RankingRules> = {
   },
 };
 
+/**
+ * Score d'un match perdu par forfait, pour le vainqueur (le forfait marque
+ * 0), selon les usages des fédérations françaises : 3-0 au football, 10-0
+ * au handball, 20-0 au basket, 2-0 en sets au volley (format court), 25-0
+ * au rugby. Le classement le compte comme une défaite.
+ */
+export const FORFEIT_SCORE: Record<Sport, number> = {
+  football: 3,
+  handball: 10,
+  basketball: 20,
+  volleyball: 2,
+  rugby: 25,
+};
+
 /** Règles d'un tournoi : celles du sport, sauf réglage de l'organisateur. */
 export function rulesFor(
   sport: Sport,

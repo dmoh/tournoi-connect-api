@@ -87,6 +87,14 @@ export const registrationSchema = z.object({
    * l'agenda (/t/:slug/agenda?team=, calendrier public de l'équipe).
    */
   teamCode: z.string().optional(),
+  /** Jour J : lien d'arrivée de l'équipe (un appui), ouvert 4 h avant le début. */
+  arrival: z
+    .object({
+      token: z.string(),
+      open: z.boolean(),
+      arrivedAt: z.iso.datetime({ offset: true }).nullable(),
+    })
+    .optional(),
   createdAt: z.iso.datetime({ offset: true }),
 });
 

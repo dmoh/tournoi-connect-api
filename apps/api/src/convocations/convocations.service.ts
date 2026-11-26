@@ -264,6 +264,7 @@ export class ConvocationsService {
           matches,
           start: time(t.startsAt),
           agendaUrl: this.agendaUrl(t.slug, team.code),
+          arrivalUrl: this.appUrl(`/arrivee/${r.arrivalToken}`),
           pageUrl: this.appUrl(`/t/${encodeURIComponent(t.slug)}/matches`),
           update: kind === 'update',
         }),

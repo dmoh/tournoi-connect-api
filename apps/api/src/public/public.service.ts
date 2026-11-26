@@ -262,6 +262,7 @@ export class PublicService {
         shortName: team.shortName,
         club: team.club,
         ...(team.group ? { group: team.group } : {}),
+        ...(team.forfeitAt ? { forfeit: true as const } : {}),
       })),
       matches: t.matches.map(toPublicMatch),
       standings,
@@ -727,6 +728,7 @@ function toPublicMatch(m: Match): PublicMatch {
     ...(m.winnerSide
       ? { winner: m.winnerSide === 'HOME' ? 'home' : 'away' }
       : {}),
+    ...(m.forfeit ? { forfeit: m.forfeit === 'HOME' ? 'home' : 'away' } : {}),
   };
 }
 

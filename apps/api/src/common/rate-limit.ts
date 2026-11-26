@@ -92,6 +92,8 @@ export const RATE_LIMITS = {
    * (réponses en cache public 5 minutes).
    */
   calendar: [{ key: 'ip', max: 1200, windowMs: MINUTE }],
+  /** Lien d'arrivée d'une équipe (jour J), sans connexion. */
+  arrival: [{ key: 'ip', max: 30, windowMs: MINUTE }],
   /** Invitations d'un club, en plus de la limite métier par club. */
   invitation: [{ key: 'ip', max: 20, windowMs: MINUTE }],
 } as const satisfies Record<string, readonly RateLimit[]>;

@@ -68,6 +68,8 @@ export const teamSchema = z.object({
   shortName: z.string(),
   club: z.string(),
   group: z.string().optional(),
+  /** Équipe forfait (jour J) : ses matchs restants sont perdus. */
+  forfeit: z.literal(true).optional(),
 });
 
 export const matchSchema = z.object({
@@ -88,6 +90,8 @@ export const matchSchema = z.object({
   round: z.number().int().optional(),
   /** Vainqueur aux tirs au but d'un match à élimination terminé sur un nul. */
   winner: z.enum(['home', 'away']).optional(),
+  /** Équipe forfait : le score est celui du forfait. */
+  forfeit: z.enum(['home', 'away']).optional(),
 });
 
 export const standingRowSchema = z.object({
