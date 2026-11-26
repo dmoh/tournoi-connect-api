@@ -524,6 +524,8 @@ export function convocationMail(
     /** Début du tournoi, si aucun match n'est encore programmé. */
     start: string;
     agendaUrl: string;
+    /** Jour J : « Nous sommes arrivés » en un appui, sans connexion. */
+    arrivalUrl: string;
     pageUrl: string;
     /** Renvoi après un changement d'horaires. */
     update: boolean;
@@ -551,6 +553,7 @@ export function convocationMail(
     `Itinéraire : ${info.directionsUrl}`,
     '',
     `Ajouter à mon agenda : ${info.agendaUrl}`,
+    `Le jour J, signalez votre arrivée en un appui : ${info.arrivalUrl}`,
     `Le tournoi en direct : ${info.pageUrl}`,
     '',
     'Tournoi Connect',
@@ -571,7 +574,8 @@ export function convocationMail(
 <ul style="margin:0 0 16px;padding-left:20px;font-size:15px">${rows}</ul>
 <p style="margin:0 0 20px;font-size:14px">${escape(info.venue)} · <a href="${escape(info.directionsUrl)}" style="color:#1e3a8a">Itinéraire</a></p>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1e3a8a" style="border-radius:12px;padding:14px 20px"><a href="${escape(info.agendaUrl)}" style="color:#ffffff;text-decoration:none;font-weight:600;font-size:15px">Ajouter à mon agenda</a></td></tr></table>
-<p style="margin:16px 0 0;font-size:13px;color:#5c6a7f"><a href="${escape(info.pageUrl)}" style="color:#1e3a8a">Suivre le tournoi en direct</a></p>
+<p style="margin:16px 0 0;font-size:14px">Le jour J, <a href="${escape(info.arrivalUrl)}" style="color:#1e3a8a;font-weight:600">signalez votre arrivée en un appui</a> : l’organisateur sait que vous êtes là.</p>
+<p style="margin:12px 0 0;font-size:13px;color:#5c6a7f"><a href="${escape(info.pageUrl)}" style="color:#1e3a8a">Suivre le tournoi en direct</a></p>
 </td></tr></table>
 </td></tr></table>
 </body></html>`;

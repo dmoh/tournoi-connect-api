@@ -693,6 +693,29 @@
                     "teamCode": {
                       "type": "string"
                     },
+                    "arrival": {
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string"
+                        },
+                        "open": {
+                          "type": "boolean"
+                        },
+                        "arrivedAt": {
+                          "nullable": true,
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "open",
+                        "arrivedAt"
+                      ],
+                      "additionalProperties": false
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time",
@@ -889,6 +912,29 @@
                           "teamCode": {
                             "type": "string"
                           },
+                          "arrival": {
+                            "type": "object",
+                            "properties": {
+                              "token": {
+                                "type": "string"
+                              },
+                              "open": {
+                                "type": "boolean"
+                              },
+                              "arrivedAt": {
+                                "nullable": true,
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                              }
+                            },
+                            "required": [
+                              "token",
+                              "open",
+                              "arrivedAt"
+                            ],
+                            "additionalProperties": false
+                          },
                           "createdAt": {
                             "type": "string",
                             "format": "date-time",
@@ -1075,6 +1121,29 @@
                     "teamCode": {
                       "type": "string"
                     },
+                    "arrival": {
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string"
+                        },
+                        "open": {
+                          "type": "boolean"
+                        },
+                        "arrivedAt": {
+                          "nullable": true,
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "open",
+                        "arrivedAt"
+                      ],
+                      "additionalProperties": false
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time",
@@ -1249,6 +1318,29 @@
                     "teamCode": {
                       "type": "string"
                     },
+                    "arrival": {
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string"
+                        },
+                        "open": {
+                          "type": "boolean"
+                        },
+                        "arrivedAt": {
+                          "nullable": true,
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "open",
+                        "arrivedAt"
+                      ],
+                      "additionalProperties": false
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time",
@@ -1422,6 +1514,29 @@
                     },
                     "teamCode": {
                       "type": "string"
+                    },
+                    "arrival": {
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string"
+                        },
+                        "open": {
+                          "type": "boolean"
+                        },
+                        "arrivedAt": {
+                          "nullable": true,
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        }
+                      },
+                      "required": [
+                        "token",
+                        "open",
+                        "arrivedAt"
+                      ],
+                      "additionalProperties": false
                     },
                     "createdAt": {
                       "type": "string",
@@ -3856,6 +3971,483 @@
           }
         ],
         "summary": "Envoyer les convocations maintenant (ou de nouveau, après un changement d’horaires)",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/public/arrivals/{token}": {
+      "get": {
+        "operationId": "PublicArrivalsController_view_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "team": {
+                      "type": "string"
+                    },
+                    "tournament": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "venue": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name",
+                        "startsAt",
+                        "venue"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "arrivedAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "open": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "team",
+                    "tournament",
+                    "arrivedAt",
+                    "open"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lien inconnu ou plus valable"
+          }
+        },
+        "summary": "Équipe et tournoi d’un lien d’arrivée",
+        "tags": [
+          "public"
+        ]
+      },
+      "post": {
+        "operationId": "PublicArrivalsController_arrive_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "team": {
+                      "type": "string"
+                    },
+                    "tournament": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "venue": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name",
+                        "startsAt",
+                        "venue"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "arrivedAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "open": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "team",
+                    "tournament",
+                    "arrivedAt",
+                    "open"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lien inconnu ou plus valable"
+          },
+          "409": {
+            "description": "Pas encore le jour du tournoi"
+          }
+        },
+        "summary": "Signaler l’arrivée de l’équipe (jour J, un appui, rejouable)",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/v1/organizer/tournaments/{slug}/matchday": {
+      "get": {
+        "operationId": "OrganizerMatchdayController_view_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "teams": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "arrivedAt": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "forfeit": {
+                            "type": "boolean"
+                          },
+                          "nextMatchAt": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "name",
+                          "arrivedAt",
+                          "forfeit",
+                          "nextMatchAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "arrived": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "teams",
+                    "arrived"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Tournoi hors du club"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Équipes du jour J : arrivées, forfaits, prochain match",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/organizer/tournaments/{slug}/teams/{code}/arrival": {
+      "put": {
+        "operationId": "OrganizerMatchdayController_setArrival_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "arrived": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "arrived"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "teams": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "arrivedAt": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "forfeit": {
+                            "type": "boolean"
+                          },
+                          "nextMatchAt": {
+                            "nullable": true,
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "name",
+                          "arrivedAt",
+                          "forfeit",
+                          "nextMatchAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "arrived": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "teams",
+                    "arrived"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Tournoi hors du club ou équipe inconnue"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pointer l’arrivée d’une équipe (ou la retirer)",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/organizer/tournaments/{slug}/teams/{code}/forfeit": {
+      "post": {
+        "operationId": "OrganizerMatchdayController_forfeit_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "matches": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "matches"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Idempotency-Key invalide"
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Tournoi hors du club, équipe inconnue ou rôle insuffisant"
+          },
+          "409": {
+            "description": "Équipe déjà forfait, tournoi terminé ou annulé, ou requête de même clé en cours"
+          },
+          "422": {
+            "description": "Idempotency-Key déjà utilisée pour un autre corps"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Déclarer une équipe forfait : ses matchs à venir sont gagnés par l’adversaire (score de forfait du sport)",
         "tags": [
           "organizer"
         ]
@@ -7053,6 +7645,12 @@
                           },
                           "group": {
                             "type": "string"
+                          },
+                          "forfeit": {
+                            "type": "boolean",
+                            "enum": [
+                              true
+                            ]
                           }
                         },
                         "required": [
@@ -7139,6 +7737,13 @@
                             "maximum": 9007199254740991
                           },
                           "winner": {
+                            "type": "string",
+                            "enum": [
+                              "home",
+                              "away"
+                            ]
+                          },
+                          "forfeit": {
                             "type": "string",
                             "enum": [
                               "home",
@@ -7515,6 +8120,13 @@
                                         "maximum": 9007199254740991
                                       },
                                       "winner": {
+                                        "type": "string",
+                                        "enum": [
+                                          "home",
+                                          "away"
+                                        ]
+                                      },
+                                      "forfeit": {
                                         "type": "string",
                                         "enum": [
                                           "home",

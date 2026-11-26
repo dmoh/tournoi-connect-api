@@ -272,7 +272,10 @@ export class RegistrationsService {
       where: { managerId: userId, ...page.where },
       orderBy: page.orderBy,
       take: page.take,
-      include: { tournament: true, team: { select: { code: true } } },
+      include: {
+        tournament: true,
+        team: { select: { code: true, arrivedAt: true } },
+      },
     });
     const result = page.finish(rows, (row) => row);
     return {
@@ -284,7 +287,10 @@ export class RegistrationsService {
   async view(id: string, userId: string): Promise<RegistrationView> {
     const registration = await this.prisma.registration.findFirst({
       where: { id, managerId: userId },
-      include: { tournament: true, team: { select: { code: true } } },
+      include: {
+        tournament: true,
+        team: { select: { code: true, arrivedAt: true } },
+      },
     });
     if (!registration) {
       throw new NotFoundException('Inscription introuvable.');
@@ -295,7 +301,7 @@ export class RegistrationsService {
   private async toView(
     registration: Registration & {
       tournament: Tournament;
-      team?: { code: string } | null;
+      team?: { code: string; arrivedAt: Date | null } | null;
     },
   ): Promise<RegistrationView> {
     const now = this.clock.now();
@@ -351,7 +357,18 @@ export class RegistrationsService {
       ...(status === 'CONFIRMED' &&
       registration.team &&
       registration.tournament.endsAt > now
-        ? { teamCode: registration.team.code }
+        ? {
+            teamCode: registration.team.code,
+            // Jour J (4 h avant le début → fin) : « Nous sommes arrivés » en un appui.
+            arrival: {
+              token: registration.arrivalToken,
+              open:
+                now.getTime() >=
+                  registration.tournament.startsAt.getTime() - 4 * 3_600_000 &&
+                now <= registration.tournament.endsAt,
+              arrivedAt: registration.team.arrivedAt?.toISOString() ?? null,
+            },
+          }
         : {}),
       createdAt: registration.createdAt.toISOString(),
     };

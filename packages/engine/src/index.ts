@@ -13,6 +13,7 @@ export {
 export { generateRoundRobin, type Pairing } from './round-robin.js';
 export {
   rulesFor,
+  FORFEIT_SCORE,
   SPORT_RULES,
   TIEBREAKERS,
   validateRules,

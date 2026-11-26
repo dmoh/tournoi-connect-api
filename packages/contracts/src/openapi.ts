@@ -445,6 +445,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/arrivals/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Équipe et tournoi d’un lien d’arrivée */
+        get: operations["PublicArrivalsController_view_v1"];
+        put?: never;
+        /** Signaler l’arrivée de l’équipe (jour J, un appui, rejouable) */
+        post: operations["PublicArrivalsController_arrive_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/matchday": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Équipes du jour J : arrivées, forfaits, prochain match */
+        get: operations["OrganizerMatchdayController_view_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/teams/{code}/arrival": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Pointer l’arrivée d’une équipe (ou la retirer) */
+        put: operations["OrganizerMatchdayController_setArrival_v1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/teams/{code}/forfeit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Déclarer une équipe forfait : ses matchs à venir sont gagnés par l’adversaire (score de forfait du sport) */
+        post: operations["OrganizerMatchdayController_forfeit_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizer/tournaments/{slug}/draw": {
         parameters: {
             query?: never;
@@ -1803,6 +1872,12 @@ export interface operations {
                             refundedAt: string | null;
                         };
                         teamCode?: string;
+                        arrival?: {
+                            token: string;
+                            open: boolean;
+                            /** Format: date-time */
+                            arrivedAt: string | null;
+                        };
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -1881,6 +1956,12 @@ export interface operations {
                                 refundedAt: string | null;
                             };
                             teamCode?: string;
+                            arrival?: {
+                                token: string;
+                                open: boolean;
+                                /** Format: date-time */
+                                arrivedAt: string | null;
+                            };
                             /** Format: date-time */
                             createdAt: string;
                         }[];
@@ -1952,6 +2033,12 @@ export interface operations {
                             refundedAt: string | null;
                         };
                         teamCode?: string;
+                        arrival?: {
+                            token: string;
+                            open: boolean;
+                            /** Format: date-time */
+                            arrivedAt: string | null;
+                        };
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -2021,6 +2108,12 @@ export interface operations {
                             refundedAt: string | null;
                         };
                         teamCode?: string;
+                        arrival?: {
+                            token: string;
+                            open: boolean;
+                            /** Format: date-time */
+                            arrivedAt: string | null;
+                        };
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -2090,6 +2183,12 @@ export interface operations {
                             refundedAt: string | null;
                         };
                         teamCode?: string;
+                        arrival?: {
+                            token: string;
+                            open: boolean;
+                            /** Format: date-time */
+                            arrivedAt: string | null;
+                        };
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -3201,6 +3300,262 @@ export interface operations {
                 content?: never;
             };
             /** @description Tournoi terminé, annulé ou en brouillon, ou requête de même clé encore en cours */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Idempotency-Key déjà utilisée pour un autre corps */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicArrivalsController_view_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        team: string;
+                        tournament: {
+                            slug: string;
+                            name: string;
+                            /** Format: date-time */
+                            startsAt: string;
+                            venue: string;
+                        };
+                        /** Format: date-time */
+                        arrivedAt: string | null;
+                        open: boolean;
+                    };
+                };
+            };
+            /** @description Lien inconnu ou plus valable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicArrivalsController_arrive_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        team: string;
+                        tournament: {
+                            slug: string;
+                            name: string;
+                            /** Format: date-time */
+                            startsAt: string;
+                            venue: string;
+                        };
+                        /** Format: date-time */
+                        arrivedAt: string | null;
+                        open: boolean;
+                    };
+                };
+            };
+            /** @description Lien inconnu ou plus valable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Pas encore le jour du tournoi */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerMatchdayController_view_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        teams: {
+                            code: string;
+                            name: string;
+                            /** Format: date-time */
+                            arrivedAt: string | null;
+                            forfeit: boolean;
+                            /** Format: date-time */
+                            nextMatchAt: string | null;
+                        }[];
+                        arrived: number;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerMatchdayController_setArrival_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    arrived: boolean;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        teams: {
+                            code: string;
+                            name: string;
+                            /** Format: date-time */
+                            arrivedAt: string | null;
+                            forfeit: boolean;
+                            /** Format: date-time */
+                            nextMatchAt: string | null;
+                        }[];
+                        arrived: number;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi hors du club ou équipe inconnue */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerMatchdayController_forfeit_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+                /** @description Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures. */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                slug: string;
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        matches: number;
+                    };
+                };
+            };
+            /** @description Idempotency-Key invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi hors du club, équipe inconnue ou rôle insuffisant */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Équipe déjà forfait, tournoi terminé ou annulé, ou requête de même clé en cours */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4536,6 +4891,8 @@ export interface operations {
                             shortName: string;
                             club: string;
                             group?: string;
+                            /** @enum {boolean} */
+                            forfeit?: true;
                         }[];
                         matches: {
                             id: string;
@@ -4557,6 +4914,8 @@ export interface operations {
                             round?: number;
                             /** @enum {string} */
                             winner?: "home" | "away";
+                            /** @enum {string} */
+                            forfeit?: "home" | "away";
                         }[];
                         standings: {
                             group: string;
@@ -4650,6 +5009,8 @@ export interface operations {
                                     round?: number;
                                     /** @enum {string} */
                                     winner?: "home" | "away";
+                                    /** @enum {string} */
+                                    forfeit?: "home" | "away";
                                 }[];
                             }[];
                         }[];
