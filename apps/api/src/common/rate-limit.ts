@@ -81,6 +81,11 @@ export const RATE_LIMITS = {
    * les admins par email. En plus de la limite métier par tournoi et par heure.
    */
   report: [{ key: 'ip', max: 10, windowMs: 10 * MINUTE }],
+  /**
+   * Recherche de communes (saisie au fil de la frappe, géocodeur public de
+   * l'État derrière) : une requête par touche, avec un cache côté API.
+   */
+  places: [{ key: 'ip', max: 120, windowMs: MINUTE }],
   /** Invitations d'un club, en plus de la limite métier par club. */
   invitation: [{ key: 'ip', max: 20, windowMs: MINUTE }],
 } as const satisfies Record<string, readonly RateLimit[]>;
