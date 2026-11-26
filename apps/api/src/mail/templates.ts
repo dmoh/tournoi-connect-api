@@ -503,3 +503,63 @@ export function tournamentCancelledMail(
     ],
   });
 }
+
+/**
+ * Convocation d'une équipe (J-2, ou envoyée par le club) : premier match en
+ * tête, programme, lieu avec l'itinéraire, et l'agenda en un appui.
+ */
+export function convocationMail(
+  to: string,
+  info: {
+    team: string;
+    tournament: string;
+    date: string;
+    venue: string;
+    directionsUrl: string;
+    /** Matchs de l'équipe (« 9 h 30 · Terrain 1 · contre Les Marmottes »). */
+    matches: string[];
+    /** Début du tournoi, si aucun match n'est encore programmé. */
+    start: string;
+    calendarUrl: string;
+    pageUrl: string;
+  },
+): MailMessage {
+  const subject = `Convocation : ${info.team} au ${info.tournament}, ${info.date}`;
+  const first = info.matches[0]
+    ? `Premier match : ${info.matches[0]}.`
+    : `Début du tournoi : ${info.start}. Les horaires des matchs arrivent dans votre agenda dès leur publication.`;
+  const text = [
+    `${info.team} est attendue au ${info.tournament}, ${info.date}.`,
+    '',
+    first,
+    ...(info.matches.length > 1
+      ? ['', 'Vos matchs :', ...info.matches.map((m) => `- ${m}`)]
+      : []),
+    '',
+    `Lieu : ${info.venue}`,
+    `Itinéraire : ${info.directionsUrl}`,
+    '',
+    `Ajouter à mon agenda (mis à jour si les horaires changent) : ${info.calendarUrl}`,
+    `Le tournoi en direct : ${info.pageUrl}`,
+    '',
+    'Tournoi Connect',
+  ].join('\n');
+  const list =
+    info.matches.length > 1
+      ? `<ul style="margin:0 0 16px;padding-left:20px;font-size:14px">${info.matches
+          .map((m) => `<li style="margin:0 0 4px">${escape(m)}</li>`)
+          .join('')}</ul>`
+      : '';
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+<div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
+<p style="margin:0 0 8px;font-size:15px">Convocation</p>
+<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.team)}</p>
+<p style="margin:0 0 16px;font-size:14px;color:#5c6a7f">${escape(info.tournament)} · ${escape(info.date)}</p>
+<p style="margin:0 0 12px;font-size:16px;font-weight:600">${escape(first)}</p>
+${list}
+<p style="margin:0 0 20px;font-size:14px">${escape(info.venue)} · <a href="${escape(info.directionsUrl)}" style="color:#1e3a8a">Itinéraire</a></p>
+<a href="${escape(info.calendarUrl)}" style="display:inline-block;background:#1e3a8a;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 20px;border-radius:12px">Ajouter à mon agenda</a>
+<p style="margin:16px 0 0;font-size:13px;color:#5c6a7f">L’agenda se met à jour si les horaires changent. <a href="${escape(info.pageUrl)}" style="color:#1e3a8a">Suivre le tournoi en direct</a></p>
+</div></body></html>`;
+  return { to, subject, text, html };
+}

@@ -86,6 +86,8 @@ export const RATE_LIMITS = {
    * l'État derrière) : une requête par touche, avec un cache côté API.
    */
   places: [{ key: 'ip', max: 120, windowMs: MINUTE }],
+  /** Calendriers d'équipe : les agendas abonnés les relisent toutes les heures. */
+  calendar: [{ key: 'ip', max: 60, windowMs: MINUTE }],
   /** Invitations d'un club, en plus de la limite métier par club. */
   invitation: [{ key: 'ip', max: 20, windowMs: MINUTE }],
 } as const satisfies Record<string, readonly RateLimit[]>;

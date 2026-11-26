@@ -193,6 +193,8 @@ model Tournament {
   /// Annulation par le propriétaire du club : date et motif affiché au public.
   cancelledAt          DateTime?           @map("cancelled_at") @db.Timestamptz
   cancellationReason   String?             @map("cancellation_reason")
+  /// Convocations des équipes envoyées (J-2, ou à la main par le club).
+  convocationsSentAt   DateTime?           @map("convocations_sent_at") @db.Timestamptz
   reports              Report[]
   photos               Photo[]
   teams                Team[]

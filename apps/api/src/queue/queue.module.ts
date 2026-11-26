@@ -14,6 +14,8 @@ export const PUSH_QUEUE = 'push';
 export const WAITLIST_QUEUE = 'waitlist';
 /** Remboursements des annulations par le club (désistement, tournoi annulé). */
 export const REFUND_QUEUE = 'refund';
+/** Convocations des équipes : balayage horaire des tournois à J-2. */
+export const CONVOCATION_QUEUE = 'convocation';
 
 /**
  * Files BullMQ (ADR-010). Sans REDIS_URL (tests, poste sans Redis), aucune
@@ -70,6 +72,15 @@ export class QueueModule {
             backoff: { type: 'exponential', delay: 5000 },
             removeOnComplete: 1000,
             removeOnFail: 5000,
+          },
+        }),
+        BullModule.registerQueue({
+          name: CONVOCATION_QUEUE,
+          defaultJobOptions: {
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 60_000 },
+            removeOnComplete: 100,
+            removeOnFail: 500,
           },
         }),
         BullModule.registerQueue({

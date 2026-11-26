@@ -82,6 +82,11 @@ export const registrationSchema = z.object({
    */
   paymentDueAt: z.iso.datetime({ offset: true }).optional(),
   cancellation: cancellationSchema.optional(),
+  /**
+   * Équipe inscrite : calendrier de ses matchs (iCalendar). En webcal://, il
+   * s'ajoute en abonnement et suit les changements d'horaire.
+   */
+  calendarUrl: z.url().optional(),
   createdAt: z.iso.datetime({ offset: true }),
 });
 

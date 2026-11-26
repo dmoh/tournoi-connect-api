@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { PlacesModule } from './places/places.module.js';
+import { ConvocationsModule } from './convocations/convocations.module.js';
 import { InvoicesModule } from './invoices/invoices.module.js';
 import { ConfigModule } from '@nestjs/config';
 import { AccountModule } from './account/account.module.js';
@@ -38,6 +39,7 @@ import { QueueModule } from './queue/queue.module.js';
     SponsorshipsModule,
     InvoicesModule,
     PlacesModule,
+    ConvocationsModule,
     BracketModule,
     MediaModule,
     AuthModule,

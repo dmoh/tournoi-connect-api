@@ -58,6 +58,7 @@ import type {
   RegistrationInvite,
   RegistrationView,
 } from './registrations.schemas.js';
+import { teamCalendarPath } from '../convocations/ics.js';
 import { STRIPE } from './registrations.tokens.js';
 
 type Tx = Prisma.TransactionClient;
@@ -272,7 +273,7 @@ export class RegistrationsService {
       where: { managerId: userId, ...page.where },
       orderBy: page.orderBy,
       take: page.take,
-      include: { tournament: true },
+      include: { tournament: true, team: { select: { code: true } } },
     });
     const result = page.finish(rows, (row) => row);
     return {
@@ -284,7 +285,7 @@ export class RegistrationsService {
   async view(id: string, userId: string): Promise<RegistrationView> {
     const registration = await this.prisma.registration.findFirst({
       where: { id, managerId: userId },
-      include: { tournament: true },
+      include: { tournament: true, team: { select: { code: true } } },
     });
     if (!registration) {
       throw new NotFoundException('Inscription introuvable.');
@@ -293,7 +294,10 @@ export class RegistrationsService {
   }
 
   private async toView(
-    registration: Registration & { tournament: Tournament },
+    registration: Registration & {
+      tournament: Tournament;
+      team?: { code: string } | null;
+    },
   ): Promise<RegistrationView> {
     const now = this.clock.now();
     const status = displayedStatus(registration, now);
@@ -344,6 +348,17 @@ export class RegistrationsService {
         ? { paymentDueAt: registration.paymentDueAt.toISOString() }
         : {}),
       ...cancellationView(registration),
+      // Équipe inscrite : son agenda en un appui (abonnement mis à jour).
+      ...(status === 'CONFIRMED' && registration.team
+        ? {
+            calendarUrl: this.appUrl(
+              teamCalendarPath(
+                registration.tournament.slug,
+                registration.team.code,
+              ),
+            ),
+          }
+        : {}),
       createdAt: registration.createdAt.toISOString(),
     };
   }
