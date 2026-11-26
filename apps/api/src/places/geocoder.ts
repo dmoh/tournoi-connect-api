@@ -46,16 +46,37 @@ export class GeoplateformeGeocoder extends Geocoder {
     return this.places(url);
   }
 
+  /**
+   * Adresse la plus proche (le géocodage inverse par commune ne répond qu'au
+   * voisinage de son centre), puis sa commune par le code INSEE.
+   */
   async nearest(lat: number, lng: number): Promise<Place | null> {
     const url = new URL(`${this.base}/reverse`);
     url.searchParams.set('lat', String(lat));
     url.searchParams.set('lon', String(lng));
-    url.searchParams.set('type', 'municipality');
     url.searchParams.set('limit', '1');
-    return (await this.places(url))[0] ?? null;
+    const body = await this.json(url);
+    const p = (
+      body.features?.[0] as { properties?: Record<string, unknown> } | undefined
+    )?.properties;
+    const citycode = typeof p?.['citycode'] === 'string' ? p['citycode'] : null;
+    const city = typeof p?.['city'] === 'string' ? p['city'] : null;
+    if (!citycode || !city) {
+      return null;
+    }
+    const [place] = await this.municipalities(city, { limit: 1, citycode });
+    return place ?? null;
   }
 
   private async places(url: URL): Promise<Place[]> {
+    const body = await this.json(url);
+    return (body.features ?? []).flatMap((feature) => {
+      const place = toPlace(feature);
+      return place ? [place] : [];
+    });
+  }
+
+  private async json(url: URL): Promise<{ features?: unknown[] }> {
     const response = await fetch(url, {
       signal: AbortSignal.timeout(TIMEOUT_MS),
       headers: { accept: 'application/json' },
@@ -64,11 +85,7 @@ export class GeoplateformeGeocoder extends Geocoder {
       this.logger.warn(`Géocodeur : HTTP ${response.status}.`);
       throw new Error(`Géocodeur indisponible (${response.status}).`);
     }
-    const body = (await response.json()) as { features?: unknown[] };
-    return (body.features ?? []).flatMap((feature) => {
-      const place = toPlace(feature);
-      return place ? [place] : [];
-    });
+    return (await response.json()) as { features?: unknown[] };
   }
 }
 
