@@ -43,3 +43,12 @@ export {
   type SwissInput,
   type SwissRound,
 } from './swiss.js';
+export {
+  podium,
+  topScorers,
+  type Goal,
+  type Podium,
+  type PodiumInput,
+  type PodiumMatch,
+  type Scorer,
+} from './podium.js';

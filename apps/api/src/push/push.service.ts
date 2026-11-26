@@ -324,8 +324,8 @@ function matchPayload(notification: MatchNotification): PushPayload {
   return payloadFor({
     title: notification.title,
     body: notification.body,
-    tag: `match-${slug}-${notification.matchCode}`,
-    url: `/t/${slug}/m/${notification.matchCode}`,
+    tag: notification.tag ?? `match-${slug}-${notification.matchCode}`,
+    url: notification.url ?? `/t/${slug}/m/${notification.matchCode}`,
   });
 }
 

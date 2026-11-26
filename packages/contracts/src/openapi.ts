@@ -343,6 +343,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/tournaments/{slug}/palmares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Palmarès : podium une fois le tournoi joué, meilleurs buteurs */
+        get: operations["PalmaresController_view_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizer/tournaments/{slug}/photos": {
         parameters: {
             query?: never;
@@ -2673,6 +2690,46 @@ export interface operations {
             };
             /** @description Le match n’attend pas de vainqueur */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PalmaresController_view_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        complete: boolean;
+                        podium: {
+                            first: string;
+                            second: string | null;
+                            third: string[];
+                        } | null;
+                        scorers: {
+                            teamId: string;
+                            player: string;
+                            goals: number;
+                        }[];
+                    };
+                };
+            };
+            /** @description Tournoi introuvable ou masqué */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -3086,6 +3086,101 @@
         ]
       }
     },
+    "/api/v1/public/tournaments/{slug}/palmares": {
+      "get": {
+        "operationId": "PalmaresController_view_v1",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "complete": {
+                      "type": "boolean"
+                    },
+                    "podium": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "first": {
+                          "type": "string"
+                        },
+                        "second": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "third": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "first",
+                        "second",
+                        "third"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "scorers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "teamId": {
+                            "type": "string"
+                          },
+                          "player": {
+                            "type": "string"
+                          },
+                          "goals": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "teamId",
+                          "player",
+                          "goals"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "complete",
+                    "podium",
+                    "scorers"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tournoi introuvable ou masqué"
+          }
+        },
+        "summary": "Palmarès : podium une fois le tournoi joué, meilleurs buteurs",
+        "tags": [
+          "public"
+        ]
+      }
+    },
     "/api/v1/organizer/tournaments/{slug}/photos": {
       "get": {
         "operationId": "ClubPhotosController_list_v1",
