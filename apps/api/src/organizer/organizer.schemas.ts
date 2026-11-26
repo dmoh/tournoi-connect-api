@@ -152,6 +152,16 @@ export const createTournamentSchema = z
     breakMinutes: z.number().int().min(0).max(60),
     /** Points et départages ; absents : les règles du sport. */
     rules: rankingRulesSchema.optional(),
+    /**
+     * Édition suivante d'un tournoi du club : le lien entre les éditions, et
+     * l'invitation des responsables d'équipe de l'édition précédente.
+     */
+    previousEdition: z
+      .object({
+        slug: z.string().min(1).max(120),
+        inviteTeams: z.boolean(),
+      })
+      .optional(),
   })
   .refine((v) => v.endTime > v.startTime, {
     message: 'La fin doit suivre le début.',
@@ -166,6 +176,41 @@ export const createTournamentSchema = z
     path: ['registrationDeadline'],
   });
 
+/**
+ * Édition suivante préparée depuis un tournoi : les réglages de l'assistant,
+ * date décalée de 52 semaines (même jour de la semaine), année du nom
+ * avancée ; et ce que l'invitation toucherait.
+ */
+export const nextEditionSchema = z.object({
+  draft: z.object({
+    name: z.string(),
+    sport: sportSchema,
+    date: dateSchema,
+    startTime: timeSchema,
+    endTime: timeSchema,
+    venueName: z.string(),
+    city: z.string(),
+    lat: z.number(),
+    lng: z.number(),
+    fields: z.number().int(),
+    outdoor: z.boolean(),
+    categories: z.array(z.string()),
+    maxTeams: z.number().int(),
+    feeEuros: z.number(),
+    registrationDeadline: dateSchema,
+    format: formatSchema,
+    matchMinutes: z.number().int(),
+    breakMinutes: z.number().int(),
+    rules: rankingRulesSchema.optional(),
+  }),
+  previous: z.object({
+    slug: z.string(),
+    name: z.string(),
+    /** Responsables d'équipe confirmés à l'édition précédente (adresses distinctes). */
+    teams: z.number().int(),
+  }),
+});
+
 /** Écran 01 paginé : les plus proches en premier (startsAt, id). */
 export const organizerTournamentPageSchema = pageSchema(
   organizerTournamentSchema,
@@ -173,6 +218,7 @@ export const organizerTournamentPageSchema = pageSchema(
 
 export type OrganizerTournament = z.infer<typeof organizerTournamentSchema>;
 export type CreateTournament = z.infer<typeof createTournamentSchema>;
+export type NextEdition = z.infer<typeof nextEditionSchema>;
 
 /**
  * Planning publié depuis l'écran 07 : pour chaque match à venir, son terrain

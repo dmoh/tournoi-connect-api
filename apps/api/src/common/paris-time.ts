@@ -39,3 +39,21 @@ export function parisDate(instant: Date): string {
     day: '2-digit',
   }).format(instant);
 }
+
+/** Heure de Paris d'un instant (« 09:30 »). */
+export function parisTime(instant: Date): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: TOURNAMENT_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(instant);
+}
+
+/** Jour décalé de `days` jours (« 2026-11-09 » + 364 → « 2027-11-08 »). */
+export function addDays(date: string, days: number): string {
+  const [year, month, day] = date.split('-').map(Number);
+  return new Date(Date.UTC(year!, month! - 1, day! + days))
+    .toISOString()
+    .slice(0, 10);
+}

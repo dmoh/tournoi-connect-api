@@ -581,3 +581,47 @@ export function convocationMail(
 </body></html>`;
   return { to, subject, text, html };
 }
+
+/**
+ * Nouvelle édition d'un tournoi : le responsable d'une équipe de l'édition
+ * précédente inscrit son équipe en un appui. Envoyé une seule fois, quand
+ * le club publie l'édition suivante.
+ */
+export function editionInviteMail(
+  to: string,
+  info: {
+    tournament: string;
+    previous: string;
+    club: string;
+    date: string;
+    venue: string;
+    joinUrl: string;
+  },
+): MailMessage {
+  const subject = `${info.tournament} : les inscriptions sont ouvertes`;
+  const intro = `Votre équipe a participé au ${info.previous}. ${info.club} organise la nouvelle édition, ${info.date}, et vous invite à inscrire votre équipe.`;
+  const why = `Vous recevez cet email car vous avez inscrit une équipe au ${info.previous}. Le club ne vous écrit qu’à la publication d’une nouvelle édition.`;
+  const text = [
+    intro,
+    '',
+    `Lieu : ${info.venue}`,
+    `Inscrire mon équipe : ${info.joinUrl}`,
+    '',
+    why,
+    '',
+    'Tournoi Connect',
+  ].join('\n');
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:0;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7f8fa"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="420" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
+<p style="margin:0 0 8px;font-size:15px">Nouvelle édition</p>
+<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.tournament)}</p>
+<p style="margin:0 0 16px;font-size:14px;color:#5c6a7f">${escape(info.date)} · ${escape(info.venue)}</p>
+<p style="margin:0 0 20px;font-size:15px">${escape(intro)}</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1e3a8a" style="border-radius:12px;padding:14px 20px"><a href="${escape(info.joinUrl)}" style="color:#ffffff;text-decoration:none;font-weight:600;font-size:15px">Inscrire mon équipe</a></td></tr></table>
+<p style="margin:20px 0 0;font-size:12px;color:#5c6a7f">${escape(why)}</p>
+</td></tr></table>
+</td></tr></table>
+</body></html>`;
+  return { to, subject, text, html };
+}

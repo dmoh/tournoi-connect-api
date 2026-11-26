@@ -16,6 +16,8 @@ export const WAITLIST_QUEUE = 'waitlist';
 export const REFUND_QUEUE = 'refund';
 /** Convocations des équipes : balayage horaire des tournois à J-2. */
 export const CONVOCATION_QUEUE = 'convocation';
+/** Édition suivante : invitation des équipes de l'édition précédente. */
+export const EDITION_QUEUE = 'edition';
 
 /**
  * Files BullMQ (ADR-010). Sans REDIS_URL (tests, poste sans Redis), aucune
@@ -72,6 +74,15 @@ export class QueueModule {
             backoff: { type: 'exponential', delay: 5000 },
             removeOnComplete: 1000,
             removeOnFail: 5000,
+          },
+        }),
+        BullModule.registerQueue({
+          name: EDITION_QUEUE,
+          defaultJobOptions: {
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 10_000 },
+            removeOnComplete: 100,
+            removeOnFail: 500,
           },
         }),
         BullModule.registerQueue({

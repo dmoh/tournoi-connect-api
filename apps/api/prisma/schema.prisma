@@ -198,6 +198,12 @@ model Tournament {
   /// Dernier changement du calendrier (tirage, planning) : une convocation déjà
   /// partie est renvoyée une fois les changements terminés.
   scheduleChangedAt    DateTime?           @map("schedule_changed_at") @db.Timestamptz
+  /// Édition précédente, quand le tournoi a été préparé depuis elle.
+  previousEditionId    String?             @map("previous_edition_id")
+  previousEdition      Tournament?         @relation("Editions", fields: [previousEditionId], references: [id], onDelete: SetNull)
+  nextEditions         Tournament[]        @relation("Editions")
+  /// Responsables des équipes de l'édition précédente invités à s'inscrire.
+  editionInvitesSentAt DateTime?           @map("edition_invites_sent_at") @db.Timestamptz
   reports              Report[]
   photos               Photo[]
   teams                Team[]
@@ -432,30 +438,30 @@ model SponsorPackage {
 
 /// Un sponsor sur un tournoi : son avancement, son pack, son terrain.
 model TournamentSponsor {
-  id           String           @id @default(cuid(2))
-  tournamentId String           @map("tournament_id")
-  tournament   Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  sponsorId    String           @map("sponsor_id")
-  sponsor      Sponsor          @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
-  status       SponsorStatus    @default(INVITED)
-  tier         PackTier
+  id                String           @id @default(cuid(2))
+  tournamentId      String           @map("tournament_id")
+  tournament        Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  sponsorId         String           @map("sponsor_id")
+  sponsor           Sponsor          @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+  status            SponsorStatus    @default(INVITED)
+  tier              PackTier
   /// Terrain sponsorisé, pour un pack FIELD.
-  field        String?
-  invitedAt    DateTime?        @map("invited_at") @db.Timestamptz
-  paidAt       DateTime?        @map("paid_at") @db.Timestamptz
+  field             String?
+  invitedAt         DateTime?        @map("invited_at") @db.Timestamptz
+  paidAt            DateTime?        @map("paid_at") @db.Timestamptz
   /// Empreinte (SHA-256) du lien de paiement envoyé au sponsor ; le lien lui-même n'est pas gardé.
-  inviteTokenHash   String?     @unique @map("invite_token_hash")
+  inviteTokenHash   String?          @unique @map("invite_token_hash")
   /// Dernière page de paiement Stripe ouverte par le sponsor.
-  checkoutSessionId String?     @unique @map("checkout_session_id")
+  checkoutSessionId String?          @unique @map("checkout_session_id")
   /// Paiement en ligne (Stripe) ; vide pour un paiement marqué à la main.
-  paymentIntentId   String?     @unique @map("payment_intent_id")
+  paymentIntentId   String?          @unique @map("payment_intent_id")
   /// Prix du pack et frais de service payés en ligne, en centimes.
-  amountCents       Int?        @map("amount_cents")
-  serviceFeeCents   Int?        @map("service_fee_cents")
+  amountCents       Int?             @map("amount_cents")
+  serviceFeeCents   Int?             @map("service_fee_cents")
   /// Adresse de facturation saisie par le sponsor sur la page de paiement.
-  billingAddress    Json?       @map("billing_address")
+  billingAddress    Json?            @map("billing_address")
   invoice           Invoice?
-  audience     AudienceHourly[]
+  audience          AudienceHourly[]
 
   @@unique([tournamentId, sponsorId])
   @@index([tournamentId, status])
