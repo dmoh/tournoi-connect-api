@@ -88,6 +88,14 @@ const envVariables = z.object({
    */
   MEDIA_BUCKET: optional(),
   MEDIA_PUBLIC_URL: z.preprocess(empty, z.url().optional()),
+  /**
+   * Géocodeur des communes (Géoplateforme de l'IGN, service public gratuit et
+   * sans clé) : toutes les communes de France pour l'Explorer et l'assistant.
+   */
+  GEOCODER_URL: z.preprocess(
+    empty,
+    z.url().default('https://data.geopf.fr/geocodage'),
+  ),
   /** Connexion en un clic : chaque fournisseur ne s'affiche que s'il est configuré. */
   GOOGLE_CLIENT_ID: optional(),
   GOOGLE_CLIENT_SECRET: optional(),
