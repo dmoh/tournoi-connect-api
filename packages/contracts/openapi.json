@@ -690,9 +690,8 @@
                       ],
                       "additionalProperties": false
                     },
-                    "calendarUrl": {
-                      "type": "string",
-                      "format": "uri"
+                    "teamCode": {
+                      "type": "string"
                     },
                     "createdAt": {
                       "type": "string",
@@ -887,9 +886,8 @@
                             ],
                             "additionalProperties": false
                           },
-                          "calendarUrl": {
-                            "type": "string",
-                            "format": "uri"
+                          "teamCode": {
+                            "type": "string"
                           },
                           "createdAt": {
                             "type": "string",
@@ -1074,9 +1072,8 @@
                       ],
                       "additionalProperties": false
                     },
-                    "calendarUrl": {
-                      "type": "string",
-                      "format": "uri"
+                    "teamCode": {
+                      "type": "string"
                     },
                     "createdAt": {
                       "type": "string",
@@ -1249,9 +1246,8 @@
                       ],
                       "additionalProperties": false
                     },
-                    "calendarUrl": {
-                      "type": "string",
-                      "format": "uri"
+                    "teamCode": {
+                      "type": "string"
                     },
                     "createdAt": {
                       "type": "string",
@@ -1424,9 +1420,8 @@
                       ],
                       "additionalProperties": false
                     },
-                    "calendarUrl": {
-                      "type": "string",
-                      "format": "uri"
+                    "teamCode": {
+                      "type": "string"
                     },
                     "createdAt": {
                       "type": "string",

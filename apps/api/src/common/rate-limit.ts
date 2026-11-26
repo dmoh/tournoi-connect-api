@@ -86,8 +86,12 @@ export const RATE_LIMITS = {
    * l'État derrière) : une requête par touche, avec un cache côté API.
    */
   places: [{ key: 'ip', max: 120, windowMs: MINUTE }],
-  /** Calendriers d'équipe : les agendas abonnés les relisent toutes les heures. */
-  calendar: [{ key: 'ip', max: 60, windowMs: MINUTE }],
+  /**
+   * Calendriers d'équipe : Google Agenda, iCloud et Outlook relisent tous les
+   * abonnements depuis quelques IP partagées ; la limite ne vise que l'abus
+   * (réponses en cache public 5 minutes).
+   */
+  calendar: [{ key: 'ip', max: 1200, windowMs: MINUTE }],
   /** Invitations d'un club, en plus de la limite métier par club. */
   invitation: [{ key: 'ip', max: 20, windowMs: MINUTE }],
 } as const satisfies Record<string, readonly RateLimit[]>;

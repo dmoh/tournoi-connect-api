@@ -105,12 +105,8 @@ describe('Convocations des équipes (e2e)', () => {
         },
       ).format(tournament.startsAt)}`,
     );
-    expect(mail?.text).toMatch(
-      /Premier match : \d+ h \d{2} · Terrain 2 · contre 2e poule B/,
-    );
-    expect(mail?.text).toContain(
-      `/api/v1/public/tournaments/${SLUG}/calendar.ics?team=${team.code}`,
-    );
+    expect(mail?.text).toMatch(/\d+ h \d{2} · Terrain 2 · contre 2e poule B/);
+    expect(mail?.text).toContain(`/t/${SLUG}/agenda?team=${team.code}`);
     expect(mail?.text).toContain(
       'https://www.google.com/maps/dir/?api=1&destination=',
     );
@@ -118,6 +114,30 @@ describe('Convocations des équipes (e2e)', () => {
     // Le balayage suivant n'envoie rien de plus.
     expect(await convocations.sweep()).toBe(0);
     expect(convocationsTo('lea@example.com')).toHaveLength(1);
+  });
+
+  it('renvoie seul les convocations quand le calendrier change, une fois les changements finis', async () => {
+    const { tournament } = await registeredTeam(40);
+    await prisma.tournament.update({
+      where: { id: tournament.id },
+      data: {
+        convocationsSentAt: new Date(DEMO_NOW.getTime() - 2 * HOUR),
+        // Planning encore modifié il y a 10 minutes : on attend.
+        scheduleChangedAt: new Date(DEMO_NOW.getTime() - 10 * 60_000),
+      },
+    });
+    expect(await convocations.sweep()).toBe(0);
+    await prisma.tournament.update({
+      where: { id: tournament.id },
+      data: { scheduleChangedAt: new Date(DEMO_NOW.getTime() - HOUR) },
+    });
+    expect(await convocations.sweep()).toBe(1);
+    expect(
+      mailbox.filter((m) =>
+        m.subject.startsWith('Horaires modifiés : Les Aigles'),
+      ),
+    ).toHaveLength(1);
+    expect(await convocations.sweep()).toBe(0);
   });
 
   it('sans tirage, attend 24 h avant le début, puis convoque avec l’heure de début', async () => {
@@ -225,11 +245,7 @@ describe('Convocations des équipes (e2e)', () => {
       url: `/api/v1/registrations/${orderId}`,
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(mine.json().calendarUrl).toMatch(
-      new RegExp(
-        `/api/v1/public/tournaments/${SLUG}/calendar\\.ics\\?team=${team.code}$`,
-      ),
-    );
+    expect(mine.json().teamCode).toBe(team.code);
     expect(
       (
         await app.inject({

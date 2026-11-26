@@ -1802,8 +1802,7 @@ export interface operations {
                             /** Format: date-time */
                             refundedAt: string | null;
                         };
-                        /** Format: uri */
-                        calendarUrl?: string;
+                        teamCode?: string;
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -1881,8 +1880,7 @@ export interface operations {
                                 /** Format: date-time */
                                 refundedAt: string | null;
                             };
-                            /** Format: uri */
-                            calendarUrl?: string;
+                            teamCode?: string;
                             /** Format: date-time */
                             createdAt: string;
                         }[];
@@ -1953,8 +1951,7 @@ export interface operations {
                             /** Format: date-time */
                             refundedAt: string | null;
                         };
-                        /** Format: uri */
-                        calendarUrl?: string;
+                        teamCode?: string;
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -2023,8 +2020,7 @@ export interface operations {
                             /** Format: date-time */
                             refundedAt: string | null;
                         };
-                        /** Format: uri */
-                        calendarUrl?: string;
+                        teamCode?: string;
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -2093,8 +2089,7 @@ export interface operations {
                             /** Format: date-time */
                             refundedAt: string | null;
                         };
-                        /** Format: uri */
-                        calendarUrl?: string;
+                        teamCode?: string;
                         /** Format: date-time */
                         createdAt: string;
                     };

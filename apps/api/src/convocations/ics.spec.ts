@@ -6,7 +6,7 @@ describe('calendrier iCalendar', () => {
       '20261205T083000Z',
     );
     expect(icsText('Stade, Cluses; terrain\\2\nentrée B')).toBe(
-      'Stade\\, Cluses\; terrain\\\\2\\nentrée B',
+      'Stade\\, Cluses\\; terrain\\\\2\\nentrée B',
     );
   });
 

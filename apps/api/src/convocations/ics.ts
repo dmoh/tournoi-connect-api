@@ -28,7 +28,7 @@ export function icsDate(date: Date): string {
 export function icsText(value: string): string {
   return value
     .replace(/\\/g, '\\\\')
-    .replace(/;/g, '\;')
+    .replace(/;/g, '\\;')
     .replace(/,/g, '\\,')
     .replace(/\r?\n/g, '\\n');
 }
@@ -92,9 +92,4 @@ export function buildCalendar(
   }
   lines.push('END:VCALENDAR');
   return lines.map(foldLine).join('\r\n') + '\r\n';
-}
-
-/** Chemin du calendrier d'une équipe, servi sous /api par le domaine de l'app. */
-export function teamCalendarPath(slug: string, team: string): string {
-  return `/api/v1/public/tournaments/${encodeURIComponent(slug)}/calendar.ics?team=${encodeURIComponent(team)}`;
 }

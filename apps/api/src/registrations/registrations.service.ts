@@ -58,7 +58,6 @@ import type {
   RegistrationInvite,
   RegistrationView,
 } from './registrations.schemas.js';
-import { teamCalendarPath } from '../convocations/ics.js';
 import { STRIPE } from './registrations.tokens.js';
 
 type Tx = Prisma.TransactionClient;
@@ -348,16 +347,11 @@ export class RegistrationsService {
         ? { paymentDueAt: registration.paymentDueAt.toISOString() }
         : {}),
       ...cancellationView(registration),
-      // Équipe inscrite : son agenda en un appui (abonnement mis à jour).
-      ...(status === 'CONFIRMED' && registration.team
-        ? {
-            calendarUrl: this.appUrl(
-              teamCalendarPath(
-                registration.tournament.slug,
-                registration.team.code,
-              ),
-            ),
-          }
+      // Équipe inscrite à un tournoi à venir : son agenda en un appui.
+      ...(status === 'CONFIRMED' &&
+      registration.team &&
+      registration.tournament.endsAt > now
+        ? { teamCode: registration.team.code }
         : {}),
       createdAt: registration.createdAt.toISOString(),
     };

@@ -505,8 +505,11 @@ export function tournamentCancelledMail(
 }
 
 /**
- * Convocation d'une équipe (J-2, ou envoyée par le club) : premier match en
- * tête, programme, lieu avec l'itinéraire, et l'agenda en un appui.
+ * Convocation d'une équipe (48 h avant, envoyée par le club, ou renvoyée
+ * après un changement d'horaires) : programme, lieu avec l'itinéraire, et
+ * l'agenda en un appui (page de l'app qui choisit l'agenda de l'appareil).
+ * Mise en page en tableaux : Outlook (moteur Word) ignore marges et rayons
+ * des blocs.
  */
 export function convocationMail(
   to: string,
@@ -520,46 +523,57 @@ export function convocationMail(
     matches: string[];
     /** Début du tournoi, si aucun match n'est encore programmé. */
     start: string;
-    calendarUrl: string;
+    agendaUrl: string;
     pageUrl: string;
+    /** Renvoi après un changement d'horaires. */
+    update: boolean;
   },
 ): MailMessage {
-  const subject = `Convocation : ${info.team} au ${info.tournament}, ${info.date}`;
-  const first = info.matches[0]
-    ? `Premier match : ${info.matches[0]}.`
-    : `Début du tournoi : ${info.start}. Les horaires des matchs arrivent dans votre agenda dès leur publication.`;
+  const subject = info.update
+    ? `Horaires modifiés : ${info.team} au ${info.tournament}, ${info.date}`
+    : `Convocation : ${info.team} au ${info.tournament}, ${info.date}`;
+  const intro = info.update
+    ? `Les horaires de votre équipe ${info.team} ont changé. Voici le programme à jour.`
+    : `Votre équipe ${info.team} est attendue au ${info.tournament}, ${info.date}.`;
+  const programme =
+    info.matches.length > 0
+      ? info.matches
+      : [
+          `Début du tournoi à ${info.start}. Les horaires des matchs s’ajoutent à votre agenda dès leur publication.`,
+        ];
   const text = [
-    `${info.team} est attendue au ${info.tournament}, ${info.date}.`,
+    intro,
     '',
-    first,
-    ...(info.matches.length > 1
-      ? ['', 'Vos matchs :', ...info.matches.map((m) => `- ${m}`)]
-      : []),
+    info.matches.length > 1 ? 'Vos matchs :' : 'Votre programme :',
+    ...programme.map((m) => `- ${m}`),
     '',
     `Lieu : ${info.venue}`,
     `Itinéraire : ${info.directionsUrl}`,
     '',
-    `Ajouter à mon agenda (mis à jour si les horaires changent) : ${info.calendarUrl}`,
+    `Ajouter à mon agenda : ${info.agendaUrl}`,
     `Le tournoi en direct : ${info.pageUrl}`,
     '',
     'Tournoi Connect',
   ].join('\n');
-  const list =
-    info.matches.length > 1
-      ? `<ul style="margin:0 0 16px;padding-left:20px;font-size:14px">${info.matches
-          .map((m) => `<li style="margin:0 0 4px">${escape(m)}</li>`)
-          .join('')}</ul>`
-      : '';
-  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
-<div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
-<p style="margin:0 0 8px;font-size:15px">Convocation</p>
+  const rows = programme
+    .map(
+      (m, i) =>
+        `<li style="margin:0 0 6px;${i === 0 ? 'font-weight:700;' : ''}">${escape(m)}</li>`,
+    )
+    .join('');
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:0;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7f8fa"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="420" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
+<p style="margin:0 0 8px;font-size:15px">${info.update ? 'Horaires modifiés' : 'Convocation'}</p>
 <p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.team)}</p>
 <p style="margin:0 0 16px;font-size:14px;color:#5c6a7f">${escape(info.tournament)} · ${escape(info.date)}</p>
-<p style="margin:0 0 12px;font-size:16px;font-weight:600">${escape(first)}</p>
-${list}
+<p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
+<ul style="margin:0 0 16px;padding-left:20px;font-size:15px">${rows}</ul>
 <p style="margin:0 0 20px;font-size:14px">${escape(info.venue)} · <a href="${escape(info.directionsUrl)}" style="color:#1e3a8a">Itinéraire</a></p>
-<a href="${escape(info.calendarUrl)}" style="display:inline-block;background:#1e3a8a;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 20px;border-radius:12px">Ajouter à mon agenda</a>
-<p style="margin:16px 0 0;font-size:13px;color:#5c6a7f">L’agenda se met à jour si les horaires changent. <a href="${escape(info.pageUrl)}" style="color:#1e3a8a">Suivre le tournoi en direct</a></p>
-</div></body></html>`;
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1e3a8a" style="border-radius:12px;padding:14px 20px"><a href="${escape(info.agendaUrl)}" style="color:#ffffff;text-decoration:none;font-weight:600;font-size:15px">Ajouter à mon agenda</a></td></tr></table>
+<p style="margin:16px 0 0;font-size:13px;color:#5c6a7f"><a href="${escape(info.pageUrl)}" style="color:#1e3a8a">Suivre le tournoi en direct</a></p>
+</td></tr></table>
+</td></tr></table>
+</body></html>`;
   return { to, subject, text, html };
 }

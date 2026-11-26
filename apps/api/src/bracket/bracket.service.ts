@@ -19,6 +19,7 @@ import {
 } from '@dmoh/tournoi-connect-engine';
 import { randomBytes } from 'node:crypto';
 import { storedRules } from '../common/ranking-rules.schema.js';
+import { Clock } from '../common/clock.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { PalmaresService } from '../palmares/palmares.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -37,6 +38,7 @@ export class BracketService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly palmares: PalmaresService,
+    private readonly clock: Clock,
   ) {}
 
   async view(organizationSlug: string, slug: string): Promise<DrawView> {
@@ -163,7 +165,11 @@ export class BracketService {
         });
         await tx.tournament.update({
           where: { id: tournament.id },
-          data: { drawSeed: used, swissRounds: swissRoundCount(teams.length) },
+          data: {
+            drawSeed: used,
+            swissRounds: swissRoundCount(teams.length),
+            scheduleChangedAt: this.clock.now(),
+          },
         });
         return;
       }
@@ -199,7 +205,7 @@ export class BracketService {
       });
       await tx.tournament.update({
         where: { id: tournament.id },
-        data: { drawSeed: used },
+        data: { drawSeed: used, scheduleChangedAt: this.clock.now() },
       });
     });
     return this.view(organizationSlug, slug);
