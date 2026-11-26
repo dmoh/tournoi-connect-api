@@ -299,6 +299,7 @@ describe('Désistement et annulation du tournoi (e2e)', () => {
     const preview = await organizer(`/tournaments/${SLUG}/cancellation`);
     expect(preview.statusCode).toBe(200);
     expect(preview.json()).toMatchObject({
+      name: 'Tournoi du 11-Novembre U15',
       cancellable: true,
       registrations: 2,
       refunds: { count: 1, totalCents: 12890 },

@@ -22,6 +22,9 @@ const refundsSchema = z.object({
 
 /** Avant de confirmer : ce que l'annulation annule et rembourse. */
 export const cancellationPreviewSchema = z.object({
+  /** Tournoi visé, nommé sur la page de confirmation. */
+  name: z.string(),
+  startsAt: z.iso.datetime({ offset: true }),
   /** Faux pour un tournoi terminé, archivé ou déjà annulé. */
   cancellable: z.boolean(),
   status: z.enum([

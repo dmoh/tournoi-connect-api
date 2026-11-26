@@ -175,6 +175,8 @@ export class CancellationsService {
     );
     const refunds = active.filter(paid);
     return {
+      name: tournament.name,
+      startsAt: tournament.startsAt.toISOString(),
       cancellable: !CLOSED.includes(tournament.status),
       status: tournament.status,
       registrations: active.length,

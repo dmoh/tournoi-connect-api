@@ -2445,6 +2445,9 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        name: string;
+                        /** Format: date-time */
+                        startsAt: string;
                         cancellable: boolean;
                         /** @enum {string} */
                         status: "DRAFT" | "PUBLISHED" | "REGISTRATION_OPEN" | "REGISTRATION_CLOSED" | "IN_PROGRESS" | "COMPLETED" | "ARCHIVED" | "CANCELLED";
