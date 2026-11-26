@@ -676,7 +676,7 @@ model Registration {
   cancellation      Cancellation?
   cancelledAt       DateTime?          @map("cancelled_at") @db.Timestamptz
   /// Lien personnel « Nous sommes arrivés » (convocation, sans connexion).
-  arrivalToken      String             @unique @default(dbgenerated("gen_random_uuid()::text")) @map("arrival_token")
+  arrivalToken      String             @unique @default(dbgenerated("(gen_random_uuid())::text")) @map("arrival_token")
   /// Montant à rendre au responsable après une annulation par le club
   /// (centimes) ; vide ou 0 : rien à rembourser.
   refundCents       Int?               @map("refund_cents")
