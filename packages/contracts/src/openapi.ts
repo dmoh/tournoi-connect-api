@@ -410,6 +410,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/tournaments/{slug}/calendar.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Calendrier iCalendar des matchs d’une équipe (team), ou du tournoi : à ajouter en abonnement (webcal) */
+        get: operations["PublicCalendarController_calendar_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizer/tournaments/{slug}/convocations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Convocations : envoyées ou date de l’envoi automatique (48 h avant, 24 h sans tirage), équipes prévenues */
+        get: operations["OrganizerConvocationsController_status_v1"];
+        put?: never;
+        /** Envoyer les convocations maintenant (ou de nouveau, après un changement d’horaires) */
+        post: operations["OrganizerConvocationsController_send_v1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organizer/tournaments/{slug}/draw": {
         parameters: {
             query?: never;
@@ -1767,6 +1802,7 @@ export interface operations {
                             /** Format: date-time */
                             refundedAt: string | null;
                         };
+                        teamCode?: string;
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -1844,6 +1880,7 @@ export interface operations {
                                 /** Format: date-time */
                                 refundedAt: string | null;
                             };
+                            teamCode?: string;
                             /** Format: date-time */
                             createdAt: string;
                         }[];
@@ -1914,6 +1951,7 @@ export interface operations {
                             /** Format: date-time */
                             refundedAt: string | null;
                         };
+                        teamCode?: string;
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -1982,6 +2020,7 @@ export interface operations {
                             /** Format: date-time */
                             refundedAt: string | null;
                         };
+                        teamCode?: string;
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -2050,6 +2089,7 @@ export interface operations {
                             /** Format: date-time */
                             refundedAt: string | null;
                         };
+                        teamCode?: string;
                         /** Format: date-time */
                         createdAt: string;
                     };
@@ -3027,6 +3067,148 @@ export interface operations {
             };
             /** @description Géocodeur indisponible */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicCalendarController_calendar_v1: {
+        parameters: {
+            query?: {
+                team?: string;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Calendrier iCalendar (RFC 5545) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi ou équipe introuvable */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerConvocationsController_status_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        sentAt: string | null;
+                        /** Format: date-time */
+                        scheduledAt: string;
+                        recipients: number;
+                        sendable: boolean;
+                    };
+                };
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OrganizerConvocationsController_send_v1: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Club concerné (slug), si le compte en a plusieurs */
+                "X-Organization"?: string;
+                /** @description Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures. */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        sentAt: string | null;
+                        /** Format: date-time */
+                        scheduledAt: string;
+                        recipients: number;
+                        sendable: boolean;
+                    };
+                };
+            };
+            /** @description Idempotency-Key invalide */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connexion requise */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi hors du club */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tournoi terminé, annulé ou en brouillon, ou requête de même clé encore en cours */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Idempotency-Key déjà utilisée pour un autre corps */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

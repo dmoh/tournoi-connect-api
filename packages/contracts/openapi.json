@@ -690,6 +690,9 @@
                       ],
                       "additionalProperties": false
                     },
+                    "teamCode": {
+                      "type": "string"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time",
@@ -883,6 +886,9 @@
                             ],
                             "additionalProperties": false
                           },
+                          "teamCode": {
+                            "type": "string"
+                          },
                           "createdAt": {
                             "type": "string",
                             "format": "date-time",
@@ -1066,6 +1072,9 @@
                       ],
                       "additionalProperties": false
                     },
+                    "teamCode": {
+                      "type": "string"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time",
@@ -1237,6 +1246,9 @@
                       ],
                       "additionalProperties": false
                     },
+                    "teamCode": {
+                      "type": "string"
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time",
@@ -1407,6 +1419,9 @@
                         "refundedAt"
                       ],
                       "additionalProperties": false
+                    },
+                    "teamCode": {
+                      "type": "string"
                     },
                     "createdAt": {
                       "type": "string",
@@ -3632,6 +3647,217 @@
         "summary": "Une commune par son identifiant d’URL (« megeve-74173 »)",
         "tags": [
           "public"
+        ]
+      }
+    },
+    "/api/v1/public/tournaments/{slug}/calendar.ics": {
+      "get": {
+        "operationId": "PublicCalendarController_calendar_v1",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "team",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Calendrier iCalendar (RFC 5545)"
+          },
+          "404": {
+            "description": "Tournoi ou équipe introuvable"
+          }
+        },
+        "summary": "Calendrier iCalendar des matchs d’une équipe (team), ou du tournoi : à ajouter en abonnement (webcal)",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/v1/organizer/tournaments/{slug}/convocations": {
+      "get": {
+        "operationId": "OrganizerConvocationsController_status_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sentAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "scheduledAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "recipients": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "sendable": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "sentAt",
+                    "scheduledAt",
+                    "recipients",
+                    "sendable"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Tournoi hors du club"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Convocations : envoyées ou date de l’envoi automatique (48 h avant, 24 h sans tirage), équipes prévenues",
+        "tags": [
+          "organizer"
+        ]
+      },
+      "post": {
+        "operationId": "OrganizerConvocationsController_send_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Clé unique de la demande (8 à 100 caractères : lettres, chiffres, _ ou -). La même clé rejoue la première réponse pendant 24 heures.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sentAt": {
+                      "nullable": true,
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "scheduledAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    "recipients": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "sendable": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "sentAt",
+                    "scheduledAt",
+                    "recipients",
+                    "sendable"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Idempotency-Key invalide"
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Tournoi hors du club"
+          },
+          "409": {
+            "description": "Tournoi terminé, annulé ou en brouillon, ou requête de même clé encore en cours"
+          },
+          "422": {
+            "description": "Idempotency-Key déjà utilisée pour un autre corps"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Envoyer les convocations maintenant (ou de nouveau, après un changement d’horaires)",
+        "tags": [
+          "organizer"
         ]
       }
     },

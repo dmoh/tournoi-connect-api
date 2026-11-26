@@ -467,11 +467,16 @@ export class OrganizerService {
       }
       changes.push({ id: match.id, field: slot.field, startsAt });
     }
-    await this.prisma.$transaction(
-      changes.map(({ id, field, startsAt }) =>
+    await this.prisma.$transaction([
+      ...changes.map(({ id, field, startsAt }) =>
         this.prisma.match.update({ where: { id }, data: { field, startsAt } }),
       ),
-    );
+      // Convocations déjà parties : renvoyées une fois le planning stabilisé.
+      this.prisma.tournament.update({
+        where: { id: tournament.id },
+        data: { scheduleChangedAt: this.clock.now() },
+      }),
+    ]);
     return { updated: changes.length };
   }
 }

@@ -82,6 +82,11 @@ export const registrationSchema = z.object({
    */
   paymentDueAt: z.iso.datetime({ offset: true }).optional(),
   cancellation: cancellationSchema.optional(),
+  /**
+   * Équipe inscrite à un tournoi à venir : son code, pour l'ajouter à
+   * l'agenda (/t/:slug/agenda?team=, calendrier public de l'équipe).
+   */
+  teamCode: z.string().optional(),
   createdAt: z.iso.datetime({ offset: true }),
 });
 
