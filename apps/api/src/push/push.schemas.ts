@@ -65,6 +65,10 @@ export interface MatchNotification {
    * le dépôt dans la file idempotent. À défaut, le contenu en tient lieu.
    */
   eventId?: string;
+  /** Page ouverte par la notification (par défaut, celle du match). */
+  url?: string;
+  /** Regroupement sur l'appareil (par défaut, le match). */
+  tag?: string;
 }
 
 /**

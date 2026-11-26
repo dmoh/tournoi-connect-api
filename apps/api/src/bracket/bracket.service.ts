@@ -20,6 +20,7 @@ import {
 import { randomBytes } from 'node:crypto';
 import { storedRules } from '../common/ranking-rules.schema.js';
 import { PrismaService } from '../database/prisma.service.js';
+import { PalmaresService } from '../palmares/palmares.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { FORMAT_KIND } from '../public/public-mapping.js';
 import type { DrawView, WinnerInput } from './bracket.schemas.js';
@@ -33,7 +34,10 @@ import type { DrawView, WinnerInput } from './bracket.schemas.js';
 export class BracketService {
   private readonly logger = new Logger(BracketService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly palmares: PalmaresService,
+  ) {}
 
   async view(organizationSlug: string, slug: string): Promise<DrawView> {
     const tournament = await this.own(organizationSlug, slug);
@@ -240,6 +244,12 @@ export class BracketService {
    * commencés (classement des poules terminées, vainqueurs et perdants).
    */
   async advance(tournamentId: string): Promise<void> {
+    await this.advanceMatches(tournamentId);
+    // Podium connu (ou annulé) : le tournoi passe terminé (ou de nouveau en cours).
+    await this.palmares.settle(tournamentId);
+  }
+
+  private async advanceMatches(tournamentId: string): Promise<void> {
     const tournament = await this.prisma.tournament.findUnique({
       where: { id: tournamentId },
       include: { teams: true, matches: true },
