@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import type { Env } from '../config/env.js';
 import { OrganizerGuard } from '../organizer/organizer.guard.js';
 import { StripeClient } from '../payments/stripe-client.js';
+import { CancellationsController } from './cancellations.controller.js';
+import { CancellationsService } from './cancellations.service.js';
 import {
   OrganizerRegistrationsController,
   PublicRegistrationsController,
@@ -19,10 +21,12 @@ import { WaitlistService } from './waitlist.service.js';
     RegistrationsController,
     StripeWebhookController,
     OrganizerRegistrationsController,
+    CancellationsController,
   ],
   providers: [
     RegistrationsService,
     WaitlistService,
+    CancellationsService,
     OrganizerGuard,
     {
       provide: STRIPE,
@@ -33,6 +37,6 @@ import { WaitlistService } from './waitlist.service.js';
         ),
     },
   ],
-  exports: [STRIPE, WaitlistService],
+  exports: [STRIPE, WaitlistService, CancellationsService],
 })
 export class RegistrationsModule {}

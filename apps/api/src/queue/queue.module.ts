@@ -12,6 +12,8 @@ export const MAINTENANCE_QUEUE = 'maintenance';
 export const PUSH_QUEUE = 'push';
 /** Liste d'attente : promotion quand une place se libère, échéance des places proposées. */
 export const WAITLIST_QUEUE = 'waitlist';
+/** Remboursements des annulations par le club (désistement, tournoi annulé). */
+export const REFUND_QUEUE = 'refund';
 
 /**
  * Files BullMQ (ADR-010). Sans REDIS_URL (tests, poste sans Redis), aucune
@@ -66,6 +68,15 @@ export class QueueModule {
           defaultJobOptions: {
             attempts: 5,
             backoff: { type: 'exponential', delay: 5000 },
+            removeOnComplete: 1000,
+            removeOnFail: 5000,
+          },
+        }),
+        BullModule.registerQueue({
+          name: REFUND_QUEUE,
+          defaultJobOptions: {
+            attempts: 6,
+            backoff: { type: 'exponential', delay: 30_000 },
             removeOnComplete: 1000,
             removeOnFail: 5000,
           },

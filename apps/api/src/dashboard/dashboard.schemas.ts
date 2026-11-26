@@ -11,6 +11,7 @@ export const dashboardTournamentSchema = z.object({
     'REGISTRATION_CLOSED',
     'IN_PROGRESS',
     'COMPLETED',
+    'CANCELLED',
   ]),
   startsAt: z.iso.datetime({ offset: true }),
   teamCount: z.number().int(),

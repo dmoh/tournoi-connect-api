@@ -22,7 +22,7 @@ import { MediaService } from '../media/media.service.js';
 import { PushService } from '../push/push.service.js';
 import { replayFeed } from '../public/match-feed.js';
 import {
-  PUBLIC_STATUSES,
+  PLAYABLE_STATUSES,
   toIso,
   toPublicPhase,
 } from '../public/public-mapping.js';
@@ -130,7 +130,10 @@ export class ReporterService {
       where: { id: await this.openLink(this.prisma, token) },
       include: { tournament: true },
     });
-    if (!match || !PUBLIC_STATUSES.includes(match.tournament.status as never)) {
+    if (
+      !match ||
+      !PLAYABLE_STATUSES.includes(match.tournament.status as never)
+    ) {
       throw new NotFoundException(INVALID_LINK);
     }
     const teams = await this.prisma.team.findMany({
@@ -227,7 +230,7 @@ export class ReporterService {
         score: { home: match.scoreHome, away: match.scoreAway },
         status: match.status,
       };
-      if (!PUBLIC_STATUSES.includes(match.tournament.status as never)) {
+      if (!PLAYABLE_STATUSES.includes(match.tournament.status as never)) {
         throw new ConflictException(
           'Le tournoi n’est plus ouvert : les scores ne se saisissent plus.',
         );
@@ -441,7 +444,7 @@ export class ReporterService {
     const match = await this.prisma.match.findFirst({
       where: {
         id: await this.openLink(this.prisma, token),
-        tournament: { status: { in: [...PUBLIC_STATUSES] }, hiddenAt: null },
+        tournament: { status: { in: [...PLAYABLE_STATUSES] }, hiddenAt: null },
       },
       select: { id: true, tournamentId: true },
     });

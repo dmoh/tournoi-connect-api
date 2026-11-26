@@ -28,6 +28,7 @@ export const publicStatusSchema = z.enum([
   'REGISTRATION_CLOSED',
   'IN_PROGRESS',
   'COMPLETED',
+  'CANCELLED',
 ]);
 
 export const venueSchema = z.object({
@@ -51,6 +52,10 @@ export const tournamentSummarySchema = z.object({
   maxTeams: z.number().int(),
   feeCents: z.number().int(),
   status: publicStatusSchema,
+  /** Tournoi annulé par le club : date et motif. */
+  cancellation: z
+    .object({ at: z.iso.datetime({ offset: true }), reason: z.string() })
+    .optional(),
 });
 
 export const nearbyTournamentSchema = tournamentSummarySchema.extend({

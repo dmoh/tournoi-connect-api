@@ -7,13 +7,19 @@ export type TournamentWithVenue = Prisma.TournamentGetPayload<{
   include: { venue: true; organization: true };
 }>;
 
-/** Statuts visibles du public : un tournoi publié, en cours ou terminé. */
-export const PUBLIC_STATUSES = [
+/** Statuts où l'on joue : la table de marque saisit, le direct se met à jour. */
+export const PLAYABLE_STATUSES = [
   'REGISTRATION_OPEN',
   'REGISTRATION_CLOSED',
   'IN_PROGRESS',
   'COMPLETED',
 ] as const;
+
+/**
+ * Statuts visibles du public : un tournoi publié, en cours, terminé, ou
+ * annulé (la page l'annonce, avec le motif).
+ */
+export const PUBLIC_STATUSES = [...PLAYABLE_STATUSES, 'CANCELLED'] as const;
 
 /** Statuts de la découverte : en cours ou à venir. */
 export const DISCOVERABLE_STATUSES = [
@@ -70,5 +76,13 @@ export function toSummary(t: TournamentWithVenue): TournamentSummary {
     maxTeams: t.maxTeams,
     feeCents: t.feeCents,
     status: t.status as TournamentSummary['status'],
+    ...(t.status === 'CANCELLED' && t.cancelledAt
+      ? {
+          cancellation: {
+            at: toIso(t.cancelledAt),
+            reason: t.cancellationReason ?? '',
+          },
+        }
+      : {}),
   };
 }

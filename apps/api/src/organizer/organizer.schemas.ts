@@ -113,7 +113,7 @@ const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'HH:MM');
 export const organizerTournamentSchema = z.object({
   slug: z.string(),
   name: z.string(),
-  status: z.enum(['DRAFT', 'PUBLISHED', 'IN_PROGRESS']),
+  status: z.enum(['DRAFT', 'PUBLISHED', 'IN_PROGRESS', 'CANCELLED']),
   startsAt: z.iso.datetime({ offset: true }),
   city: z.string(),
   teamCount: z.number().int(),

@@ -50,6 +50,18 @@ export const registrationStatusSchema = z.enum([
   'CANCELLED',
 ]);
 
+/**
+ * Inscription annulée par le club : désistement ou tournoi annulé, montant
+ * rendu (0 : sans remboursement) et date du remboursement chez Stripe.
+ */
+export const cancellationSchema = z.object({
+  kind: z.enum(['WITHDRAWN', 'TOURNAMENT_CANCELLED']),
+  at: z.iso.datetime({ offset: true }),
+  refundCents: z.number().int(),
+  /** Null tant que le remboursement n'est pas passé (quelques minutes). */
+  refundedAt: z.iso.datetime({ offset: true }).nullable(),
+});
+
 export const registrationSchema = z.object({
   orderId: z.string(),
   code: z.string(),
@@ -69,6 +81,7 @@ export const registrationSchema = z.object({
    * limite de paiement (48 h). Absent pour une inscription directe.
    */
   paymentDueAt: z.iso.datetime({ offset: true }).optional(),
+  cancellation: cancellationSchema.optional(),
   createdAt: z.iso.datetime({ offset: true }),
 });
 
@@ -83,10 +96,13 @@ export const organizerRegistrationSchema = z.object({
   players: z.number().int(),
   status: registrationStatusSchema,
   totalCents: z.number().int(),
+  /** Payée en ligne : un désistement peut la rembourser. */
+  paid: z.boolean(),
   /** Rang dans la liste d'attente (WAITLISTED). */
   waitlistPosition: z.number().int().optional(),
   /** Place proposée depuis la liste d'attente : date limite du paiement. */
   paymentDueAt: z.iso.datetime({ offset: true }).optional(),
+  cancellation: cancellationSchema.optional(),
   createdAt: z.iso.datetime({ offset: true }),
 });
 
@@ -130,6 +146,7 @@ export type Register = z.infer<typeof registerSchema>;
 export type Quote = z.infer<typeof quoteSchema>;
 export type RegistrationInvite = z.infer<typeof registrationInviteSchema>;
 export type RegistrationView = z.infer<typeof registrationSchema>;
+export type CancellationView = z.infer<typeof cancellationSchema>;
 export type OrganizerRegistration = z.infer<typeof organizerRegistrationSchema>;
 export type OrganizerRegistrationsQuery = z.infer<
   typeof organizerRegistrationsQuerySchema
