@@ -3427,6 +3427,7 @@ export interface operations {
                             name: string;
                             /** Format: date-time */
                             arrivedAt: string | null;
+                            played: boolean;
                             forfeit: boolean;
                             /** Format: date-time */
                             nextMatchAt: string | null;
@@ -3483,6 +3484,7 @@ export interface operations {
                             name: string;
                             /** Format: date-time */
                             arrivedAt: string | null;
+                            played: boolean;
                             forfeit: boolean;
                             /** Format: date-time */
                             nextMatchAt: string | null;

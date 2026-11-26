@@ -96,10 +96,11 @@ describe('Jour J : arrivées et forfaits (e2e)', () => {
 
     // La régie le voit ; Mes équipes aussi.
     const day = await organizer('GET', '/matchday');
-    expect(day.json()).toMatchObject({ arrived: 1 });
     expect(
       day.json().teams.find((t: { code: string }) => t.code === 'eda'),
     ).toMatchObject({
+      arrivedAt: arrived.json().arrivedAt,
+      played: true,
       forfeit: false,
     });
     const mine = await app.inject({
@@ -154,7 +155,15 @@ describe('Jour J : arrivées et forfaits (e2e)', () => {
       { arrived: false },
       staff,
     );
-    expect(unset.json().arrived).toBe(0);
+    // Pointage retiré : rdg reste arrivée, puisqu'elle a déjà joué (début de son premier match).
+    const rdg = unset
+      .json()
+      .teams.find((t: { code: string }) => t.code === 'rdg');
+    expect(rdg.played).toBe(true);
+    expect(rdg.arrivedAt).not.toBe(
+      set.json().teams.find((t: { code: string }) => t.code === 'rdg')
+        .arrivedAt,
+    );
     expect(
       (await organizer('PUT', '/teams/inconnue/arrival', { arrived: true }))
         .statusCode,

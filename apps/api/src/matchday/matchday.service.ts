@@ -15,6 +15,18 @@ import type { Arrival, ForfeitResult, Matchday } from './matchday.schemas.js';
 const HOUR = 60 * 60_000;
 /** Le signalement d'arrivée ouvre 4 h avant le début du tournoi. */
 export const ARRIVAL_OPENS_HOURS = 4;
+/** Jour J : de 4 h avant le début à la fin du tournoi, tournoi pas terminé. */
+export function arrivalOpen(
+  t: Pick<Tournament, 'startsAt' | 'endsAt' | 'status'>,
+  now: Date,
+): boolean {
+  return (
+    t.status !== 'COMPLETED' &&
+    now.getTime() >= t.startsAt.getTime() - ARRIVAL_OPENS_HOURS * HOUR &&
+    now <= t.endsAt
+  );
+}
+
 /** Un forfait peut libérer des matchs du tableau : on suit la chaîne, sans boucle sans fin. */
 const MAX_FORFEIT_ROUNDS = 10;
 
@@ -74,23 +86,35 @@ export class MatchdayService {
         orderBy: { name: 'asc' },
       }),
       this.prisma.match.findMany({
-        where: { tournamentId: t.id, status: 'SCHEDULED' },
+        where: { tournamentId: t.id },
         orderBy: { startsAt: 'asc' },
-        select: { startsAt: true, homeTeamCode: true, awayTeamCode: true },
+        select: {
+          startsAt: true,
+          status: true,
+          forfeit: true,
+          homeTeamCode: true,
+          awayTeamCode: true,
+        },
       }),
     ]);
-    const rows = teams.map((team) => ({
-      code: team.code,
-      name: team.name,
-      arrivedAt: team.arrivedAt?.toISOString() ?? null,
-      forfeit: team.forfeitAt !== null,
-      nextMatchAt:
-        matches
-          .find(
-            (m) => m.homeTeamCode === team.code || m.awayTeamCode === team.code,
-          )
-          ?.startsAt.toISOString() ?? null,
-    }));
+    const rows = teams.map((team) => {
+      const own = matches.filter(
+        (m) => m.homeTeamCode === team.code || m.awayTeamCode === team.code,
+      );
+      // Une équipe qui a joué (ou joue) est là, même sans pointage.
+      const played = own.find((m) => m.status !== 'SCHEDULED' && !m.forfeit);
+      const arrivedAt = team.arrivedAt ?? played?.startsAt ?? null;
+      return {
+        code: team.code,
+        name: team.name,
+        arrivedAt: arrivedAt?.toISOString() ?? null,
+        played: played !== undefined,
+        forfeit: team.forfeitAt !== null,
+        nextMatchAt:
+          own.find((m) => m.status === 'SCHEDULED')?.startsAt.toISOString() ??
+          null,
+      };
+    });
     return { teams: rows, arrived: rows.filter((r) => r.arrivedAt).length };
   }
 
@@ -220,12 +244,7 @@ export class MatchdayService {
   private isOpen(
     t: Pick<Tournament, 'startsAt' | 'endsAt' | 'status'>,
   ): boolean {
-    const now = this.clock.now().getTime();
-    return (
-      t.status !== 'COMPLETED' &&
-      now >= t.startsAt.getTime() - ARRIVAL_OPENS_HOURS * HOUR &&
-      now <= t.endsAt.getTime()
-    );
+    return arrivalOpen(t, this.clock.now());
   }
 
   private async own(organizationSlug: string, slug: string) {

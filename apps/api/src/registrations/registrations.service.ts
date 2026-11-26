@@ -58,6 +58,7 @@ import type {
   RegistrationInvite,
   RegistrationView,
 } from './registrations.schemas.js';
+import { arrivalOpen } from '../matchday/matchday.service.js';
 import { STRIPE } from './registrations.tokens.js';
 
 type Tx = Prisma.TransactionClient;
@@ -359,13 +360,10 @@ export class RegistrationsService {
       registration.tournament.endsAt > now
         ? {
             teamCode: registration.team.code,
-            // Jour J (4 h avant le début → fin) : « Nous sommes arrivés » en un appui.
+            // Jour J (4 h avant le début → fin) : « Nous sommes arrivés ».
             arrival: {
               token: registration.arrivalToken,
-              open:
-                now.getTime() >=
-                  registration.tournament.startsAt.getTime() - 4 * 3_600_000 &&
-                now <= registration.tournament.endsAt,
+              open: arrivalOpen(registration.tournament, now),
               arrivedAt: registration.team.arrivedAt?.toISOString() ?? null,
             },
           }

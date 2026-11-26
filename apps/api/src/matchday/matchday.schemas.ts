@@ -19,7 +19,10 @@ export const arrivalSchema = z.object({
 export const matchdayTeamSchema = z.object({
   code: z.string(),
   name: z.string(),
+  /** Pointée, arrivée par son lien, ou déjà en jeu (début de son premier match). */
   arrivedAt: z.iso.datetime({ offset: true }).nullable(),
+  /** A joué ou joue : plus de pointage ni de forfait à proposer. */
+  played: z.boolean(),
   forfeit: z.boolean(),
   /** Premier match encore à jouer (heure), pour repérer les retards. */
   nextMatchAt: z.iso.datetime({ offset: true }).nullable(),
