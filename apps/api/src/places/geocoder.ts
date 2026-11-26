@@ -65,7 +65,12 @@ export class GeoplateformeGeocoder extends Geocoder {
       return null;
     }
     const [place] = await this.municipalities(city, { limit: 1, citycode });
-    return place ?? null;
+    if (place) {
+      return place;
+    }
+    // Paris, Lyon, Marseille : l'adresse porte le code de l'arrondissement.
+    const [byName] = await this.municipalities(city, { limit: 1 });
+    return byName ?? null;
   }
 
   private async places(url: URL): Promise<Place[]> {
