@@ -1,7 +1,7 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { PrismaService } from '../src/database/prisma.service.js';
 import { SponsorReportsService } from '../src/reports/sponsor-reports.service.js';
-import { DEMO_NOW, createTestApp, mailbox } from './setup-app.js';
+import { DEMO_NOW, createTestApp, login, mailbox } from './setup-app.js';
 
 /** Tournoi du club de démonstration, avec ses partenaires et leur audience. */
 const SLUG = 'challenge-u13-arve';
@@ -46,7 +46,7 @@ describe('Bilan des partenaires (e2e)', () => {
     const { paid } = await endedSince(13);
     expect(await reports.sweep()).toBeGreaterThan(0);
     const mail = mailbox.find((m) => m.to === 'partenaire@example.org')!;
-    expect(mail.subject).toMatch(/Votre partenariat pour « .+ » en chiffres/);
+    expect(mail.subject).toMatch(/Votre partenariat pour «\s.+\s» en chiffres/);
     expect(mail.text).toMatch(/\d+\saffichages? · \d+\sclics?/);
     expect(mail.text).toContain(`/bilan/${paid.reportToken}`);
     expect(mail.text).toContain('/editions/desinscription/');
@@ -78,7 +78,7 @@ describe('Bilan des partenaires (e2e)', () => {
   });
 
   it('un partenaire désinscrit des sollicitations du club ne reçoit pas de bilan', async () => {
-    const { t } = await endedSince(13, 'desinscrit@example.org');
+    const { t, paid } = await endedSince(13, 'desinscrit@example.org');
     await prisma.editionInvite.create({
       data: {
         organizationId: t.organizationId,
@@ -91,6 +91,27 @@ describe('Bilan des partenaires (e2e)', () => {
     expect(
       mailbox.filter((m) => m.to === 'desinscrit@example.org'),
     ).toHaveLength(0);
+
+    // Le club le voit : rien n'est parti, et il garde le lien du bilan.
+    const token = await login(app);
+    const list = await app.inject({
+      method: 'GET',
+      url: `/api/v1/organizer/tournaments/${SLUG}/sponsors`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+    const row = list
+      .json<{
+        sponsors: {
+          id: string;
+          reportStatus: string | null;
+          reportToken?: string;
+        }[];
+      }>()
+      .sponsors.find((s) => s.id === paid.id);
+    expect(row).toMatchObject({
+      reportStatus: 'OPTED_OUT',
+      reportToken: paid.reportToken,
+    });
   });
 
   it('la page de bilan, sans connexion : chiffres par emplacement, et 404 pour un lien inconnu', async () => {

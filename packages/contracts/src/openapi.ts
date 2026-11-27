@@ -6013,6 +6013,9 @@ export interface operations {
                             billingAddressKnown: boolean;
                             /** Format: date-time */
                             reportSentAt?: string | null;
+                            /** @enum {string|null} */
+                            reportStatus?: "SENT" | "OPTED_OUT" | null;
+                            reportToken?: string;
                         }[];
                         prospects: {
                             id: string;
@@ -6090,6 +6093,9 @@ export interface operations {
                         billingAddressKnown: boolean;
                         /** Format: date-time */
                         reportSentAt?: string | null;
+                        /** @enum {string|null} */
+                        reportStatus?: "SENT" | "OPTED_OUT" | null;
+                        reportToken?: string;
                         /** Format: uri */
                         inviteUrl: string;
                         emailed: boolean;
