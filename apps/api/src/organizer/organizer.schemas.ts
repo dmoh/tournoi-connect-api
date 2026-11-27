@@ -165,6 +165,8 @@ export const createTournamentSchema = z
       .object({
         slug: z.string().min(1).max(120),
         inviteTeams: z.boolean(),
+        /** Proposer aux partenaires de l'édition précédente de renouveler leur pack. */
+        renewSponsors: z.boolean().optional(),
       })
       .optional(),
   })
@@ -216,6 +218,17 @@ export const nextEditionSchema = z.object({
     teams: z.number().int(),
     /** Une autre édition a déjà invité ces équipes : pas de seconde invitation. */
     invited: z.boolean(),
+    /** Partenaires de l'édition précédente (pack payé, adresse connue), à relancer. */
+    sponsors: z.number().int(),
+    /** Une autre édition a déjà relancé ces partenaires. */
+    sponsorsRenewed: z.boolean(),
+    /** Packs de l'édition précédente, repris tels quels par l'édition suivante. */
+    packages: z.array(
+      z.object({
+        tier: z.enum(['BRONZE', 'SILVER', 'GOLD', 'FIELD']),
+        priceCents: z.number().int(),
+      }),
+    ),
   }),
   /** Édition suivante déjà créée depuis ce tournoi (la plus récente). */
   existing: z.object({ slug: z.string(), name: z.string() }).nullable(),

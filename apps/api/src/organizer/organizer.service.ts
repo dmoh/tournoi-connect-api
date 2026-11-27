@@ -419,9 +419,14 @@ export class OrganizerService {
         }),
     );
 
-    if (previous && input.previousEdition?.inviteTeams) {
-      // Le worker écrit aux équipes de l'édition précédente, une seule fois.
-      await this.editions.enqueueInvites(created.id);
+    if (previous && input.previousEdition) {
+      // Packs repris tels quels ; le worker écrit aux équipes et aux
+      // partenaires de l'édition précédente, une seule fois.
+      await this.editions.copyPackages(previous.id, created.id);
+      await this.editions.enqueueInvites(created.id, {
+        teams: input.previousEdition.inviteTeams,
+        sponsors: input.previousEdition.renewSponsors ?? false,
+      });
     }
 
     return {

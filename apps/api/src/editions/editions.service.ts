@@ -22,6 +22,7 @@ import { editionInviteMail } from '../mail/templates.js';
 import type { NextEdition } from '../organizer/organizer.schemas.js';
 import type { EditionOptOut } from './editions.schemas.js';
 import { EDITION_QUEUE } from '../queue/queue.module.js';
+import { SponsorInvites } from '../sponsorships/sponsor-invites.service.js';
 
 /** « lundi 8 novembre 2027 » : envoyé un an à l'avance, l'année compte. */
 const DATE_FORMAT = new Intl.DateTimeFormat('fr-FR', {
@@ -47,8 +48,19 @@ const FORMATS: Record<TournamentFormat, NextEdition['draft']['format']> = {
   SWISS: 'swiss',
 };
 
+const TIER_ORDER = { GOLD: 0, SILVER: 1, BRONZE: 2, FIELD: 3 } as const;
+
+/** « Terrain 3 » → 3 ; un nom sans numéro passe (0). */
+function fieldNumber(field: string): number {
+  return Number(/(\d+)/.exec(field)?.[1] ?? 0);
+}
+
 export interface EditionInvitesJob {
   tournamentId: string;
+  /** Écrire aux équipes de l'édition précédente. */
+  teams?: boolean;
+  /** Proposer aux partenaires de l'édition précédente de renouveler leur pack. */
+  sponsors?: boolean;
 }
 
 /** « Tournoi de la Toussaint 2026 » → « … 2027 » ; un nom sans année reste tel quel. */
@@ -70,6 +82,7 @@ export class EditionsService {
     private readonly clock: Clock,
     private readonly mailer: Mailer,
     private readonly config: ConfigService<Env, true>,
+    private readonly sponsorInvites: SponsorInvites,
     @Optional()
     @InjectQueue(EDITION_QUEUE)
     private readonly queue?: Queue<EditionInvitesJob>,
@@ -86,8 +99,14 @@ export class EditionsService {
         venue: true,
         nextEditions: {
           orderBy: { startsAt: 'desc' },
-          select: { slug: true, name: true, editionInvitesSentAt: true },
+          select: {
+            slug: true,
+            name: true,
+            editionInvitesSentAt: true,
+            sponsorRenewalsSentAt: true,
+          },
         },
+        packages: { select: { tier: true, priceCents: true } },
       },
     });
     if (!t) {
@@ -133,6 +152,13 @@ export class EditionsService {
         teams: (await this.recipients(t.id, t.organizationId)).length,
         // Une autre édition a déjà écrit aux équipes : on ne les relance pas.
         invited: t.nextEditions.some((e) => e.editionInvitesSentAt !== null),
+        sponsors: (await this.renewable(t.id)).length,
+        sponsorsRenewed: t.nextEditions.some(
+          (e) => e.sponsorRenewalsSentAt !== null,
+        ),
+        packages: [...t.packages].sort(
+          (a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier],
+        ),
       },
       existing: t.nextEditions[0]
         ? { slug: t.nextEditions[0].slug, name: t.nextEditions[0].name }
@@ -140,23 +166,169 @@ export class EditionsService {
     };
   }
 
-  /** Dépose l'invitation dans la file du worker ; sans Redis, l'envoie tout de suite. */
-  async enqueueInvites(tournamentId: string): Promise<void> {
+  /**
+   * Packs de l'édition précédente repris par la nouvelle (même palier, prix
+   * et inventaire), si elle n'en a pas encore.
+   */
+  async copyPackages(
+    previousId: string,
+    tournamentId: string,
+  ): Promise<number> {
+    const packages = await this.prisma.sponsorPackage.findMany({
+      where: { tournamentId: previousId },
+      select: { tier: true, priceCents: true, inventory: true },
+    });
+    const { count } = await this.prisma.sponsorPackage.createMany({
+      data: packages.map((p) => ({ ...p, tournamentId })),
+      skipDuplicates: true,
+    });
+    return count;
+  }
+
+  /** Dépose les invitations dans la file du worker ; sans Redis, les envoie tout de suite. */
+  async enqueueInvites(
+    tournamentId: string,
+    what: { teams: boolean; sponsors: boolean } = {
+      teams: true,
+      sponsors: false,
+    },
+  ): Promise<void> {
+    if (!what.teams && !what.sponsors) {
+      return;
+    }
     if (this.queue) {
       await this.queue.add(
-        'invite-teams',
-        { tournamentId },
+        'invite',
+        { tournamentId, ...what },
         { jobId: `edition-invites-${tournamentId}` },
       );
       return;
     }
     try {
-      await this.inviteTeams(tournamentId);
+      await this.process({ tournamentId, ...what });
     } catch (error) {
       this.logger.error(
         `Invitations de l'édition ${tournamentId} : ${String(error)}`,
       );
     }
+  }
+
+  /** Tâche du worker : équipes, puis partenaires, chacun une seule fois. */
+  async process(job: EditionInvitesJob): Promise<number> {
+    let sent = 0;
+    // Anciennes tâches (sans drapeaux) : les équipes seulement.
+    if (job.teams ?? true) {
+      sent += await this.inviteTeams(job.tournamentId);
+    }
+    if (job.sponsors) {
+      sent += await this.renewSponsors(job.tournamentId);
+    }
+    return sent;
+  }
+
+  /**
+   * Propose aux partenaires de l'édition précédente (pack payé, adresse
+   * connue) le même pack sur la nouvelle : lien de paiement personnel par
+   * email. Une seule fois par édition, une seule édition pour un même
+   * tournoi, dans la limite de l'inventaire des packs.
+   */
+  async renewSponsors(tournamentId: string): Promise<number> {
+    const t = await this.prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      include: {
+        previousEdition: {
+          select: {
+            id: true,
+            nextEditions: {
+              where: { sponsorRenewalsSentAt: { not: null } },
+              select: { id: true },
+            },
+          },
+        },
+      },
+    });
+    if (
+      !t?.previousEdition ||
+      t.sponsorRenewalsSentAt ||
+      !['REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'PUBLISHED'].includes(
+        t.status,
+      ) ||
+      t.previousEdition.nextEditions.some((e) => e.id !== t.id)
+    ) {
+      return 0;
+    }
+    const { count } = await this.prisma.tournament.updateMany({
+      where: { id: t.id, sponsorRenewalsSentAt: null },
+      data: { sponsorRenewalsSentAt: this.clock.now() },
+    });
+    if (count === 0) {
+      return 0;
+    }
+    const [partners, packages] = await Promise.all([
+      this.renewable(t.previousEdition.id),
+      this.prisma.sponsorPackage.findMany({ where: { tournamentId: t.id } }),
+    ]);
+    let renewed = 0;
+    for (const partner of partners) {
+      const pack = packages.find((p) => p.tier === partner.tier);
+      if (!pack) {
+        continue;
+      }
+      // Inventaire du pack, et partenaire pas déjà sur le tournoi.
+      const row = await this.prisma.$transaction(async (tx) => {
+        const taken = await tx.tournamentSponsor.count({
+          where: {
+            tournamentId: t.id,
+            tier: partner.tier,
+            status: { not: 'PROSPECT' },
+          },
+        });
+        const already = await tx.tournamentSponsor.count({
+          where: { tournamentId: t.id, sponsorId: partner.sponsorId },
+        });
+        if (taken >= pack.inventory || already > 0) {
+          return null;
+        }
+        return tx.tournamentSponsor.create({
+          data: {
+            tournamentId: t.id,
+            sponsorId: partner.sponsorId,
+            status: 'INVITED',
+            tier: partner.tier,
+            // Même terrain, s'il existe encore.
+            field:
+              partner.tier === 'FIELD' &&
+              partner.field &&
+              fieldNumber(partner.field) <= t.fieldCount
+                ? partner.field
+                : null,
+            invitedAt: this.clock.now(),
+          },
+        });
+      });
+      if (row) {
+        await this.sponsorInvites.issue(row.id);
+        renewed += 1;
+      }
+    }
+    this.logger.log(
+      `Édition ${t.slug} : ${renewed} partenaire(s) invité(s) à renouveler.`,
+    );
+    return renewed;
+  }
+
+  /** Partenaires d'un tournoi à relancer : pack payé, adresse connue. */
+  private async renewable(tournamentId: string) {
+    const rows = await this.prisma.tournamentSponsor.findMany({
+      where: {
+        tournamentId,
+        status: 'PAID',
+        sponsor: { email: { not: null } },
+      },
+      select: { sponsorId: true, tier: true, field: true },
+      orderBy: { paidAt: 'asc' },
+    });
+    return rows;
   }
 
   /**

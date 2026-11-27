@@ -100,7 +100,7 @@ describe('Édition suivante (e2e)', () => {
     expect(body.draft.date).toBe('2027-11-08');
     expect(body.draft.registrationDeadline <= body.draft.date).toBe(true);
     // Deux inscriptions de la même adresse (casse comprise) : un seul email.
-    expect(body.previous).toEqual({
+    expect(body.previous).toMatchObject({
       slug: SLUG,
       name: source.name,
       startsAt: source.startsAt.toISOString(),
@@ -253,5 +253,76 @@ describe('Édition suivante (e2e)', () => {
         )
       ).statusCode,
     ).toBe(404);
+  });
+
+  it('reprend les packs et propose aux partenaires de renouveler, une seule fois', async () => {
+    const source = await prisma.tournament.findUniqueOrThrow({
+      where: { slug: SLUG },
+      include: { packages: true },
+    });
+    // Partenaires payés de l'édition, avec une adresse.
+    const paid = await prisma.tournamentSponsor.findMany({
+      where: { tournamentId: source.id, status: 'PAID' },
+      include: { sponsor: true },
+    });
+    expect(paid.length).toBeGreaterThan(0);
+    await prisma.sponsor.update({
+      where: { id: paid[0]!.sponsorId },
+      data: { email: 'partenaire@example.org' },
+    });
+    const withEmail = await prisma.tournamentSponsor.count({
+      where: {
+        tournamentId: source.id,
+        status: 'PAID',
+        sponsor: { email: { not: null } },
+      },
+    });
+
+    const next = (
+      await organizer('GET', `/tournaments/${SLUG}/next-edition`)
+    ).json();
+    expect(next.previous).toMatchObject({
+      sponsors: withEmail,
+      sponsorsRenewed: false,
+    });
+    expect(next.previous.packages).toHaveLength(source.packages.length);
+
+    const created = await organizer('POST', '/tournaments', {
+      ...next.draft,
+      previousEdition: { slug: SLUG, inviteTeams: false, renewSponsors: true },
+    });
+    expect(created.statusCode).toBe(201);
+    const edition = await prisma.tournament.findUniqueOrThrow({
+      where: { slug: created.json().slug },
+      include: { packages: true, sponsors: true },
+    });
+    // Mêmes packs, mêmes prix.
+    expect(
+      edition.packages.map((p) => [p.tier, p.priceCents, p.inventory]).sort(),
+    ).toEqual(
+      source.packages.map((p) => [p.tier, p.priceCents, p.inventory]).sort(),
+    );
+    // Partenaires invités (dans la limite des packs), lien de paiement par email.
+    expect(edition.sponsors.length).toBeGreaterThan(0);
+    expect(edition.sponsors.every((r) => r.status === 'INVITED')).toBe(true);
+    expect(edition.sponsorRenewalsSentAt).not.toBeNull();
+    expect(mailbox.some((m) => m.to === 'partenaire@example.org')).toBe(true);
+    expect(
+      mailbox.find((m) => m.to === 'partenaire@example.org')!.text,
+    ).toContain('/sponsor/');
+
+    // Une autre édition depuis le même tournoi : packs repris, plus de relance.
+    mailbox.length = 0;
+    const again = (
+      await organizer('GET', `/tournaments/${SLUG}/next-edition`)
+    ).json();
+    expect(again.previous.sponsorsRenewed).toBe(true);
+    const bis = await organizer('POST', '/tournaments', {
+      ...next.draft,
+      name: 'Challenge bis',
+      previousEdition: { slug: SLUG, inviteTeams: false, renewSponsors: true },
+    });
+    expect(bis.statusCode).toBe(201);
+    expect(mailbox).toHaveLength(0);
   });
 });
