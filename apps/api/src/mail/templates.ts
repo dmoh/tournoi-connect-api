@@ -16,11 +16,11 @@ export function loginCodeMail(to: string, code: string): MailMessage {
     '',
     'Tournoi Connect',
   ].join('\n');
-  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
 <p style="margin:0 0 8px;font-size:15px">Votre code de connexion</p>
-<p style="margin:0 0 16px;font-size:36px;font-weight:700;letter-spacing:6px;color:#1e3a8a">${escape(code)}</p>
-<p style="margin:0;font-size:14px;color:#5c6a7f">Il est valable 10 minutes. Si vous n’avez rien demandé, ignorez cet email : personne ne peut se connecter sans ce code.</p>
+<p style="margin:0 0 16px;font-size:36px;font-weight:700;letter-spacing:6px;color:#062541">${escape(code)}</p>
+<p style="margin:0;font-size:14px;color:#4a5a6c">Il est valable 10 minutes. Si vous n’avez rien demandé, ignorez cet email : personne ne peut se connecter sans ce code.</p>
 </div></body></html>`;
   return { to, subject, text, html };
 }
@@ -53,13 +53,13 @@ export function invitationMail(
     '',
     'Tournoi Connect',
   ].join('\n');
-  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
 <p style="margin:0 0 8px;font-size:15px">${escape(who)} vous invite à rejoindre</p>
-<p style="margin:0 0 4px;font-size:24px;font-weight:700;color:#1e3a8a">${escape(invite.club)}</p>
-<p style="margin:0 0 20px;font-size:14px;color:#5c6a7f">en tant que ${escape(role)}</p>
-<a href="${escape(invite.url)}" style="display:inline-block;background:#1e3a8a;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 20px;border-radius:12px">Accepter l’invitation</a>
-<p style="margin:20px 0 0;font-size:13px;color:#5c6a7f">Le lien est valable 7 jours et réservé à cette adresse. Si vous ne connaissez pas ce club, ignorez cet email.</p>
+<p style="margin:0 0 4px;font-size:24px;font-weight:700;color:#062541">${escape(invite.club)}</p>
+<p style="margin:0 0 20px;font-size:14px;color:#4a5a6c">en tant que ${escape(role)}</p>
+<a href="${escape(invite.url)}" style="display:inline-block;background:#062541;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 20px;border-radius:12px">Accepter l’invitation</a>
+<p style="margin:20px 0 0;font-size:13px;color:#4a5a6c">Le lien est valable 7 jours et réservé à cette adresse. Si vous ne connaissez pas ce club, ignorez cet email.</p>
 </div></body></html>`;
   return { to, subject, text, html };
 }
@@ -77,12 +77,12 @@ export function registrationConfirmedMail(
     '',
     'Tournoi Connect',
   ].join('\n');
-  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
 <p style="margin:0 0 8px;font-size:15px">Inscription confirmée</p>
-<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.team)}</p>
-<p style="margin:0 0 20px;font-size:14px;color:#5c6a7f">${escape(info.tournament)} · ${escape(info.date)}</p>
-<a href="${escape(info.url)}" style="display:inline-block;background:#1e3a8a;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 20px;border-radius:12px">Suivre le tournoi</a>
+<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#062541">${escape(info.team)}</p>
+<p style="margin:0 0 20px;font-size:14px;color:#4a5a6c">${escape(info.tournament)} · ${escape(info.date)}</p>
+<a href="${escape(info.url)}" style="display:inline-block;background:#062541;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 20px;border-radius:12px">Suivre le tournoi</a>
 </div></body></html>`;
   return { to, subject, text, html };
 }
@@ -113,14 +113,14 @@ export function waitlistOfferMail(
     '',
     'Tournoi Connect',
   ].join('\n');
-  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
 <p style="margin:0 0 8px;font-size:15px">Une place s’est libérée</p>
-<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.team)}</p>
-<p style="margin:0 0 16px;font-size:14px;color:#5c6a7f">${escape(info.tournament)} · ${escape(info.date)}</p>
+<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#062541">${escape(info.team)}</p>
+<p style="margin:0 0 16px;font-size:14px;color:#4a5a6c">${escape(info.tournament)} · ${escape(info.date)}</p>
 <p style="margin:0 0 20px;font-size:15px">${escape(hold)}</p>
-<a href="${escape(info.url)}" style="display:inline-block;background:#1e3a8a;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 20px;border-radius:12px">Payer la place (${escape(info.amount)})</a>
-<p style="margin:20px 0 0;font-size:13px;color:#5c6a7f">Rien n’est prélevé avant votre paiement. Si vous ne souhaitez plus participer, renoncez à la place depuis la même page.</p>
+<a href="${escape(info.url)}" style="display:inline-block;background:#062541;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 20px;border-radius:12px">Payer la place (${escape(info.amount)})</a>
+<p style="margin:20px 0 0;font-size:13px;color:#4a5a6c">Rien n’est prélevé avant votre paiement. Si vous ne souhaitez plus participer, renoncez à la place depuis la même page.</p>
 </div></body></html>`;
   return { to, subject, text, html };
 }
@@ -148,13 +148,13 @@ export function registrationRefundedMail(
       : `L’inscription de ${info.team} au ${info.tournament} était déjà réglée : ce second paiement n’est pas retenu.`;
   const refund = `Votre paiement de ${info.amount} vous est intégralement remboursé. Il apparaît sur votre compte sous 5 à 10 jours selon votre banque.`;
   const text = [why, '', refund, '', 'Tournoi Connect'].join('\n');
-  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
 <p style="margin:0 0 8px;font-size:15px">Paiement remboursé</p>
-<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.team)}</p>
-<p style="margin:0 0 16px;font-size:14px;color:#5c6a7f">${escape(info.tournament)}</p>
+<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#062541">${escape(info.team)}</p>
+<p style="margin:0 0 16px;font-size:14px;color:#4a5a6c">${escape(info.tournament)}</p>
 <p style="margin:0 0 12px;font-size:15px">${escape(why)}</p>
-<p style="margin:0;font-size:14px;color:#5c6a7f">${escape(refund)}</p>
+<p style="margin:0;font-size:14px;color:#4a5a6c">${escape(refund)}</p>
 </div></body></html>`;
   return { to, subject, text, html };
 }
@@ -171,11 +171,11 @@ export function accountDeletedMail(to: string): MailMessage {
     '',
     'Tournoi Connect',
   ].join('\n');
-  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
-<p style="margin:0 0 12px;font-size:20px;font-weight:700;color:#1e3a8a">Compte supprimé</p>
+<p style="margin:0 0 12px;font-size:20px;font-weight:700;color:#062541">Compte supprimé</p>
 <p style="margin:0 0 12px;font-size:15px">${escape(body)}</p>
-<p style="margin:0;font-size:14px;color:#5c6a7f">Si vous n’êtes pas à l’origine de cette suppression, répondez à cet email.</p>
+<p style="margin:0;font-size:14px;color:#4a5a6c">Si vous n’êtes pas à l’origine de cette suppression, répondez à cet email.</p>
 </div></body></html>`;
   return { to, subject, text, html };
 }
@@ -206,11 +206,11 @@ export function reportReceivedMail(
     '',
     'Tournoi Connect',
   ].join('\n');
-  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
 <p style="margin:0 0 8px;font-size:15px">Nouveau signalement : ${escape(reason)}</p>
-<p style="margin:0 0 20px;font-size:20px;font-weight:700;color:#1e3a8a">${escape(report.tournament)}</p>
-<a href="${escape(report.url)}" style="display:inline-block;background:#1e3a8a;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:12px">Traiter le signalement</a>
+<p style="margin:0 0 20px;font-size:20px;font-weight:700;color:#062541">${escape(report.tournament)}</p>
+<a href="${escape(report.url)}" style="display:inline-block;background:#062541;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:12px">Traiter le signalement</a>
 </div></body></html>`;
   return { to, subject, text, html };
 }
@@ -229,10 +229,10 @@ export function contentHiddenMail(
     '',
     'Tournoi Connect',
   ].join('\n');
-  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
 <p style="margin:0 0 12px;font-size:15px">${escape(body)}</p>
-<p style="margin:0;font-size:14px;color:#5c6a7f">Si vous pensez qu’il s’agit d’une erreur, répondez à cet email en expliquant le contexte : nous réexaminerons la décision.</p>
+<p style="margin:0;font-size:14px;color:#4a5a6c">Si vous pensez qu’il s’agit d’une erreur, répondez à cet email en expliquant le contexte : nous réexaminerons la décision.</p>
 </div></body></html>`;
   return { to, subject, text, html };
 }
@@ -265,14 +265,14 @@ function sponsorCard(
   const rows = lines
     .map(
       (l, i) =>
-        `<p style="margin:0 0 ${i === lines.length - 1 ? 20 : 6}px;font-size:${i === 0 ? 20 : 14}px;${i === 0 ? 'font-weight:700;color:#1e3a8a' : 'color:#5c6a7f'}">${escape(l)}</p>`,
+        `<p style="margin:0 0 ${i === lines.length - 1 ? 20 : 6}px;font-size:${i === 0 ? 20 : 14}px;${i === 0 ? 'font-weight:700;color:#062541' : 'color:#4a5a6c'}">${escape(l)}</p>`,
     )
     .join('\n');
   const cta = button
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1e3a8a" style="border-radius:12px"><a href="${escape(button.url)}" style="display:inline-block;padding:14px 20px;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px">${escape(button.label)}</a></td></tr></table>`
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#062541" style="border-radius:12px"><a href="${escape(button.url)}" style="display:inline-block;padding:14px 20px;mso-padding-alt:0;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px"><!--[if mso]><i style="mso-font-width:150%;mso-text-raise:21pt">&nbsp;</i><![endif]-->${escape(button.label)}<!--[if mso]><i style="mso-font-width:150%">&nbsp;</i><![endif]--></a></td></tr></table>`
     : '';
-  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7f8fa"><tr><td align="center" style="padding:24px 12px">
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa"><tr><td align="center" style="padding:24px 12px">
 <!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
 <p style="margin:0 0 8px;font-size:15px">${escape(title)}</p>
@@ -466,14 +466,14 @@ function cancellationMail(
   const paragraphs = info.lines
     .map(
       (l, i) =>
-        `<p style="margin:0 0 12px;font-size:${i === 0 ? 15 : 14}px${i === 0 ? '' : ';color:#5c6a7f'}">${escape(l)}</p>`,
+        `<p style="margin:0 0 12px;font-size:${i === 0 ? 15 : 14}px${i === 0 ? '' : ';color:#4a5a6c'}">${escape(l)}</p>`,
     )
     .join('\n');
-  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
 <p style="margin:0 0 8px;font-size:15px">${escape(info.heading)}</p>
-<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.team)}</p>
-<p style="margin:0 0 16px;font-size:14px;color:#5c6a7f">${escape(info.tournament)}</p>
+<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#062541">${escape(info.team)}</p>
+<p style="margin:0 0 16px;font-size:14px;color:#4a5a6c">${escape(info.tournament)}</p>
 ${paragraphs}
 </div></body></html>`;
   return { to, subject, text, html };
@@ -585,18 +585,18 @@ export function convocationMail(
         `<li style="margin:0 0 6px;${i === 0 ? 'font-weight:700;' : ''}">${escape(m)}</li>`,
     )
     .join('');
-  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:0;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7f8fa"><tr><td align="center" style="padding:24px 12px">
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="420" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
 <p style="margin:0 0 8px;font-size:15px">${info.update ? 'Horaires modifiés' : 'Convocation'}</p>
-<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.team)}</p>
-<p style="margin:0 0 16px;font-size:14px;color:#5c6a7f">${escape(info.tournament)} · ${escape(info.date)}</p>
+<p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#062541">${escape(info.team)}</p>
+<p style="margin:0 0 16px;font-size:14px;color:#4a5a6c">${escape(info.tournament)} · ${escape(info.date)}</p>
 <p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
-<ul style="margin:0 0 16px;padding-left:20px;font-size:15px">${rows}</ul>
-<p style="margin:0 0 20px;font-size:14px">${escape(info.venue)} · <a href="${escape(info.directionsUrl)}" style="color:#1e3a8a">Itinéraire</a></p>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1e3a8a" style="border-radius:12px;padding:14px 20px"><a href="${escape(info.agendaUrl)}" style="color:#ffffff;text-decoration:none;font-weight:600;font-size:15px">Ajouter à mon agenda</a></td></tr></table>
-<p style="margin:16px 0 0;font-size:14px">Le jour J, <a href="${escape(info.arrivalUrl)}" style="color:#1e3a8a;font-weight:600">signalez votre arrivée ici</a> : l’organisateur saura que vous êtes là.</p>
-<p style="margin:12px 0 0;font-size:13px;color:#5c6a7f"><a href="${escape(info.pageUrl)}" style="color:#1e3a8a">Suivre le tournoi en direct</a></p>
+<ul style="margin:0 0 16px 20px;padding:0;font-size:15px">${rows}</ul>
+<p style="margin:0 0 20px;font-size:14px">${escape(info.venue)} · <a href="${escape(info.directionsUrl)}" style="color:#062541">Itinéraire</a></p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#062541" style="border-radius:12px;padding:14px 20px"><a href="${escape(info.agendaUrl)}" style="color:#ffffff;text-decoration:none;font-weight:600;font-size:15px">Ajouter à mon agenda</a></td></tr></table>
+<p style="margin:16px 0 0;font-size:14px">Le jour J, <a href="${escape(info.arrivalUrl)}" style="color:#062541;font-weight:600">signalez votre arrivée ici</a> : l’organisateur saura que vous êtes là.</p>
+<p style="margin:12px 0 0;font-size:13px;color:#4a5a6c"><a href="${escape(info.pageUrl)}" style="color:#062541">Suivre le tournoi en direct</a></p>
 </td></tr></table>
 </td></tr></table>
 </body></html>`;
@@ -654,16 +654,16 @@ export function editionInviteMail(
   const rows = details
     .map((line) => `<li style="margin:0 0 6px">${escape(line)}</li>`)
     .join('');
-  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7f8fa"><tr><td align="center" style="padding:24px 12px">
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa"><tr><td align="center" style="padding:24px 12px">
 <!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
 <p style="margin:0 0 8px;font-size:15px">Nouvelle édition · ${escape(info.club)}</p>
-<p style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.tournament)}</p>
+<p style="margin:0 0 16px;font-size:22px;font-weight:700;color:#062541">${escape(info.tournament)}</p>
 <p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
-<ul style="margin:0 0 20px;padding-left:20px;font-size:15px">${rows}</ul>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1e3a8a" style="border-radius:12px"><a href="${escape(info.joinUrl)}" style="display:inline-block;padding:14px 20px;mso-padding-alt:0;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px"><!--[if mso]><i style="mso-font-width:150%;mso-text-raise:21pt">&nbsp;</i><![endif]-->Inscrire mon équipe<!--[if mso]><i style="mso-font-width:150%">&nbsp;</i><![endif]--></a></td></tr></table>
-<p style="margin:20px 0 0;font-size:12px;color:#5c6a7f">${escape(why)} <a href="${escape(info.unsubscribeUrl)}" style="color:#5c6a7f">Ne plus recevoir les nouvelles éditions de ce club</a>.</p>
+<ul style="margin:0 0 20px 20px;padding:0;font-size:15px">${rows}</ul>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#062541" style="border-radius:12px"><a href="${escape(info.joinUrl)}" style="display:inline-block;padding:14px 20px;mso-padding-alt:0;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px"><!--[if mso]><i style="mso-font-width:150%;mso-text-raise:21pt">&nbsp;</i><![endif]-->Inscrire mon équipe<!--[if mso]><i style="mso-font-width:150%">&nbsp;</i><![endif]--></a></td></tr></table>
+<p style="margin:20px 0 0;font-size:12px;color:#4a5a6c">${escape(why)} <a href="${escape(info.unsubscribeUrl)}" style="color:#4a5a6c">Ne plus recevoir les nouvelles éditions de ce club</a>.</p>
 </td></tr></table>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table>
@@ -708,7 +708,7 @@ export function sponsorRenewalMail(
   const amount = eurosLabel(info.totalCents);
   const subject = `${info.club} – ${info.tournament}\u202f: renouveler votre ${packLabel(info.tier)}\u202f?`;
   const intro = `Merci d’avoir soutenu « ${info.previous} ». ${info.club} organise la nouvelle édition et propose à ${info.sponsor} de renouveler son partenariat.`;
-  const why = `Vous recevez cet email car ${info.sponsor} était partenaire de « ${info.previous} ». ${info.club} ne vous écrit qu’à la publication d’une nouvelle édition.`;
+  const why = `Vous recevez cet email car ${info.sponsor} était partenaire de « ${info.previous} ». ${info.club} ne vous écrit qu’à la publication d’une nouvelle édition et pour le bilan de votre partenariat.`;
   const details = [
     `${pack}, comme l’an dernier`,
     `${info.date} · ${info.venue}`,
@@ -731,17 +731,133 @@ export function sponsorRenewalMail(
   const rows = details
     .map((line) => `<li style="margin:0 0 6px">${escape(line)}</li>`)
     .join('');
-  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7f8fa"><tr><td align="center" style="padding:24px 12px">
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa"><tr><td align="center" style="padding:24px 12px">
 <!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
 <p style="margin:0 0 8px;font-size:15px">Nouvelle édition · ${escape(info.club)}</p>
-<p style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.tournament)}</p>
+<p style="margin:0 0 16px;font-size:22px;font-weight:700;color:#062541">${escape(info.tournament)}</p>
 <p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
-<ul style="margin:0 0 20px;padding-left:20px;font-size:15px">${rows}</ul>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1e3a8a" style="border-radius:12px"><a href="${escape(info.url)}" style="display:inline-block;padding:14px 20px;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px">Renouveler et payer</a></td></tr></table>
-<p style="margin:16px 0 0;font-size:13px;color:#5c6a7f">Paiement sécurisé par Stripe, versé au club. Sans réponse, rien ne vous est demandé.</p>
-<p style="margin:16px 0 0;font-size:12px;color:#5c6a7f">${escape(why)} <a href="${escape(info.unsubscribeUrl)}" style="color:#5c6a7f">Ne plus être sollicité par ce club</a>.</p>
+<ul style="margin:0 0 20px 20px;padding:0;font-size:15px">${rows}</ul>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#062541" style="border-radius:12px"><a href="${escape(info.url)}" style="display:inline-block;padding:14px 20px;mso-padding-alt:0;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px"><!--[if mso]><i style="mso-font-width:150%;mso-text-raise:21pt">&nbsp;</i><![endif]-->Renouveler et payer<!--[if mso]><i style="mso-font-width:150%">&nbsp;</i><![endif]--></a></td></tr></table>
+<p style="margin:16px 0 0;font-size:13px;color:#4a5a6c">Paiement sécurisé par Stripe, versé au club. Sans réponse, rien ne vous est demandé.</p>
+<p style="margin:16px 0 0;font-size:12px;color:#4a5a6c">${escape(why)} <a href="${escape(info.unsubscribeUrl)}" style="color:#4a5a6c">Ne plus être sollicité par ce club</a>.</p>
+</td></tr></table>
+<!--[if mso]></td></tr></table><![endif]-->
+</td></tr></table>
+</body></html>`;
+  return {
+    to,
+    subject,
+    text,
+    html,
+    headers: {
+      'List-Unsubscribe': `<${info.oneClickUrl}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  };
+}
+
+const PLACEMENT_NAME = {
+  BANNER_EXCLUSIVE: 'Bannière principale',
+  BANNER_ROTATION: 'Bandeau des partenaires',
+  FIELD_LOGO: 'Logo du terrain (pages des matchs, écran du stade)',
+  FEED_CARD: 'Fil d’actualité',
+} as const;
+
+const COUNT = new Intl.NumberFormat('fr-FR');
+const PLURAL = new Intl.PluralRules('fr-FR');
+/** « 207 affichages », « 1 affichage », « 0 affichage » (règles du français). */
+const counted = (n: number, one: string, many: string) =>
+  `${COUNT.format(n)}\u00a0${PLURAL.select(n) === 'one' ? one : many}`;
+
+/**
+ * Bilan d'un partenariat, le lendemain du tournoi : affichages et clics, par
+ * emplacement, et le lien de la page de bilan. Envoyé une seule fois ;
+ * désinscription en un clic (les mêmes que les invitations du club).
+ */
+export function sponsorReportMail(
+  to: string,
+  info: {
+    club: string;
+    sponsor: string;
+    tier: keyof typeof TIER_NAME;
+    field: string | null;
+    tournament: { name: string };
+    /** « lundi 9 novembre 2026 » */
+    date: string;
+    impressions: number;
+    clicks: number;
+    placements: readonly {
+      placement: keyof typeof PLACEMENT_NAME;
+      impressions: number;
+      clicks: number;
+    }[];
+    teams: number;
+    matches: number;
+    reportUrl: string;
+    unsubscribeUrl: string;
+    oneClickUrl: string;
+  },
+): MailMessage {
+  // « votre pack Or », « votre partenariat (sponsor de terrain, Terrain 2) »
+  const pack =
+    info.tier === 'FIELD'
+      ? `partenariat (sponsor de terrain${info.field ? `, ${info.field}` : ''})`
+      : `pack ${TIER_NAME[info.tier]}`;
+  const subject = `${info.club} – merci\u202f! Votre partenariat pour «\u00a0${info.tournament.name}\u00a0» en chiffres`;
+  const measured = info.impressions > 0;
+  const intro = measured
+    ? `Merci d’avoir soutenu «\u00a0${info.tournament.name}\u00a0» (${info.date}). Voici ce que votre ${pack} vous a apporté.`
+    : info.tier === 'FIELD'
+      ? `Merci d’avoir soutenu «\u00a0${info.tournament.name}\u00a0» (${info.date}). Votre logo était au bord du terrain ; l’application n’a pas mesuré d’affichage en ligne cette fois.`
+      : `Merci d’avoir soutenu «\u00a0${info.tournament.name}\u00a0» (${info.date}). L’application n’a pas mesuré d’affichage de votre ${pack} cette fois.`;
+  const headline = `${counted(info.impressions, 'affichage', 'affichages')} · ${counted(info.clicks, 'clic', 'clics')}`;
+  const lines = info.placements.map(
+    (p) =>
+      `${PLACEMENT_NAME[p.placement]}\u202f: ${counted(p.impressions, 'affichage', 'affichages')}, ${counted(p.clicks, 'clic', 'clics')}`,
+  );
+  // Ce qui est mesuré, dit simplement.
+  const method =
+    'Un affichage = votre logo visible au moins 1 seconde dans l’application, sur un téléphone, un ordinateur ou l’écran du stade, compté une fois par visite. Un clic = une ouverture de votre site depuis l’application.';
+  const scale =
+    info.matches > 0
+      ? `${counted(info.teams, 'équipe', 'équipes')}, ${counted(info.matches, 'match joué', 'matchs joués')}.`
+      : `${counted(info.teams, 'équipe', 'équipes')}.`;
+  const why = `Vous recevez cet email car ${info.sponsor} était partenaire de «\u00a0${info.tournament.name}\u00a0».`;
+  const text = [
+    intro,
+    '',
+    ...(measured ? [headline, ...lines.map((l) => `- ${l}`), method, ''] : []),
+    scale,
+    '',
+    `Votre bilan détaillé\u202f: ${info.reportUrl}`,
+    '',
+    why,
+    `Ne plus être sollicité par ce club\u202f: ${info.unsubscribeUrl}`,
+    '',
+    'Tournoi Connect',
+  ].join('\n');
+  const rows = lines
+    .map((line) => `<li style="margin:0 0 6px">${escape(line)}</li>`)
+    .join('');
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa"><tr><td align="center" style="padding:24px 12px">
+<!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
+<p style="margin:0 0 8px;font-size:15px">Bilan du partenariat · ${escape(info.club)}</p>
+<h1 style="margin:0 0 16px;font-size:22px;line-height:1.25;font-weight:700;color:#062541">${escape(info.tournament.name)}</h1>
+<p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
+${
+  measured
+    ? `<p style="margin:0 0 8px;font-size:20px;font-weight:700">${escape(headline)}</p>
+<ul style="margin:0 0 12px 20px;padding:0;font-size:15px">${rows}</ul>
+<p style="margin:0 0 12px;font-size:12px;color:#4a5a6c">${escape(method)}</p>`
+    : ''
+}
+<p style="margin:0 0 20px;font-size:14px;color:#4a5a6c">${escape(scale)}</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#062541" style="border-radius:12px"><a href="${escape(info.reportUrl)}" style="display:inline-block;padding:14px 20px;mso-padding-alt:0;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px"><!--[if mso]><i style="mso-font-width:150%;mso-text-raise:21pt">&nbsp;</i><![endif]-->Voir mon bilan<!--[if mso]><i style="mso-font-width:150%">&nbsp;</i><![endif]--></a></td></tr></table>
+<p style="margin:20px 0 0;font-size:12px;color:#4a5a6c">${escape(why)} <a href="${escape(info.unsubscribeUrl)}" style="color:#4a5a6c">Ne plus être sollicité par ce club</a>.</p>
 </td></tr></table>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table>

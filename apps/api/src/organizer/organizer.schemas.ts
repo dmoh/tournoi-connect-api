@@ -21,6 +21,12 @@ export const sponsorRowSchema = z.object({
   invoiceNumber: z.string().nullable(),
   /** Adresse de facturation du sponsor connue (saisie en payant en ligne). */
   billingAddressKnown: z.boolean(),
+  /** Bilan du partenariat envoyé le lendemain du tournoi (date), sinon null. */
+  reportSentAt: z.iso.datetime({ offset: true }).nullable().optional(),
+  /** SENT : bilan parti ; OPTED_OUT : partenaire désinscrit, rien n'est parti. */
+  reportStatus: z.enum(['SENT', 'OPTED_OUT']).nullable().optional(),
+  /** Pack payé : jeton de la page de bilan (/bilan/:token), à transmettre au partenaire. */
+  reportToken: z.string().optional(),
 });
 
 /** Sponsor invité : son lien de paiement personnel, montré une seule fois. */

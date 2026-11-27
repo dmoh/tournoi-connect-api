@@ -453,6 +453,10 @@ model TournamentSponsor {
   field             String?
   invitedAt         DateTime?        @map("invited_at") @db.Timestamptz
   paidAt            DateTime?        @map("paid_at") @db.Timestamptz
+  /// Lien du bilan envoyé au partenaire le lendemain du tournoi (sans connexion).
+  reportToken       String           @unique @default(dbgenerated("(gen_random_uuid())::text")) @map("report_token")
+  /// Bilan du partenariat envoyé (une seule fois).
+  reportSentAt      DateTime?        @map("report_sent_at") @db.Timestamptz
   /// Empreinte (SHA-256) du lien de paiement envoyé au sponsor ; le lien lui-même n'est pas gardé.
   inviteTokenHash   String?          @unique @map("invite_token_hash")
   /// Dernière page de paiement Stripe ouverte par le sponsor.

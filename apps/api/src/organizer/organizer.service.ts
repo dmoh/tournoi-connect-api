@@ -106,6 +106,24 @@ export class OrganizerService {
     const totals = new Map(
       audience.map((a) => [a.tournamentSponsorId, a._sum]),
     );
+    // Bilan marqué traité pour un partenaire désinscrit : rien n'est parti.
+    const reported = rows.flatMap((r) =>
+      r.reportSentAt && r.sponsor.email ? [r.sponsor.email.toLowerCase()] : [],
+    );
+    const optedOut = new Set(
+      reported.length
+        ? (
+            await this.prisma.editionInvite.findMany({
+              where: {
+                organizationId: tournament.organizationId,
+                email: { in: reported },
+                optedOutAt: { not: null },
+              },
+              select: { email: true },
+            })
+          ).map((i) => i.email)
+        : [],
+    );
     return {
       packages: packages
         .sort((a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier])
@@ -131,6 +149,13 @@ export class OrganizerService {
           paidOnline: r.paymentIntentId !== null,
           invoiceNumber: r.invoice?.number ?? null,
           billingAddressKnown: r.billingAddress !== null,
+          reportSentAt: r.reportSentAt?.toISOString() ?? null,
+          reportStatus: r.reportSentAt
+            ? optedOut.has(r.sponsor.email?.toLowerCase() ?? '')
+              ? 'OPTED_OUT'
+              : 'SENT'
+            : null,
+          ...(r.status === 'PAID' ? { reportToken: r.reportToken } : {}),
         }))
         .sort(
           (a, b) =>
@@ -230,6 +255,7 @@ export class OrganizerService {
         paidOnline: false,
         invoiceNumber: null,
         billingAddressKnown: false,
+        reportSentAt: null,
       } satisfies SponsorRow;
     });
     // Lien de paiement personnel, envoyé par email au sponsor s'il a une adresse.
