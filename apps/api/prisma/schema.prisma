@@ -207,6 +207,8 @@ model Tournament {
   editionInvitesSentAt  DateTime?           @map("edition_invites_sent_at") @db.Timestamptz
   /// Partenaires de l'édition précédente invités à renouveler leur pack.
   sponsorRenewalsSentAt DateTime?           @map("sponsor_renewals_sent_at") @db.Timestamptz
+  /// Récapitulatifs du lendemain envoyés à toutes les équipes (lot 26).
+  teamRecapsSentAt      DateTime?           @map("team_recaps_sent_at") @db.Timestamptz
   reports               Report[]
   photos                Photo[]
   teams                 Team[]
@@ -685,6 +687,8 @@ model Registration {
   paymentDueAt      DateTime?          @map("payment_due_at") @db.Timestamptz
   paymentIntentId   String?            @map("payment_intent_id")
   paidAt            DateTime?          @map("paid_at") @db.Timestamptz
+  /// Récapitulatif du lendemain envoyé au responsable (lot 26), une seule fois.
+  recapSentAt       DateTime?          @map("recap_sent_at") @db.Timestamptz
   teamId            String?            @unique @map("team_id")
   team              Team?              @relation(fields: [teamId], references: [id], onDelete: SetNull)
   cancellation      Cancellation?

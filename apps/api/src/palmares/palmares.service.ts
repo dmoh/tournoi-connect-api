@@ -157,7 +157,7 @@ export class PalmaresService {
 }
 
 /** Podium du tournoi d'après ses matchs et son classement final. */
-function podiumOf(t: Loaded): Podium | null {
+export function podiumOf(t: Loaded): Podium | null {
   const format = FORMAT_KIND[t.format];
   const rules = rulesFor(t.sport, storedRules(t.rankingRules));
   const results = (phase: 'groups' | 'swiss') =>

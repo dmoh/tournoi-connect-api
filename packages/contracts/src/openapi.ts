@@ -5673,6 +5673,8 @@ export interface operations {
                                 /** Format: date-time */
                                 startsAt: string;
                             } | null;
+                            /** Format: date-time */
+                            teamRecapsSentAt?: string | null;
                         }[];
                         nextCursor: string | null;
                     };
@@ -5777,6 +5779,8 @@ export interface operations {
                             /** Format: date-time */
                             startsAt: string;
                         } | null;
+                        /** Format: date-time */
+                        teamRecapsSentAt?: string | null;
                     };
                 };
             };
