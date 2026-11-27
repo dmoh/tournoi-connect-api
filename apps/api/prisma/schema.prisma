@@ -933,6 +933,8 @@ model EditionInvite {
   email          String
   sentAt         DateTime     @default(now()) @map("sent_at") @db.Timestamptz
   optedOutAt     DateTime?    @map("opted_out_at") @db.Timestamptz
+  /// Email déposé dans la file : une relance du travail ne le renvoie pas.
+  mailedAt       DateTime?    @map("mailed_at") @db.Timestamptz
 
   @@unique([tournamentId, email])
   @@index([organizationId, email])

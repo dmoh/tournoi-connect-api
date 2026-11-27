@@ -270,13 +270,19 @@ describe('Édition suivante (e2e)', () => {
       where: { id: paid[0]!.sponsorId },
       data: { email: 'partenaire@example.org' },
     });
-    const withEmail = await prisma.tournamentSponsor.count({
-      where: {
-        tournamentId: source.id,
-        status: 'PAID',
-        sponsor: { email: { not: null } },
-      },
-    });
+    // Un partenaire par sponsor (son pack le plus haut).
+    const withEmail = new Set(
+      (
+        await prisma.tournamentSponsor.findMany({
+          where: {
+            tournamentId: source.id,
+            status: 'PAID',
+            sponsor: { email: { not: null } },
+          },
+          select: { sponsorId: true },
+        })
+      ).map((r) => r.sponsorId),
+    ).size;
 
     const next = (
       await organizer('GET', `/tournaments/${SLUG}/next-edition`)
@@ -286,6 +292,13 @@ describe('Édition suivante (e2e)', () => {
       sponsorsRenewed: false,
     });
     expect(next.previous.packages).toHaveLength(source.packages.length);
+    // Qui reçoit quoi, à quel prix (frais compris) : un pack par partenaire.
+    expect(next.previous.partners).toHaveLength(withEmail);
+    expect(next.previous.partners[0]).toMatchObject({
+      name: expect.any(String),
+      tier: expect.stringMatching(/GOLD|SILVER|BRONZE|FIELD/),
+      totalCents: expect.any(Number),
+    });
 
     const created = await organizer('POST', '/tournaments', {
       ...next.draft,
@@ -307,9 +320,15 @@ describe('Édition suivante (e2e)', () => {
     expect(edition.sponsors.every((r) => r.status === 'INVITED')).toBe(true);
     expect(edition.sponsorRenewalsSentAt).not.toBeNull();
     expect(mailbox.some((m) => m.to === 'partenaire@example.org')).toBe(true);
-    expect(
-      mailbox.find((m) => m.to === 'partenaire@example.org')!.text,
-    ).toContain('/sponsor/');
+    const renewal = mailbox.find((m) => m.to === 'partenaire@example.org')!;
+    // Email du partenaire de l'an dernier : remerciement, même pack, désinscription.
+    expect(renewal.subject).toMatch(/renouveler votre/);
+    expect(renewal.text).toContain('Merci d’avoir soutenu');
+    expect(renewal.text).toContain('/sponsor/');
+    expect(renewal.text).toContain('/editions/desinscription/');
+    expect(renewal.headers?.['List-Unsubscribe-Post']).toBe(
+      'List-Unsubscribe=One-Click',
+    );
 
     // Une autre édition depuis le même tournoi : packs repris, plus de relance.
     mailbox.length = 0;
@@ -324,5 +343,33 @@ describe('Édition suivante (e2e)', () => {
     });
     expect(bis.statusCode).toBe(201);
     expect(mailbox).toHaveLength(0);
+  });
+
+  it('un partenaire désinscrit n’est plus relancé par le club', async () => {
+    const source = await prisma.tournament.findUniqueOrThrow({
+      where: { slug: SLUG },
+    });
+    const paid = await prisma.tournamentSponsor.findFirstOrThrow({
+      where: { tournamentId: source.id, status: 'PAID' },
+    });
+    await prisma.sponsor.update({
+      where: { id: paid.sponsorId },
+      data: { email: 'desinscrit@example.org' },
+    });
+    const before = (
+      await organizer('GET', `/tournaments/${SLUG}/next-edition`)
+    ).json();
+    await prisma.editionInvite.create({
+      data: {
+        organizationId: source.organizationId,
+        tournamentId: source.id,
+        email: 'desinscrit@example.org',
+        optedOutAt: new Date(),
+      },
+    });
+    const after = (
+      await organizer('GET', `/tournaments/${SLUG}/next-edition`)
+    ).json();
+    expect(after.previous.sponsors).toBe(before.previous.sponsors - 1);
   });
 });

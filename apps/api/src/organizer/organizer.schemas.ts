@@ -220,6 +220,15 @@ export const nextEditionSchema = z.object({
     invited: z.boolean(),
     /** Partenaires de l'édition précédente (pack payé, adresse connue), à relancer. */
     sponsors: z.number().int(),
+    /** Qui recevra la proposition : le pack le plus haut de chacun, frais compris. */
+    partners: z.array(
+      z.object({
+        name: z.string(),
+        tier: z.enum(['BRONZE', 'SILVER', 'GOLD', 'FIELD']),
+        field: z.string().nullable(),
+        totalCents: z.number().int(),
+      }),
+    ),
     /** Une autre édition a déjà relancé ces partenaires. */
     sponsorsRenewed: z.boolean(),
     /** Packs de l'édition précédente, repris tels quels par l'édition suivante. */

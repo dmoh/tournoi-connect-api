@@ -5806,6 +5806,13 @@ export interface operations {
                             teams: number;
                             invited: boolean;
                             sponsors: number;
+                            partners: {
+                                name: string;
+                                /** @enum {string} */
+                                tier: "BRONZE" | "SILVER" | "GOLD" | "FIELD";
+                                field: string | null;
+                                totalCents: number;
+                            }[];
                             sponsorsRenewed: boolean;
                             packages: {
                                 /** @enum {string} */

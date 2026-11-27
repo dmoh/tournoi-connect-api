@@ -10142,6 +10142,42 @@
                           "minimum": -9007199254740991,
                           "maximum": 9007199254740991
                         },
+                        "partners": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "tier": {
+                                "type": "string",
+                                "enum": [
+                                  "BRONZE",
+                                  "SILVER",
+                                  "GOLD",
+                                  "FIELD"
+                                ]
+                              },
+                              "field": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "totalCents": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "tier",
+                              "field",
+                              "totalCents"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
                         "sponsorsRenewed": {
                           "type": "boolean"
                         },
@@ -10180,6 +10216,7 @@
                         "teams",
                         "invited",
                         "sponsors",
+                        "partners",
                         "sponsorsRenewed",
                         "packages"
                       ],

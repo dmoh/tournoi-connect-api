@@ -164,6 +164,10 @@ export class OrganizerService {
           tournamentId_tier: { tournamentId: tournament.id, tier: input.tier },
         },
       });
+      if (pack) {
+        // Verrou du pack : un renouvellement simultané ne le survend pas.
+        await tx.$executeRaw`SELECT id FROM sponsor_package WHERE id = ${pack.id} FOR UPDATE`;
+      }
       const taken = await tx.tournamentSponsor.count({
         where: {
           tournamentId: tournament.id,
