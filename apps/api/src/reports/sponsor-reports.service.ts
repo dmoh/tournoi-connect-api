@@ -21,9 +21,9 @@ export const REPORT_AFTER_HOURS = 12;
 /** …et au plus tard une semaine après (worker arrêté, rattrapage). */
 export const REPORT_WITHIN_DAYS = 7;
 
-/** Pas de bilan la nuit : de 8 h à 21 h, heure de Paris. */
+/** Pas de bilan la nuit : de 8 h à 20 h, heure de Paris. */
 export const SEND_FROM_HOUR = 8;
-export const SEND_UNTIL_HOUR = 21;
+export const SEND_UNTIL_HOUR = 20;
 /** Bilans cherchés par lots. */
 const BATCH = 200;
 
@@ -68,7 +68,7 @@ export class SponsorReportsService {
 
   /**
    * Balayage horaire du worker : les bilans arrivés à échéance, de 8 h à
-   * 21 h (heure de Paris), par lots dans l'ordre des fins de tournoi. Un
+   * 20 h (heure de Paris), par lots dans l'ordre des fins de tournoi. Un
    * échec fait échouer le travail : la relance reprend ce qui manque.
    */
   async sweep(): Promise<number> {

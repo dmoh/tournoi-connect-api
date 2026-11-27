@@ -708,7 +708,7 @@ export function sponsorRenewalMail(
   const amount = eurosLabel(info.totalCents);
   const subject = `${info.club} – ${info.tournament}\u202f: renouveler votre ${packLabel(info.tier)}\u202f?`;
   const intro = `Merci d’avoir soutenu « ${info.previous} ». ${info.club} organise la nouvelle édition et propose à ${info.sponsor} de renouveler son partenariat.`;
-  const why = `Vous recevez cet email car ${info.sponsor} était partenaire de « ${info.previous} ». ${info.club} ne vous écrit qu’à la publication d’une nouvelle édition.`;
+  const why = `Vous recevez cet email car ${info.sponsor} était partenaire de « ${info.previous} ». ${info.club} ne vous écrit qu’à la publication d’une nouvelle édition et pour le bilan de votre partenariat.`;
   const details = [
     `${pack}, comme l’an dernier`,
     `${info.date} · ${info.venue}`,
@@ -761,7 +761,7 @@ export function sponsorRenewalMail(
 const PLACEMENT_NAME = {
   BANNER_EXCLUSIVE: 'Bannière principale',
   BANNER_ROTATION: 'Bandeau des partenaires',
-  FIELD_LOGO: 'Terrain et écran du stade',
+  FIELD_LOGO: 'Logo du terrain (pages des matchs, écran du stade)',
   FEED_CARD: 'Fil d’actualité',
 } as const;
 
@@ -800,17 +800,26 @@ export function sponsorReportMail(
     oneClickUrl: string;
   },
 ): MailMessage {
-  const pack = packLabel(info.tier) + (info.field ? ` (${info.field})` : '');
-  const subject = `${info.club} – merci\u202f! Votre partenariat au « ${info.tournament.name} » en chiffres`;
-  const intro =
-    info.impressions > 0
-      ? `Merci d’avoir soutenu « ${info.tournament.name} » (${info.date}). Voici ce que votre ${pack} a apporté à ${info.sponsor}.`
-      : `Merci d’avoir soutenu « ${info.tournament.name} » (${info.date}). Votre ${pack} était présent sur place ; l’application n’a pas mesuré d’affichage en ligne cette fois.`;
+  // « votre pack Or », « votre partenariat (sponsor de terrain, Terrain 2) »
+  const pack =
+    info.tier === 'FIELD'
+      ? `partenariat (sponsor de terrain${info.field ? `, ${info.field}` : ''})`
+      : `pack ${TIER_NAME[info.tier]}`;
+  const subject = `${info.club} – merci\u202f! Votre partenariat pour « ${info.tournament.name} » en chiffres`;
+  const measured = info.impressions > 0;
+  const intro = measured
+    ? `Merci d’avoir soutenu « ${info.tournament.name} » (${info.date}). Voici ce que votre ${pack} a apporté à ${info.sponsor}.`
+    : info.tier === 'FIELD'
+      ? `Merci d’avoir soutenu « ${info.tournament.name} » (${info.date}). Votre logo était au bord du terrain ; l’application n’a pas mesuré d’affichage en ligne cette fois.`
+      : `Merci d’avoir soutenu « ${info.tournament.name} » (${info.date}). L’application n’a pas mesuré d’affichage de votre ${pack} cette fois.`;
   const headline = `${counted(info.impressions, 'affichage', 'affichages')} · ${counted(info.clicks, 'clic', 'clics')}`;
   const lines = info.placements.map(
     (p) =>
       `${PLACEMENT_NAME[p.placement]}\u202f: ${counted(p.impressions, 'affichage', 'affichages')}, ${counted(p.clicks, 'clic', 'clics')}`,
   );
+  // Ce qui est mesuré, dit simplement.
+  const method =
+    'Un affichage = votre logo visible au moins 1 seconde dans l’application, sur un téléphone, un ordinateur ou l’écran du stade, compté une fois par visite. Un clic = une ouverture de votre site depuis l’application.';
   const scale =
     info.matches > 0
       ? `${counted(info.teams, 'équipe', 'équipes')}, ${counted(info.matches, 'match joué', 'matchs joués')}.`
@@ -819,8 +828,7 @@ export function sponsorReportMail(
   const text = [
     intro,
     '',
-    headline,
-    ...lines.map((l) => `- ${l}`),
+    ...(measured ? [headline, ...lines.map((l) => `- ${l}`), method, ''] : []),
     scale,
     '',
     `Votre bilan détaillé\u202f: ${info.reportUrl}`,
@@ -840,8 +848,13 @@ export function sponsorReportMail(
 <p style="margin:0 0 8px;font-size:15px">Bilan du partenariat · ${escape(info.club)}</p>
 <p style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.tournament.name)}</p>
 <p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
-<p style="margin:0 0 8px;font-size:20px;font-weight:700">${escape(headline)}</p>
+${
+  measured
+    ? `<p style="margin:0 0 8px;font-size:20px;font-weight:700">${escape(headline)}</p>
 <ul style="margin:0 0 12px;padding-left:20px;font-size:15px">${rows}</ul>
+<p style="margin:0 0 12px;font-size:12px;color:#5c6a7f">${escape(method)}</p>`
+    : ''
+}
 <p style="margin:0 0 20px;font-size:14px;color:#5c6a7f">${escape(scale)}</p>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1e3a8a" style="border-radius:12px"><a href="${escape(info.reportUrl)}" style="display:inline-block;padding:14px 20px;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px">Voir mon bilan</a></td></tr></table>
 <p style="margin:20px 0 0;font-size:12px;color:#5c6a7f">${escape(why)} <a href="${escape(info.unsubscribeUrl)}" style="color:#5c6a7f">Ne plus être sollicité par ce club</a>.</p>

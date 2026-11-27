@@ -46,7 +46,7 @@ describe('Bilan des partenaires (e2e)', () => {
     const { paid } = await endedSince(13);
     expect(await reports.sweep()).toBeGreaterThan(0);
     const mail = mailbox.find((m) => m.to === 'partenaire@example.org')!;
-    expect(mail.subject).toMatch(/Votre partenariat au « .+ » en chiffres/);
+    expect(mail.subject).toMatch(/Votre partenariat pour « .+ » en chiffres/);
     expect(mail.text).toMatch(/\d+\saffichages? · \d+\sclics?/);
     expect(mail.text).toContain(`/bilan/${paid.reportToken}`);
     expect(mail.text).toContain('/editions/desinscription/');

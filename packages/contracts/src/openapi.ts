@@ -6011,6 +6011,8 @@ export interface operations {
                             paidOnline: boolean;
                             invoiceNumber: string | null;
                             billingAddressKnown: boolean;
+                            /** Format: date-time */
+                            reportSentAt?: string | null;
                         }[];
                         prospects: {
                             id: string;
@@ -6086,6 +6088,8 @@ export interface operations {
                         paidOnline: boolean;
                         invoiceNumber: string | null;
                         billingAddressKnown: boolean;
+                        /** Format: date-time */
+                        reportSentAt?: string | null;
                         /** Format: uri */
                         inviteUrl: string;
                         emailed: boolean;

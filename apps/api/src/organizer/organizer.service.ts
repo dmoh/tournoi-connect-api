@@ -131,6 +131,7 @@ export class OrganizerService {
           paidOnline: r.paymentIntentId !== null,
           invoiceNumber: r.invoice?.number ?? null,
           billingAddressKnown: r.billingAddress !== null,
+          reportSentAt: r.reportSentAt?.toISOString() ?? null,
         }))
         .sort(
           (a, b) =>
@@ -230,6 +231,7 @@ export class OrganizerService {
         paidOnline: false,
         invoiceNumber: null,
         billingAddressKnown: false,
+        reportSentAt: null,
       } satisfies SponsorRow;
     });
     // Lien de paiement personnel, envoyé par email au sponsor s'il a une adresse.
