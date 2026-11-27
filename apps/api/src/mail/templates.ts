@@ -271,10 +271,10 @@ function sponsorCard(
   const cta = button
     ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#062541" style="border-radius:12px"><a href="${escape(button.url)}" style="display:inline-block;padding:14px 20px;mso-padding-alt:0;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px"><!--[if mso]><i style="mso-font-width:150%;mso-text-raise:21pt">&nbsp;</i><![endif]-->${escape(button.label)}<!--[if mso]><i style="mso-font-width:150%">&nbsp;</i><![endif]--></a></td></tr></table>`
     : '';
-  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><meta name="format-detection" content="date=no,address=no,telephone=no"><!--[if mso]><style>table,td,p,a,li,h1{font-family:Arial,sans-serif !important}</style><![endif]--></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa"><tr><td align="center" style="padding:24px 12px">
 <!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <p style="margin:0 0 8px;font-size:15px">${escape(title)}</p>
 ${rows}
 ${cta}
@@ -587,7 +587,7 @@ export function convocationMail(
     .join('');
   const html = `<!doctype html><html lang="fr"><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa"><tr><td align="center" style="padding:24px 12px">
-<table role="presentation" width="420" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
+<table role="presentation" width="420" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <p style="margin:0 0 8px;font-size:15px">${info.update ? 'Horaires modifiés' : 'Convocation'}</p>
 <p style="margin:0 0 4px;font-size:22px;font-weight:700;color:#062541">${escape(info.team)}</p>
 <p style="margin:0 0 16px;font-size:14px;color:#4a5a6c">${escape(info.tournament)} · ${escape(info.date)}</p>
@@ -654,10 +654,10 @@ export function editionInviteMail(
   const rows = details
     .map((line) => `<li style="margin:0 0 6px">${escape(line)}</li>`)
     .join('');
-  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><meta name="format-detection" content="date=no,address=no,telephone=no"><!--[if mso]><style>table,td,p,a,li,h1{font-family:Arial,sans-serif !important}</style><![endif]--></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa"><tr><td align="center" style="padding:24px 12px">
 <!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <p style="margin:0 0 8px;font-size:15px">Nouvelle édition · ${escape(info.club)}</p>
 <p style="margin:0 0 16px;font-size:22px;font-weight:700;color:#062541">${escape(info.tournament)}</p>
 <p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
@@ -731,10 +731,10 @@ export function sponsorRenewalMail(
   const rows = details
     .map((line) => `<li style="margin:0 0 6px">${escape(line)}</li>`)
     .join('');
-  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><meta name="format-detection" content="date=no,address=no,telephone=no"><!--[if mso]><style>table,td,p,a,li,h1{font-family:Arial,sans-serif !important}</style><![endif]--></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa"><tr><td align="center" style="padding:24px 12px">
 <!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <p style="margin:0 0 8px;font-size:15px">Nouvelle édition · ${escape(info.club)}</p>
 <p style="margin:0 0 16px;font-size:22px;font-weight:700;color:#062541">${escape(info.tournament)}</p>
 <p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
@@ -841,10 +841,10 @@ export function sponsorReportMail(
   const rows = lines
     .map((line) => `<li style="margin:0 0 6px">${escape(line)}</li>`)
     .join('');
-  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><meta name="format-detection" content="date=no,address=no,telephone=no"><!--[if mso]><style>table,td,p,a,li,h1{font-family:Arial,sans-serif !important}</style><![endif]--></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa"><tr><td align="center" style="padding:24px 12px">
 <!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <p style="margin:0 0 8px;font-size:15px">Bilan du partenariat · ${escape(info.club)}</p>
 <h1 style="margin:0 0 16px;font-size:22px;line-height:1.25;font-weight:700;color:#062541">${escape(info.tournament.name)}</h1>
 <p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
@@ -917,7 +917,7 @@ export function teamRecapMail(
       ? `${info.team} remporte ${quoted} !`
       : `${info.team} termine ${PLACE_WORD[info.place]} de ${quoted}`
     : `${info.team} à ${quoted} : votre récapitulatif`;
-  const intro = `Merci d’avoir participé à ${quoted} (${info.date}). Voici le récapitulatif de ${info.team}.`;
+  const intro = `Merci d’avoir participé à ${quoted} (${info.date}). Voici le récapitulatif de l’équipe ${info.team}.`;
   const won = info.matches.filter((m) => m.result === 'W').length;
   const drawn = info.matches.filter((m) => m.result === 'D').length;
   const lost = info.matches.filter((m) => m.result === 'L').length;
@@ -954,7 +954,7 @@ export function teamRecapMail(
     info.photos > 0
       ? `${counted(info.photos, 'photo', 'photos')} du tournoi à revoir et à partager.`
       : null;
-  const why = `Vous recevez cet email car vous avez inscrit ${info.team} à ${quoted}. Le club vous préviendra de sa prochaine édition.`;
+  const why = `Vous recevez cet email car vous avez inscrit l’équipe ${info.team} à ${quoted}. Le club vous préviendra de sa prochaine édition.`;
   const text = [
     intro,
     '',
@@ -967,25 +967,26 @@ export function teamRecapMail(
     why,
     `Ne plus être sollicité par ce club : ${info.unsubscribeUrl}`,
     '',
-    info.club,
+    `${info.club} via Tournoi Connect`,
   ].join('\n');
   const list = (items: string[]) =>
     `<ul style="margin:0 0 16px 20px;padding:0;font-size:15px">${items
       .map((line) => `<li style="margin:0 0 6px">${escape(line)}</li>`)
       .join('')}</ul>`;
-  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><meta name="format-detection" content="date=no,address=no,telephone=no"><!--[if mso]><style>table,td,p,a,li,h1{font-family:Arial,sans-serif !important}</style><![endif]--></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa"><tr><td align="center" style="padding:24px 12px">
 <!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:20px;overflow-wrap:anywhere;word-break:break-word">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:20px;font-family:Inter,Arial,sans-serif;color:#0a1a2b;overflow-wrap:anywhere;word-break:break-word">
 <p style="margin:0 0 8px;font-size:15px">Récapitulatif · ${escape(info.club)}</p>
 <h1 style="margin:0 0 16px;font-size:22px;line-height:1.25;font-weight:700;color:#062541">${escape(info.team)}</h1>
 <p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
 ${headline ? `<p style="margin:0 0 12px;font-size:20px;font-weight:700;color:#187a00">${escape(headline)}</p>` : ''}
 ${record ? `<p style="margin:0 0 8px;font-size:15px;font-weight:600">${escape(record)}</p>${list(lines)}` : ''}
-${podium.length ? `<p style="margin:0 0 8px;font-size:15px;font-weight:600">Podium</p>${list(podium)}` : ''}
+${podium.length ? `<p style="margin:0 0 8px;font-size:15px;font-weight:600">Podium</p>${podium.map((line) => `<p style="margin:0 0 6px;font-size:15px">${escape(line)}</p>`).join('')}<div style="height:10px;line-height:10px;font-size:10px">&nbsp;</div>` : ''}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#062541" style="border-radius:12px"><a href="${escape(info.palmaresUrl)}" style="display:inline-block;padding:14px 20px;mso-padding-alt:0;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px"><!--[if mso]><i style="mso-font-width:150%;mso-text-raise:21pt">&nbsp;</i><![endif]-->Voir le palmarès<!--[if mso]><i style="mso-font-width:150%">&nbsp;</i><![endif]--></a></td></tr></table>
-${photos ? `<p style="margin:16px 0 0;font-size:15px"><a href="${escape(info.photosUrl)}" style="color:#062541;font-weight:600">${escape(photos)}</a></p>` : ''}
-<p style="margin:20px 0 0;font-size:12px;color:#4a5a6c">${escape(why)} <a href="${escape(info.unsubscribeUrl)}" style="color:#4a5a6c">Ne plus être sollicité par ce club</a>.</p>
+${photos ? `<p style="margin:16px 0 0;font-size:15px"><a href="${escape(info.photosUrl)}" style="color:#062541;font-weight:600;text-decoration:underline">${escape(photos)}</a></p>` : ''}
+<p style="margin:20px 0 0;font-size:14px">${escape(info.club)} via Tournoi Connect</p>
+<p style="margin:12px 0 0;font-size:12px;color:#4a5a6c">${escape(why)} <a href="${escape(info.unsubscribeUrl)}" style="color:#4a5a6c">Ne plus être sollicité par ce club</a>.</p>
 </td></tr></table>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table>
