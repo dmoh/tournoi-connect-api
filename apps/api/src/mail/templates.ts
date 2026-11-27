@@ -884,15 +884,36 @@ export interface RecapMatch {
   /** Victoire, nul ou défaite (tirs au but et forfaits compris). */
   result: 'W' | 'D' | 'L';
   forfeit: boolean;
+  /** Égalité départagée aux tirs au but. */
+  shootout: boolean;
 }
 
-const RESULT_WORD = { W: 'victoire', D: 'nul', L: 'défaite' } as const;
-const PLACE_WORD = { 1: 'vainqueur', 2: '2e', 3: '3e' } as const;
+const PLACE_WORD = { 2: '2e', 3: '3e' } as const;
+
+/** Ce que l'on marque selon le sport : buts, points ou sets. */
+const SCORE_WORDS: Record<string, readonly [string, string, string, string]> = {
+  football: ['but marqué', 'buts marqués', 'encaissé', 'encaissés'],
+  handball: ['but marqué', 'buts marqués', 'encaissé', 'encaissés'],
+  basketball: ['point marqué', 'points marqués', 'encaissé', 'encaissés'],
+  rugby: ['point marqué', 'points marqués', 'encaissé', 'encaissés'],
+  volleyball: ['set gagné', 'sets gagnés', 'perdu', 'perdus'],
+};
+
+/** « victoire », « défaite aux tirs au but », « victoire par forfait »… */
+function outcome(m: RecapMatch): string {
+  const word =
+    m.result === 'W' ? 'victoire' : m.result === 'L' ? 'défaite' : 'nul';
+  return m.forfeit
+    ? `${word} par forfait`
+    : m.shootout
+      ? `${word} aux tirs au but`
+      : word;
+}
 
 /**
  * Récapitulatif d'une équipe, le lendemain du tournoi : sa place si elle est
- * sur le podium, ses matchs, le podium, et les liens du palmarès et des
- * photos. Envoyé au nom du club, désinscription en un clic.
+ * sur le podium, son bilan et ses matchs, le podium, et les liens du
+ * palmarès et des photos. Envoyé au nom du club, désinscription en un clic.
  */
 export function teamRecapMail(
   to: string,
@@ -900,6 +921,7 @@ export function teamRecapMail(
     club: string;
     tournament: string;
     date: string;
+    sport: string;
     team: string;
     place: 1 | 2 | 3 | null;
     podium: { first: string; second: string | null; third: string[] } | null;
@@ -915,77 +937,102 @@ export function teamRecapMail(
   const subject = info.place
     ? info.place === 1
       ? `${info.team} remporte ${quoted} !`
-      : `${info.team} termine ${PLACE_WORD[info.place]} de ${quoted}`
-    : `${info.team} à ${quoted} : votre récapitulatif`;
-  const intro = `Merci d’avoir participé à ${quoted} (${info.date}). Voici le récapitulatif de l’équipe ${info.team}.`;
+      : `${info.team} termine ${PLACE_WORD[info.place]} de ${quoted} !`
+    : `${info.team} à ${quoted} : vos résultats`;
+  const overline = `${info.tournament} · ${info.date}`;
+  // Le nom de l'équipe est le titre : la place seule, juste dessous.
+  const headline = info.place
+    ? info.place === 1
+      ? 'Vainqueur du tournoi !'
+      : `${PLACE_WORD[info.place]} place !`
+    : null;
+  const intro = `Merci d’avoir participé à ${quoted}, organisé par ${info.club}.`;
+  const [scoredOne, scoredMany, concededOne, concededMany] =
+    SCORE_WORDS[info.sport] ?? SCORE_WORDS['football']!;
   const won = info.matches.filter((m) => m.result === 'W').length;
   const drawn = info.matches.filter((m) => m.result === 'D').length;
   const lost = info.matches.filter((m) => m.result === 'L').length;
-  const scored = info.matches.reduce((sum, m) => sum + m.scored, 0);
-  const conceded = info.matches.reduce((sum, m) => sum + m.conceded, 0);
+  // Un forfait ne compte pas dans les buts (score d'office).
+  const played = info.matches.filter((m) => !m.forfeit);
+  const scored = played.reduce((sum, m) => sum + m.scored, 0);
+  const conceded = played.reduce((sum, m) => sum + m.conceded, 0);
   const record = info.matches.length
     ? [
         counted(won, 'victoire', 'victoires'),
         ...(drawn ? [counted(drawn, 'nul', 'nuls')] : []),
         counted(lost, 'défaite', 'défaites'),
       ].join(', ') +
-      ` · ${counted(scored, 'but marqué', 'buts marqués')}, ${counted(conceded, 'encaissé', 'encaissés')}`
+      ` · ${counted(scored, scoredOne, scoredMany)}, ${counted(conceded, concededOne, concededMany)}`
     : null;
   // Le résultat d'abord : « Poule A — victoire 2-1 contre FC Cluses ».
   const lines = info.matches.map(
     (m) =>
-      `${m.stage} — ${m.forfeit ? (m.result === 'W' ? 'victoire par forfait' : 'forfait') : RESULT_WORD[m.result]} ${m.scored}-${m.conceded} contre ${m.opponent}`,
+      `${m.stage} — ${outcome(m)} ${m.scored}-${m.conceded} contre ${m.opponent}`,
   );
   const podium = info.podium
     ? [
-        `1. ${info.podium.first}`,
-        ...(info.podium.second ? [`2. ${info.podium.second}`] : []),
+        { line: `1. ${info.podium.first}`, own: info.place === 1 },
+        ...(info.podium.second
+          ? [{ line: `2. ${info.podium.second}`, own: info.place === 2 }]
+          : []),
         // Ex aequo : une ligne par équipe.
-        ...info.podium.third.map((team) => `3. ${team}`),
+        ...info.podium.third.map((team) => ({
+          line: `3. ${team}`,
+          own: info.place === 3 && team === info.team,
+        })),
       ]
     : [];
-  // Le nom de l'équipe est déjà le titre : la place seule.
-  const headline = info.place
-    ? info.place === 1
-      ? 'Vainqueur du tournoi !'
-      : `${PLACE_WORD[info.place]} place !`
-    : null;
   const photos =
     info.photos > 0
-      ? `${counted(info.photos, 'photo', 'photos')} du tournoi à revoir et à partager.`
+      ? `${counted(info.photos, 'photo', 'photos')} du tournoi à revoir et à partager`
       : null;
+  const signature = `${info.club} via Tournoi Connect`;
   const why = `Vous recevez cet email car vous avez inscrit l’équipe ${info.team} à ${quoted}. Le club vous préviendra de sa prochaine édition.`;
   const text = [
+    overline,
+    info.team,
+    ...(headline ? [headline] : []),
+    '',
     intro,
     '',
-    ...(headline ? [headline, ''] : []),
     ...(record ? [record, ...lines.map((l) => `- ${l}`), ''] : []),
-    ...(podium.length ? ['Podium :', ...podium, ''] : []),
+    ...(podium.length ? ['Podium :', ...podium.map((p) => p.line), ''] : []),
     `Palmarès : ${info.palmaresUrl}`,
-    ...(photos ? [`${photos} ${info.photosUrl}`] : []),
+    ...(photos ? [`${photos} : ${info.photosUrl}`] : []),
+    '',
+    signature,
     '',
     why,
     `Ne plus être sollicité par ce club : ${info.unsubscribeUrl}`,
-    '',
-    `${info.club} via Tournoi Connect`,
   ].join('\n');
   const list = (items: string[]) =>
     `<ul style="margin:0 0 16px 20px;padding:0;font-size:15px">${items
       .map((line) => `<li style="margin:0 0 6px">${escape(line)}</li>`)
       .join('')}</ul>`;
-  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><meta name="format-detection" content="date=no,address=no,telephone=no"><!--[if mso]><style>table,td,p,a,li,h1{font-family:Arial,sans-serif !important}</style><![endif]--></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${escape(subject)}</title><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><meta name="format-detection" content="date=no,address=no,telephone=no"><!--[if mso]><style>table,td,p,a,li,h1{font-family:Arial,sans-serif !important}</style><![endif]--></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa"><tr><td align="center" style="padding:24px 12px">
 <!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:20px;font-family:Inter,Arial,sans-serif;color:#0a1a2b;overflow-wrap:anywhere;word-break:break-word">
-<p style="margin:0 0 8px;font-size:15px">Récapitulatif · ${escape(info.club)}</p>
-<h1 style="margin:0 0 16px;font-size:22px;line-height:1.25;font-weight:700;color:#062541">${escape(info.team)}</h1>
-<p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
-${headline ? `<p style="margin:0 0 12px;font-size:20px;font-weight:700;color:#187a00">${escape(headline)}</p>` : ''}
+<p style="margin:0 0 8px;font-size:14px;color:#4a5a6c">${escape(overline)}</p>
+<h1 style="margin:0 0 ${headline ? '4' : '16'}px;font-size:22px;line-height:1.25;font-weight:700;color:#062541">${escape(info.team)}</h1>
+${headline ? `<p style="margin:0 0 16px;font-size:20px;font-weight:700;color:#187a00">${escape(headline)}</p>` : ''}
+<p style="margin:0 0 16px;font-size:15px">${escape(intro)}</p>
 ${record ? `<p style="margin:0 0 8px;font-size:15px;font-weight:600">${escape(record)}</p>${list(lines)}` : ''}
-${podium.length ? `<p style="margin:0 0 8px;font-size:15px;font-weight:600">Podium</p>${podium.map((line) => `<p style="margin:0 0 6px;font-size:15px">${escape(line)}</p>`).join('')}<div style="height:10px;line-height:10px;font-size:10px">&nbsp;</div>` : ''}
+${
+  podium.length
+    ? `<p style="margin:0 0 8px;font-size:15px;font-weight:600">Podium</p>${podium
+        .map(
+          (p) =>
+            `<p style="margin:0 0 6px;font-size:15px${p.own ? ';font-weight:700' : ''}">${escape(p.line)}</p>`,
+        )
+        .join(
+          '',
+        )}<div style="height:10px;line-height:10px;font-size:10px">&nbsp;</div>`
+    : ''
+}
 <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#062541" style="border-radius:12px"><a href="${escape(info.palmaresUrl)}" style="display:inline-block;padding:14px 20px;mso-padding-alt:0;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px"><!--[if mso]><i style="mso-font-width:150%;mso-text-raise:21pt">&nbsp;</i><![endif]-->Voir le palmarès<!--[if mso]><i style="mso-font-width:150%">&nbsp;</i><![endif]--></a></td></tr></table>
 ${photos ? `<p style="margin:16px 0 0;font-size:15px"><a href="${escape(info.photosUrl)}" style="color:#062541;font-weight:600;text-decoration:underline">${escape(photos)}</a></p>` : ''}
-<p style="margin:20px 0 0;font-size:14px">${escape(info.club)} via Tournoi Connect</p>
+<p style="margin:20px 0 0;font-size:14px">${escape(signature)}</p>
 <p style="margin:12px 0 0;font-size:12px;color:#4a5a6c">${escape(why)} <a href="${escape(info.unsubscribeUrl)}" style="color:#4a5a6c">Ne plus être sollicité par ce club</a>.</p>
 </td></tr></table>
 <!--[if mso]></td></tr></table><![endif]-->

@@ -4,6 +4,7 @@ const base = {
   club: 'Étoile de l’Arve',
   tournament: 'Challenge U13',
   date: 'samedi 11 avril 2026',
+  sport: 'football',
   team: 'Les Aigles',
   place: null,
   podium: { first: 'Les Aigles', second: 'FC Cluses', third: ['AS Marnaz'] },
@@ -23,26 +24,32 @@ const match = (m: Partial<RecapMatch>): RecapMatch => ({
   conceded: 1,
   result: 'W',
   forfeit: false,
+  shootout: false,
   ...m,
 });
 
 describe('teamRecapMail', () => {
-  it('annonce la victoire dans l’objet et le podium dans le texte', () => {
+  it('annonce la place dans l’objet, juste sous le nom, et met l’équipe en gras dans le podium', () => {
     const mail = teamRecapMail('a@example.org', { ...base, place: 1 });
     expect(mail.subject).toBe('Les Aigles remporte « Challenge U13 » !');
+    expect(mail.text).toMatch(
+      /^Challenge U13 · samedi 11 avril 2026\nLes Aigles\nVainqueur du tournoi !/,
+    );
     expect(mail.text).toContain('1. Les Aigles\n2. FC Cluses\n3. AS Marnaz');
+    expect(mail.html).toContain('font-weight:700">1. Les Aigles</p>');
+    expect(mail.html).toContain('<title>');
   });
 
-  it('dit la place des 2e et 3e, et reste neutre hors podium', () => {
+  it('dit la place des 2e et 3e, et « vos résultats » hors podium', () => {
     expect(teamRecapMail('a@example.org', { ...base, place: 2 }).subject).toBe(
-      'Les Aigles termine 2e de « Challenge U13 »',
+      'Les Aigles termine 2e de « Challenge U13 » !',
     );
     expect(teamRecapMail('a@example.org', base).subject).toBe(
-      'Les Aigles à « Challenge U13 » : votre récapitulatif',
+      'Les Aigles à « Challenge U13 » : vos résultats',
     );
   });
 
-  it('résume les matchs : bilan accordé, forfait et tirs au but', () => {
+  it('résume les matchs : forfaits hors des buts, tirs au but explicites', () => {
     const mail = teamRecapMail('a@example.org', {
       ...base,
       photos: 1,
@@ -52,31 +59,30 @@ describe('teamRecapMail', () => {
           stage: 'Quart de finale',
           scored: 1,
           conceded: 1,
-          result: 'W',
+          shootout: true,
         }),
-        match({
-          stage: 'Demi-finale',
-          scored: 0,
-          conceded: 3,
-          result: 'W',
-          forfeit: true,
-        }),
+        match({ stage: 'Demi-finale', scored: 3, conceded: 0, forfeit: true }),
         match({ stage: 'Finale', scored: 0, conceded: 2, result: 'L' }),
       ],
     });
     expect(mail.text).toContain(
-      '3 victoires, 1 défaite · 3 buts marqués, 7 encaissés',
+      '3 victoires, 1 défaite · 3 buts marqués, 4 encaissés',
     );
     expect(mail.text).toContain(
-      '- Demi-finale — victoire par forfait 0-3 contre FC Cluses',
+      '- Quart de finale — victoire aux tirs au but 1-1 contre FC Cluses',
+    );
+    expect(mail.text).toContain(
+      '- Demi-finale — victoire par forfait 3-0 contre FC Cluses',
     );
     expect(mail.text).toContain('1 photo du tournoi');
-    expect(mail.html).toContain('<h1');
+    expect(mail.text).toContain('Étoile de l’Arve via Tournoi Connect');
   });
 
-  it('sans match joué, ni bilan ni liste', () => {
-    const mail = teamRecapMail('a@example.org', { ...base, podium: null });
-    expect(mail.text).not.toMatch(/victoire|Podium/);
-    expect(mail.text).toContain(base.palmaresUrl);
+  it('parle de points au basket et de sets au volley', () => {
+    const at = (sport: string) =>
+      teamRecapMail('a@example.org', { ...base, sport, matches: [match({})] })
+        .text;
+    expect(at('basketball')).toContain('2 points marqués, 1 encaissé');
+    expect(at('volleyball')).toContain('2 sets gagnés, 1 perdu');
   });
 });

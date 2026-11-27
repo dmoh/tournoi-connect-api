@@ -174,7 +174,8 @@ export class TeamRecapsService {
     if (!email || !team) {
       return false;
     }
-    // Désinscrit des sollicitations du club : marqué, jamais écrit.
+    // Désinscrit des sollicitations du club, ou équipe qui n'a joué aucun
+    // match (absente) : marqué, jamais écrit.
     const optedOut = await this.prisma.editionInvite.count({
       where: {
         organizationId: t.organizationId,
@@ -182,7 +183,7 @@ export class TeamRecapsService {
         optedOutAt: { not: null },
       },
     });
-    if (optedOut > 0) {
+    if (optedOut > 0 || recapMatches(t, team.code).length === 0) {
       await this.prisma.registration.updateMany({
         where: { id: r.id, recapSentAt: null },
         data: { recapSentAt: this.clock.now() },
@@ -198,12 +199,14 @@ export class TeamRecapsService {
       where: { tournamentId_email: { tournamentId: t.id, email } },
       select: { token: true },
     });
+    const matches = recapMatches(t, team.code);
     const name = (code: string | null | undefined) =>
       t.teams.find((x) => x.code === code)?.name ?? null;
     const message = teamRecapMail(email, {
       club: t.organization.name,
       tournament: t.name,
       date: DATE_FORMAT.format(t.startsAt),
+      sport: t.sport,
       team: team.name,
       place:
         podium?.first === team.code
@@ -220,7 +223,7 @@ export class TeamRecapsService {
             third: podium.third.map((code) => name(code) ?? code),
           }
         : null,
-      matches: recapMatches(t, team.code),
+      matches,
       photos,
       palmaresUrl: this.appUrl(`/t/${t.slug}/palmares`),
       photosUrl: this.appUrl(`/t/${t.slug}/photos`),
@@ -294,6 +297,8 @@ export function recapMatches(t: Loaded, code: string): RecapMatch[] {
         conceded,
         result,
         forfeit: m.forfeit !== null,
+        shootout:
+          m.forfeit === null && m.winnerSide !== null && scored === conceded,
       },
     ];
   });
