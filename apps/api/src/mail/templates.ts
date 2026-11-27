@@ -873,3 +873,130 @@ ${
     },
   };
 }
+
+/** Un match du récapitulatif d'une équipe. */
+export interface RecapMatch {
+  /** « Poule A », « Quart de finale », « Ronde 2 » */
+  stage: string;
+  opponent: string;
+  scored: number;
+  conceded: number;
+  /** Victoire, nul ou défaite (tirs au but et forfaits compris). */
+  result: 'W' | 'D' | 'L';
+  forfeit: boolean;
+}
+
+const RESULT_WORD = { W: 'victoire', D: 'nul', L: 'défaite' } as const;
+const PLACE_WORD = { 1: 'vainqueur', 2: '2e', 3: '3e' } as const;
+
+/**
+ * Récapitulatif d'une équipe, le lendemain du tournoi : sa place si elle est
+ * sur le podium, ses matchs, le podium, et les liens du palmarès et des
+ * photos. Envoyé au nom du club, désinscription en un clic.
+ */
+export function teamRecapMail(
+  to: string,
+  info: {
+    club: string;
+    tournament: string;
+    date: string;
+    team: string;
+    place: 1 | 2 | 3 | null;
+    podium: { first: string; second: string | null; third: string[] } | null;
+    matches: RecapMatch[];
+    photos: number;
+    palmaresUrl: string;
+    photosUrl: string;
+    unsubscribeUrl: string;
+    oneClickUrl: string;
+  },
+): MailMessage {
+  const quoted = `« ${info.tournament} »`;
+  const subject = info.place
+    ? info.place === 1
+      ? `${info.team} remporte ${quoted} !`
+      : `${info.team} termine ${PLACE_WORD[info.place]} de ${quoted}`
+    : `${info.team} à ${quoted} : votre récapitulatif`;
+  const intro = `Merci d’avoir participé à ${quoted} (${info.date}). Voici le récapitulatif de ${info.team}.`;
+  const won = info.matches.filter((m) => m.result === 'W').length;
+  const drawn = info.matches.filter((m) => m.result === 'D').length;
+  const lost = info.matches.filter((m) => m.result === 'L').length;
+  const scored = info.matches.reduce((sum, m) => sum + m.scored, 0);
+  const conceded = info.matches.reduce((sum, m) => sum + m.conceded, 0);
+  const record = info.matches.length
+    ? [
+        counted(won, 'victoire', 'victoires'),
+        ...(drawn ? [counted(drawn, 'nul', 'nuls')] : []),
+        counted(lost, 'défaite', 'défaites'),
+      ].join(', ') +
+      ` · ${counted(scored, 'but marqué', 'buts marqués')}, ${counted(conceded, 'encaissé', 'encaissés')}`
+    : null;
+  const lines = info.matches.map(
+    (m) =>
+      `${m.stage} : ${m.scored}-${m.conceded} contre ${m.opponent} (${m.forfeit ? (m.result === 'W' ? 'victoire par forfait' : 'forfait') : RESULT_WORD[m.result]})`,
+  );
+  const podium = info.podium
+    ? [
+        `1. ${info.podium.first}`,
+        ...(info.podium.second ? [`2. ${info.podium.second}`] : []),
+        ...(info.podium.third.length
+          ? [`3. ${info.podium.third.join(', ')}`]
+          : []),
+      ]
+    : [];
+  const headline = info.place
+    ? info.place === 1
+      ? `${info.team} remporte le tournoi !`
+      : `${info.team} termine ${PLACE_WORD[info.place]} !`
+    : null;
+  const photos =
+    info.photos > 0
+      ? `${counted(info.photos, 'photo', 'photos')} du tournoi à revoir et à partager.`
+      : null;
+  const why = `Vous recevez cet email car vous avez inscrit ${info.team} à ${quoted}. Le club vous préviendra de sa prochaine édition.`;
+  const text = [
+    intro,
+    '',
+    ...(headline ? [headline, ''] : []),
+    ...(record ? [record, ...lines.map((l) => `- ${l}`), ''] : []),
+    ...(podium.length ? ['Podium :', ...podium, ''] : []),
+    `Palmarès : ${info.palmaresUrl}`,
+    ...(photos ? [`${photos} ${info.photosUrl}`] : []),
+    '',
+    why,
+    `Ne plus être sollicité par ce club : ${info.unsubscribeUrl}`,
+    '',
+    info.club,
+  ].join('\n');
+  const list = (items: string[]) =>
+    `<ul style="margin:0 0 16px 20px;padding:0;font-size:15px">${items
+      .map((line) => `<li style="margin:0 0 6px">${escape(line)}</li>`)
+      .join('')}</ul>`;
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa"><tr><td align="center" style="padding:24px 12px">
+<!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
+<p style="margin:0 0 8px;font-size:15px">Récapitulatif · ${escape(info.club)}</p>
+<h1 style="margin:0 0 16px;font-size:22px;line-height:1.25;font-weight:700;color:#062541">${escape(info.team)}</h1>
+<p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
+${headline ? `<p style="margin:0 0 12px;font-size:20px;font-weight:700;color:#187a00">${escape(headline)}</p>` : ''}
+${record ? `<p style="margin:0 0 8px;font-size:15px;font-weight:600">${escape(record)}</p>${list(lines)}` : ''}
+${podium.length ? `<p style="margin:0 0 8px;font-size:15px;font-weight:600">Podium</p>${list(podium)}` : ''}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#062541" style="border-radius:12px"><a href="${escape(info.palmaresUrl)}" style="display:inline-block;padding:14px 20px;mso-padding-alt:0;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px"><!--[if mso]><i style="mso-font-width:150%;mso-text-raise:21pt">&nbsp;</i><![endif]-->Voir le palmarès<!--[if mso]><i style="mso-font-width:150%">&nbsp;</i><![endif]--></a></td></tr></table>
+${photos ? `<p style="margin:16px 0 0;font-size:15px"><a href="${escape(info.photosUrl)}" style="color:#062541;font-weight:600">${escape(photos)}</a></p>` : ''}
+<p style="margin:20px 0 0;font-size:12px;color:#4a5a6c">${escape(why)} <a href="${escape(info.unsubscribeUrl)}" style="color:#4a5a6c">Ne plus être sollicité par ce club</a>.</p>
+</td></tr></table>
+<!--[if mso]></td></tr></table><![endif]-->
+</td></tr></table>
+</body></html>`;
+  return {
+    to,
+    subject,
+    text,
+    html,
+    headers: {
+      'List-Unsubscribe': `<${info.oneClickUrl}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  };
+}

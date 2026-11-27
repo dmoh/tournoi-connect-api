@@ -70,3 +70,14 @@ export function nextEditionDate(date: string): string {
   const next = addDays(date, 52 * 7);
   return next.slice(0, 4) === date.slice(0, 4) ? addDays(date, 53 * 7) : next;
 }
+
+/** Heure de Paris d'un instant (0 à 23). */
+export function parisHour(instant: Date): number {
+  return Number(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: TOURNAMENT_TIME_ZONE,
+      hour: '2-digit',
+      hourCycle: 'h23',
+    }).format(instant),
+  );
+}

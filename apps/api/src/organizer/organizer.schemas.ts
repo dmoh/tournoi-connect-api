@@ -133,6 +133,8 @@ export const organizerTournamentSchema = z.object({
     .object({ slug: z.string(), startsAt: z.iso.datetime({ offset: true }) })
     .nullable()
     .optional(),
+  /** Récapitulatifs du lendemain envoyés à toutes les équipes (date), sinon null. */
+  teamRecapsSentAt: z.iso.datetime({ offset: true }).nullable().optional(),
 });
 
 /**

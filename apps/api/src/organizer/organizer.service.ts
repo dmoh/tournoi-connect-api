@@ -366,6 +366,7 @@ export class OrganizerService {
             startsAt: t.nextEditions[0].startsAt.toISOString(),
           }
         : null,
+      teamRecapsSentAt: t.teamRecapsSentAt?.toISOString() ?? null,
     }));
   }
 

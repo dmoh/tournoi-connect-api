@@ -8,6 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Queue } from 'bullmq';
 import { Clock } from '../common/clock.js';
+import { parisHour } from '../common/paris-time.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { Mailer } from '../mail/mailer.js';
@@ -27,18 +28,8 @@ export const SEND_UNTIL_HOUR = 20;
 /** Bilans cherchés par lots. */
 const BATCH = 200;
 
-function parisHour(instant: Date): number {
-  return Number(
-    new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Europe/Paris',
-      hour: '2-digit',
-      hourCycle: 'h23',
-    }).format(instant),
-  );
-}
-
 /** « lundi 9 novembre 2026 » */
-const DATE_FORMAT = new Intl.DateTimeFormat('fr-FR', {
+export const DATE_FORMAT = new Intl.DateTimeFormat('fr-FR', {
   timeZone: 'Europe/Paris',
   weekday: 'long',
   day: 'numeric',
