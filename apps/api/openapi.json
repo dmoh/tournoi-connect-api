@@ -3976,6 +3976,100 @@
         ]
       }
     },
+    "/api/v1/public/edition-invites/{token}": {
+      "get": {
+        "operationId": "PublicEditionInvitesController_info_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "club": {
+                      "type": "string"
+                    },
+                    "optedOut": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "club",
+                    "optedOut"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lien inconnu"
+          }
+        },
+        "summary": "Club et état d’un lien de désinscription",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/v1/public/edition-invites/{token}/opt-out": {
+      "post": {
+        "operationId": "PublicEditionInvitesController_optOut_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "club": {
+                      "type": "string"
+                    },
+                    "optedOut": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "club",
+                    "optedOut"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lien inconnu"
+          }
+        },
+        "summary": "Ne plus recevoir les invitations aux nouvelles éditions du club (rejouable)",
+        "tags": [
+          "public"
+        ]
+      }
+    },
     "/api/v1/public/arrivals/{token}": {
       "get": {
         "operationId": "PublicArrivalsController_view_v1",
@@ -9371,6 +9465,25 @@
                             "type": "integer",
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
+                          },
+                          "nextEdition": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "slug": {
+                                "type": "string"
+                              },
+                              "startsAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                              }
+                            },
+                            "required": [
+                              "slug",
+                              "startsAt"
+                            ],
+                            "additionalProperties": false
                           }
                         },
                         "required": [
@@ -9617,6 +9730,23 @@
                       "losingBonus",
                       "tiebreakers"
                     ]
+                  },
+                  "previousEdition": {
+                    "type": "object",
+                    "properties": {
+                      "slug": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                      },
+                      "inviteTeams": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "slug",
+                      "inviteTeams"
+                    ]
                   }
                 },
                 "required": [
@@ -9707,6 +9837,25 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "nextEdition": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "startsAt"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -9746,6 +9895,296 @@
           }
         ],
         "summary": "Publier le tournoi de l’assistant de création (écrans 02 à 05)",
+        "tags": [
+          "organizer"
+        ]
+      }
+    },
+    "/api/v1/organizer/tournaments/{slug}/next-edition": {
+      "get": {
+        "operationId": "OrganizerController_nextEdition_v1",
+        "parameters": [
+          {
+            "name": "X-Organization",
+            "in": "header",
+            "description": "Club concerné (slug), si le compte en a plusieurs",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "draft": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "sport": {
+                          "type": "string",
+                          "enum": [
+                            "football",
+                            "handball",
+                            "basketball",
+                            "volleyball",
+                            "rugby"
+                          ]
+                        },
+                        "date": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "startTime": {
+                          "type": "string",
+                          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                        },
+                        "endTime": {
+                          "type": "string",
+                          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                        },
+                        "venueName": {
+                          "type": "string"
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "lat": {
+                          "type": "number"
+                        },
+                        "lng": {
+                          "type": "number"
+                        },
+                        "fields": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "outdoor": {
+                          "type": "boolean"
+                        },
+                        "categories": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "maxTeams": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "feeEuros": {
+                          "type": "number"
+                        },
+                        "registrationDeadline": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "format": {
+                          "type": "string",
+                          "enum": [
+                            "single-group",
+                            "groups-knockout",
+                            "knockout",
+                            "swiss"
+                          ]
+                        },
+                        "matchMinutes": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "breakMinutes": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "rules": {
+                          "type": "object",
+                          "properties": {
+                            "points": {
+                              "type": "object",
+                              "properties": {
+                                "win": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 10
+                                },
+                                "draw": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 10
+                                },
+                                "loss": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 10
+                                }
+                              },
+                              "required": [
+                                "win",
+                                "draw",
+                                "loss"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "losingBonus": {
+                              "nullable": true,
+                              "type": "object",
+                              "properties": {
+                                "margin": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 50
+                                },
+                                "points": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 5
+                                }
+                              },
+                              "required": [
+                                "margin",
+                                "points"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "tiebreakers": {
+                              "maxItems": 5,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "headToHead",
+                                  "difference",
+                                  "scored",
+                                  "wins",
+                                  "conceded"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "points",
+                            "losingBonus",
+                            "tiebreakers"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "sport",
+                        "date",
+                        "startTime",
+                        "endTime",
+                        "venueName",
+                        "city",
+                        "lat",
+                        "lng",
+                        "fields",
+                        "outdoor",
+                        "categories",
+                        "maxTeams",
+                        "feeEuros",
+                        "registrationDeadline",
+                        "format",
+                        "matchMinutes",
+                        "breakMinutes"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "previous": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "teams": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "invited": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name",
+                        "startsAt",
+                        "teams",
+                        "invited"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "existing": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "draft",
+                    "previous",
+                    "existing"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Connexion requise"
+          },
+          "404": {
+            "description": "Tournoi hors de l’organisation"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Édition suivante : brouillon complet de l’assistant (52 semaines plus tard) et équipes à inviter",
         "tags": [
           "organizer"
         ]

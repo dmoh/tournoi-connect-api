@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Clock } from '../common/clock.js';
 import { SponsorInvites } from '../sponsorships/sponsor-invites.service.js';
+import { EditionsService } from '../editions/editions.service.js';
 import { keyset, type Page, type PageQuery } from '../common/pagination.js';
 import { parisDate, parisDateTime } from '../common/paris-time.js';
 import { insertWithUniqueSlug, slugify } from '../common/slug.js';
@@ -63,6 +64,7 @@ export class OrganizerService {
     private readonly prisma: PrismaService,
     private readonly clock: Clock,
     private readonly invites: SponsorInvites,
+    private readonly editions: EditionsService,
   ) {}
 
   async sponsors(
@@ -305,7 +307,14 @@ export class OrganizerService {
         status: { not: 'ARCHIVED' },
         ...page.where,
       },
-      include: { venue: true },
+      include: {
+        venue: true,
+        nextEditions: {
+          orderBy: { startsAt: 'desc' },
+          take: 1,
+          select: { slug: true, startsAt: true },
+        },
+      },
       orderBy: page.orderBy,
       take: page.take,
     });
@@ -321,6 +330,12 @@ export class OrganizerService {
       venueName: t.venue.name,
       categories: t.categories,
       fields: t.fieldCount,
+      nextEdition: t.nextEditions[0]
+        ? {
+            slug: t.nextEditions[0].slug,
+            startsAt: t.nextEditions[0].startsAt.toISOString(),
+          }
+        : null,
     }));
   }
 
@@ -341,6 +356,10 @@ export class OrganizerService {
     }
     const startsAt = parisDateTime(input.date, input.startTime);
     const endsAt = parisDateTime(input.date, input.endTime);
+    // Édition suivante : seulement depuis un tournoi du club (sinon 404).
+    const previous = input.previousEdition
+      ? await this.ownTournament(organizationSlug, input.previousEdition.slug)
+      : null;
 
     const base = slugify(input.name) || 'tournoi';
     const taken = await this.prisma.tournament.findMany({
@@ -390,6 +409,7 @@ export class OrganizerService {
               matchMinutes: input.matchMinutes,
               breakMinutes: input.breakMinutes,
               ...(input.rules ? { rankingRules: input.rules } : {}),
+              ...(previous ? { previousEditionId: previous.id } : {}),
               registrationDeadline: new Date(
                 `${input.registrationDeadline}T00:00:00Z`,
               ),
@@ -398,6 +418,11 @@ export class OrganizerService {
           });
         }),
     );
+
+    if (previous && input.previousEdition?.inviteTeams) {
+      // Le worker écrit aux équipes de l'édition précédente, une seule fois.
+      await this.editions.enqueueInvites(created.id);
+    }
 
     return {
       slug: created.slug,

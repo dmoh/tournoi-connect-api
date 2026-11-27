@@ -43,6 +43,7 @@ import {
   createTournamentSchema,
   invitedSponsorSchema,
   inviteSponsorSchema,
+  nextEditionSchema,
   organizerSponsorsSchema,
   organizerTournamentPageSchema,
   organizerTournamentSchema,
@@ -54,6 +55,7 @@ import {
   type CreateTournament,
   type InvitedSponsor,
   type InviteSponsor,
+  type NextEdition,
   type OrganizerSponsors,
   type OrganizerTournament,
   type Schedule,
@@ -61,6 +63,7 @@ import {
   type UpdateSponsor,
 } from './organizer.schemas.js';
 import { OrganizerService } from './organizer.service.js';
+import { EditionsService } from '../editions/editions.service.js';
 import {
   reporterLinkSchema,
   type ReporterLink,
@@ -82,6 +85,7 @@ export class OrganizerController {
   constructor(
     private readonly service: OrganizerService,
     private readonly reporter: ReporterService,
+    private readonly editions: EditionsService,
   ) {}
 
   @Post('tournaments/:slug/matches/:matchId/reporter-link')
@@ -131,6 +135,20 @@ export class OrganizerController {
     @Body({ schema: createTournamentSchema }) body: CreateTournament,
   ): Promise<OrganizerTournament> {
     return this.service.createTournament(req.organizationSlug!, body);
+  }
+
+  @Get('tournaments/:slug/next-edition')
+  @ApiOperation({
+    summary:
+      'Édition suivante : brouillon complet de l’assistant (52 semaines plus tard) et équipes à inviter',
+  })
+  @ApiOkResponse({ schema: openApi(nextEditionSchema) })
+  @ApiNotFoundResponse({ description: 'Tournoi hors de l’organisation' })
+  nextEdition(
+    @Req() req: OrganizerRequest,
+    @Param('slug') slug: string,
+  ): Promise<NextEdition> {
+    return this.editions.nextEdition(req.organizationSlug!, slug);
   }
 
   @Put('tournaments/:slug/schedule')
