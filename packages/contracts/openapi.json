@@ -9741,6 +9741,9 @@
                       },
                       "inviteTeams": {
                         "type": "boolean"
+                      },
+                      "renewSponsors": {
+                        "type": "boolean"
                       }
                     },
                     "required": [
@@ -10133,6 +10136,77 @@
                         },
                         "invited": {
                           "type": "boolean"
+                        },
+                        "sponsors": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "partners": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "tier": {
+                                "type": "string",
+                                "enum": [
+                                  "BRONZE",
+                                  "SILVER",
+                                  "GOLD",
+                                  "FIELD"
+                                ]
+                              },
+                              "field": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "totalCents": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "tier",
+                              "field",
+                              "totalCents"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "sponsorsRenewed": {
+                          "type": "boolean"
+                        },
+                        "packages": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "tier": {
+                                "type": "string",
+                                "enum": [
+                                  "BRONZE",
+                                  "SILVER",
+                                  "GOLD",
+                                  "FIELD"
+                                ]
+                              },
+                              "priceCents": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "tier",
+                              "priceCents"
+                            ],
+                            "additionalProperties": false
+                          }
                         }
                       },
                       "required": [
@@ -10140,7 +10214,11 @@
                         "name",
                         "startsAt",
                         "teams",
-                        "invited"
+                        "invited",
+                        "sponsors",
+                        "partners",
+                        "sponsorsRenewed",
+                        "packages"
                       ],
                       "additionalProperties": false
                     },

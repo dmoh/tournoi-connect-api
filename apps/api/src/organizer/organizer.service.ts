@@ -164,6 +164,10 @@ export class OrganizerService {
           tournamentId_tier: { tournamentId: tournament.id, tier: input.tier },
         },
       });
+      if (pack) {
+        // Verrou du pack : un renouvellement simultané ne le survend pas.
+        await tx.$executeRaw`SELECT id FROM sponsor_package WHERE id = ${pack.id} FOR UPDATE`;
+      }
       const taken = await tx.tournamentSponsor.count({
         where: {
           tournamentId: tournament.id,
@@ -419,9 +423,14 @@ export class OrganizerService {
         }),
     );
 
-    if (previous && input.previousEdition?.inviteTeams) {
-      // Le worker écrit aux équipes de l'édition précédente, une seule fois.
-      await this.editions.enqueueInvites(created.id);
+    if (previous && input.previousEdition) {
+      // Packs repris tels quels ; le worker écrit aux équipes et aux
+      // partenaires de l'édition précédente, une seule fois.
+      await this.editions.copyPackages(previous.id, created.id);
+      await this.editions.enqueueInvites(created.id, {
+        teams: input.previousEdition.inviteTeams,
+        sponsors: input.previousEdition.renewSponsors ?? false,
+      });
     }
 
     return {

@@ -9,6 +9,7 @@ import { InvoicesService } from '../invoices/invoices.service.js';
 import { Mailer } from '../mail/mailer.js';
 import {
   sponsorInvitationMail,
+  sponsorRenewalMail,
   sponsorPaidClubMail,
   sponsorReceiptMail,
 } from '../mail/templates.js';
@@ -16,6 +17,16 @@ import { registrationQuote } from '../registrations/pricing.js';
 import type { InviteLink } from './sponsorships.schemas.js';
 
 type Tx = Prisma.TransactionClient;
+
+/** Renouvellement d'un partenaire de l'édition précédente (email dédié). */
+export interface RenewalContext {
+  previous: string;
+  /** « lundi 8 novembre 2027 » */
+  date: string;
+  venue: string;
+  unsubscribeUrl: string;
+  oneClickUrl: string;
+}
 
 /** Empreinte du lien : seule elle est gardée en base. */
 export const hashToken = (token: string) =>
@@ -66,6 +77,7 @@ export class SponsorInvites {
   async issue(
     sponsorshipId: string,
     db: Tx | PrismaService = this.prisma,
+    renewal?: RenewalContext,
   ): Promise<InviteLink> {
     const row = await db.tournamentSponsor.findUnique({
       where: { id: sponsorshipId },
@@ -86,15 +98,32 @@ export class SponsorInvites {
     const pack = row.tournament.packages.find((p) => p.tier === row.tier);
     const emailed = !!row.sponsor.email && row.status === 'INVITED' && !!pack;
     if (emailed) {
+      const totalCents = registrationQuote(pack!.priceCents).totalCents;
       await this.mailer.send(
-        sponsorInvitationMail(row.sponsor.email!, {
-          club: row.tournament.organization.name,
-          tournament: row.tournament.name,
-          sponsor: row.sponsor.name,
-          tier: row.tier,
-          totalCents: registrationQuote(pack!.priceCents).totalCents,
-          url,
-        }),
+        renewal
+          ? // Partenaire de l'an dernier : le même pack, l'édition passée rappelée.
+            sponsorRenewalMail(row.sponsor.email!, {
+              club: row.tournament.organization.name,
+              previous: renewal.previous,
+              tournament: row.tournament.name,
+              sponsor: row.sponsor.name,
+              tier: row.tier,
+              field: row.field,
+              date: renewal.date,
+              venue: renewal.venue,
+              totalCents,
+              url,
+              unsubscribeUrl: renewal.unsubscribeUrl,
+              oneClickUrl: renewal.oneClickUrl,
+            })
+          : sponsorInvitationMail(row.sponsor.email!, {
+              club: row.tournament.organization.name,
+              tournament: row.tournament.name,
+              sponsor: row.sponsor.name,
+              tier: row.tier,
+              totalCents,
+              url,
+            }),
       );
     }
     return { url, emailed };

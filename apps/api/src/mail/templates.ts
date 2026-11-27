@@ -250,17 +250,38 @@ const TIER_NAME = {
   FIELD: 'Terrain',
 } as const;
 
+/** Nom du pack comme dans l'app : « Pack Or », « Sponsor de terrain ». */
+export function packLabel(tier: keyof typeof TIER_NAME): string {
+  return tier === 'FIELD' ? 'Sponsor de terrain' : `Pack ${TIER_NAME[tier]}`;
+}
+
 function sponsorCard(
   title: string,
   lines: readonly string[],
   button?: { label: string; url: string },
 ): string {
-  return `<!doctype html><html lang="fr"><body style="margin:0;padding:24px;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
-<div style="max-width:420px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px">
+  // Carte de 420 px fixée pour Outlook (moteur Word) par une table fantôme ;
+  // bouton en cellule colorée, cliquable en entier ; thème clair imposé.
+  const rows = lines
+    .map(
+      (l, i) =>
+        `<p style="margin:0 0 ${i === lines.length - 1 ? 20 : 6}px;font-size:${i === 0 ? 20 : 14}px;${i === 0 ? 'font-weight:700;color:#1e3a8a' : 'color:#5c6a7f'}">${escape(l)}</p>`,
+    )
+    .join('\n');
+  const cta = button
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1e3a8a" style="border-radius:12px"><a href="${escape(button.url)}" style="display:inline-block;padding:14px 20px;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px">${escape(button.label)}</a></td></tr></table>`
+    : '';
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7f8fa"><tr><td align="center" style="padding:24px 12px">
+<!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
 <p style="margin:0 0 8px;font-size:15px">${escape(title)}</p>
-${lines.map((l, i) => `<p style="margin:0 0 ${i === lines.length - 1 ? 20 : 6}px;font-size:${i === 0 ? 20 : 14}px;${i === 0 ? 'font-weight:700;color:#1e3a8a' : 'color:#5c6a7f'}">${escape(l)}</p>`).join('\n')}
-${button ? `<a href="${escape(button.url)}" style="display:inline-block;background:#1e3a8a;color:#ffffff;text-decoration:none;font-weight:600;padding:14px 20px;border-radius:12px">${escape(button.label)}</a>` : ''}
-</div></body></html>`;
+${rows}
+${cta}
+</td></tr></table>
+<!--[if mso]></td></tr></table><![endif]-->
+</td></tr></table>
+</body></html>`;
 }
 
 /** Invitation d'un sponsor à régler son pack en ligne (lien personnel). */
@@ -275,11 +296,11 @@ export function sponsorInvitationMail(
     url: string;
   },
 ): MailMessage {
-  const pack = `Pack ${TIER_NAME[info.tier]}`;
-  const subject = `${info.club} vous propose le ${pack} du ${info.tournament}`;
+  const pack = packLabel(info.tier);
+  const subject = `${info.club} vous propose ${pack} – ${info.tournament}`;
   const text = [
-    `${info.club} invite ${info.sponsor} à soutenir le ${info.tournament} avec le ${pack}.`,
-    `Montant : ${eurosLabel(info.totalCents)}, frais de service compris.`,
+    `${info.club} invite ${info.sponsor} à soutenir « ${info.tournament} » (${pack}).`,
+    `Montant\u202f: ${eurosLabel(info.totalCents)}, frais de service compris.`,
     '',
     `Voir le pack et payer en ligne : ${info.url}`,
     '',
@@ -643,6 +664,84 @@ export function editionInviteMail(
 <ul style="margin:0 0 20px;padding-left:20px;font-size:15px">${rows}</ul>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1e3a8a" style="border-radius:12px"><a href="${escape(info.joinUrl)}" style="display:inline-block;padding:14px 20px;mso-padding-alt:0;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px"><!--[if mso]><i style="mso-font-width:150%;mso-text-raise:21pt">&nbsp;</i><![endif]-->Inscrire mon équipe<!--[if mso]><i style="mso-font-width:150%">&nbsp;</i><![endif]--></a></td></tr></table>
 <p style="margin:20px 0 0;font-size:12px;color:#5c6a7f">${escape(why)} <a href="${escape(info.unsubscribeUrl)}" style="color:#5c6a7f">Ne plus recevoir les nouvelles éditions de ce club</a>.</p>
+</td></tr></table>
+<!--[if mso]></td></tr></table><![endif]-->
+</td></tr></table>
+</body></html>`;
+  return {
+    to,
+    subject,
+    text,
+    html,
+    headers: {
+      'List-Unsubscribe': `<${info.oneClickUrl}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  };
+}
+
+/**
+ * Partenaire de l'édition précédente : le même pack lui est proposé pour la
+ * nouvelle édition, avec son lien de paiement personnel. Envoyé une seule
+ * fois, à la publication de l'édition suivante ; désinscription en un clic.
+ */
+export function sponsorRenewalMail(
+  to: string,
+  info: {
+    club: string;
+    previous: string;
+    tournament: string;
+    sponsor: string;
+    tier: keyof typeof TIER_NAME;
+    /** Terrain gardé d'une année sur l'autre (« Terrain 1 »), ou null. */
+    field: string | null;
+    /** « lundi 8 novembre 2027 » */
+    date: string;
+    venue: string;
+    totalCents: number;
+    url: string;
+    unsubscribeUrl: string;
+    oneClickUrl: string;
+  },
+): MailMessage {
+  const pack = packLabel(info.tier) + (info.field ? ` (${info.field})` : '');
+  const amount = eurosLabel(info.totalCents);
+  const subject = `${info.club} – ${info.tournament}\u202f: renouveler votre ${packLabel(info.tier)}\u202f?`;
+  const intro = `Merci d’avoir soutenu « ${info.previous} ». ${info.club} organise la nouvelle édition et propose à ${info.sponsor} de renouveler son partenariat.`;
+  const why = `Vous recevez cet email car ${info.sponsor} était partenaire de « ${info.previous} ». ${info.club} ne vous écrit qu’à la publication d’une nouvelle édition.`;
+  const details = [
+    `${pack}, comme l’an dernier`,
+    `${info.date} · ${info.venue}`,
+    `Montant\u202f: ${amount}, frais de service compris`,
+  ];
+  const text = [
+    intro,
+    '',
+    ...details,
+    '',
+    `Renouveler et payer en ligne\u202f: ${info.url}`,
+    '',
+    'Le paiement est sécurisé par Stripe et versé au club. Ce lien vous est personnel ; sans réponse, rien ne vous est demandé.',
+    '',
+    why,
+    `Ne plus être sollicité par ce club\u202f: ${info.unsubscribeUrl}`,
+    '',
+    'Tournoi Connect',
+  ].join('\n');
+  const rows = details
+    .map((line) => `<li style="margin:0 0 6px">${escape(line)}</li>`)
+    .join('');
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7f8fa"><tr><td align="center" style="padding:24px 12px">
+<!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
+<p style="margin:0 0 8px;font-size:15px">Nouvelle édition · ${escape(info.club)}</p>
+<p style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.tournament)}</p>
+<p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
+<ul style="margin:0 0 20px;padding-left:20px;font-size:15px">${rows}</ul>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1e3a8a" style="border-radius:12px"><a href="${escape(info.url)}" style="display:inline-block;padding:14px 20px;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px">Renouveler et payer</a></td></tr></table>
+<p style="margin:16px 0 0;font-size:13px;color:#5c6a7f">Paiement sécurisé par Stripe, versé au club. Sans réponse, rien ne vous est demandé.</p>
+<p style="margin:16px 0 0;font-size:12px;color:#5c6a7f">${escape(why)} <a href="${escape(info.unsubscribeUrl)}" style="color:#5c6a7f">Ne plus être sollicité par ce club</a>.</p>
 </td></tr></table>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table>

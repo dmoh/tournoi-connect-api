@@ -5678,6 +5678,7 @@ export interface operations {
                     previousEdition?: {
                         slug: string;
                         inviteTeams: boolean;
+                        renewSponsors?: boolean;
                     };
                 };
             };
@@ -5804,6 +5805,20 @@ export interface operations {
                             startsAt: string;
                             teams: number;
                             invited: boolean;
+                            sponsors: number;
+                            partners: {
+                                name: string;
+                                /** @enum {string} */
+                                tier: "BRONZE" | "SILVER" | "GOLD" | "FIELD";
+                                field: string | null;
+                                totalCents: number;
+                            }[];
+                            sponsorsRenewed: boolean;
+                            packages: {
+                                /** @enum {string} */
+                                tier: "BRONZE" | "SILVER" | "GOLD" | "FIELD";
+                                priceCents: number;
+                            }[];
                         };
                         existing: {
                             slug: string;
