@@ -35,7 +35,7 @@ jobs:
       AWS_ACCOUNT: '677142166254'
       AWS_REGION: eu-west-3
     steps:
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT }}:role/tournoi-connect-deploy-${{ env.TARGET }}
           aws-region: ${{ env.AWS_REGION }}
