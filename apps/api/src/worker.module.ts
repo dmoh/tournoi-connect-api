@@ -4,6 +4,7 @@ import { AudienceModule } from './audience/audience.module.js';
 import { AudienceProcessor } from './audience/audience.processor.js';
 import { ConvocationsProcessor } from './convocations/convocations.processor.js';
 import { EditionsProcessor } from './editions/editions.processor.js';
+import { SponsorReportsProcessor } from './reports/sponsor-reports.processor.js';
 import { MailProcessor } from './mail/mail.processor.js';
 import { MaintenanceModule } from './maintenance/maintenance.module.js';
 import { MaintenanceProcessor } from './maintenance/maintenance.processor.js';
@@ -23,6 +24,7 @@ import { WaitlistProcessor } from './registrations/waitlist.processor.js';
         AudienceProcessor,
         ConvocationsProcessor,
         EditionsProcessor,
+        SponsorReportsProcessor,
         MailProcessor,
         MaintenanceProcessor,
         PushProcessor,

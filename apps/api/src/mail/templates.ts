@@ -757,3 +757,106 @@ export function sponsorRenewalMail(
     },
   };
 }
+
+const PLACEMENT_NAME = {
+  BANNER_EXCLUSIVE: 'Bannière principale',
+  BANNER_ROTATION: 'Bandeau des partenaires',
+  FIELD_LOGO: 'Terrain et écran du stade',
+  FEED_CARD: 'Fil d’actualité',
+} as const;
+
+const COUNT = new Intl.NumberFormat('fr-FR');
+const PLURAL = new Intl.PluralRules('fr-FR');
+/** « 207 affichages », « 1 affichage », « 0 affichage » (règles du français). */
+const counted = (n: number, one: string, many: string) =>
+  `${COUNT.format(n)}\u00a0${PLURAL.select(n) === 'one' ? one : many}`;
+
+/**
+ * Bilan d'un partenariat, le lendemain du tournoi : affichages et clics, par
+ * emplacement, et le lien de la page de bilan. Envoyé une seule fois ;
+ * désinscription en un clic (les mêmes que les invitations du club).
+ */
+export function sponsorReportMail(
+  to: string,
+  info: {
+    club: string;
+    sponsor: string;
+    tier: keyof typeof TIER_NAME;
+    field: string | null;
+    tournament: { name: string };
+    /** « lundi 9 novembre 2026 » */
+    date: string;
+    impressions: number;
+    clicks: number;
+    placements: readonly {
+      placement: keyof typeof PLACEMENT_NAME;
+      impressions: number;
+      clicks: number;
+    }[];
+    teams: number;
+    matches: number;
+    reportUrl: string;
+    unsubscribeUrl: string;
+    oneClickUrl: string;
+  },
+): MailMessage {
+  const pack = packLabel(info.tier) + (info.field ? ` (${info.field})` : '');
+  const subject = `${info.club} – merci\u202f! Votre partenariat au « ${info.tournament.name} » en chiffres`;
+  const intro =
+    info.impressions > 0
+      ? `Merci d’avoir soutenu « ${info.tournament.name} » (${info.date}). Voici ce que votre ${pack} a apporté à ${info.sponsor}.`
+      : `Merci d’avoir soutenu « ${info.tournament.name} » (${info.date}). Votre ${pack} était présent sur place ; l’application n’a pas mesuré d’affichage en ligne cette fois.`;
+  const headline = `${counted(info.impressions, 'affichage', 'affichages')} · ${counted(info.clicks, 'clic', 'clics')}`;
+  const lines = info.placements.map(
+    (p) =>
+      `${PLACEMENT_NAME[p.placement]}\u202f: ${counted(p.impressions, 'affichage', 'affichages')}, ${counted(p.clicks, 'clic', 'clics')}`,
+  );
+  const scale =
+    info.matches > 0
+      ? `${counted(info.teams, 'équipe', 'équipes')}, ${counted(info.matches, 'match joué', 'matchs joués')}.`
+      : `${counted(info.teams, 'équipe', 'équipes')}.`;
+  const why = `Vous recevez cet email car ${info.sponsor} était partenaire de « ${info.tournament.name} ».`;
+  const text = [
+    intro,
+    '',
+    headline,
+    ...lines.map((l) => `- ${l}`),
+    scale,
+    '',
+    `Votre bilan détaillé\u202f: ${info.reportUrl}`,
+    '',
+    why,
+    `Ne plus être sollicité par ce club\u202f: ${info.unsubscribeUrl}`,
+    '',
+    'Tournoi Connect',
+  ].join('\n');
+  const rows = lines
+    .map((line) => `<li style="margin:0 0 6px">${escape(line)}</li>`)
+    .join('');
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f7f8fa;font-family:Inter,Arial,sans-serif;color:#0f172a">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7f8fa"><tr><td align="center" style="padding:24px 12px">
+<!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
+<p style="margin:0 0 8px;font-size:15px">Bilan du partenariat · ${escape(info.club)}</p>
+<p style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1e3a8a">${escape(info.tournament.name)}</p>
+<p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
+<p style="margin:0 0 8px;font-size:20px;font-weight:700">${escape(headline)}</p>
+<ul style="margin:0 0 12px;padding-left:20px;font-size:15px">${rows}</ul>
+<p style="margin:0 0 20px;font-size:14px;color:#5c6a7f">${escape(scale)}</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#1e3a8a" style="border-radius:12px"><a href="${escape(info.reportUrl)}" style="display:inline-block;padding:14px 20px;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px">Voir mon bilan</a></td></tr></table>
+<p style="margin:20px 0 0;font-size:12px;color:#5c6a7f">${escape(why)} <a href="${escape(info.unsubscribeUrl)}" style="color:#5c6a7f">Ne plus être sollicité par ce club</a>.</p>
+</td></tr></table>
+<!--[if mso]></td></tr></table><![endif]-->
+</td></tr></table>
+</body></html>`;
+  return {
+    to,
+    subject,
+    text,
+    html,
+    headers: {
+      'List-Unsubscribe': `<${info.oneClickUrl}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  };
+}

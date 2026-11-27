@@ -96,6 +96,8 @@ export const RATE_LIMITS = {
   arrival: [{ key: 'ip', max: 30, windowMs: MINUTE }],
   /** Désinscription des invitations aux nouvelles éditions (lien d'email). */
   editionOptOut: [{ key: 'ip', max: 30, windowMs: MINUTE }],
+  /** Page de bilan d'un partenaire (lien d'email). */
+  sponsorReport: [{ key: 'ip', max: 60, windowMs: MINUTE }],
   /** Invitations d'un club, en plus de la limite métier par club. */
   invitation: [{ key: 'ip', max: 20, windowMs: MINUTE }],
 } as const satisfies Record<string, readonly RateLimit[]>;

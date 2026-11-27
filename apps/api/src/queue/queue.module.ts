@@ -18,6 +18,8 @@ export const REFUND_QUEUE = 'refund';
 export const CONVOCATION_QUEUE = 'convocation';
 /** Édition suivante : invitation des équipes de l'édition précédente. */
 export const EDITION_QUEUE = 'edition';
+/** Bilans des partenaires : balayage horaire, le lendemain des tournois. */
+export const REPORT_QUEUE = 'sponsor-report';
 
 /**
  * Files BullMQ (ADR-010). Sans REDIS_URL (tests, poste sans Redis), aucune
@@ -74,6 +76,15 @@ export class QueueModule {
             backoff: { type: 'exponential', delay: 5000 },
             removeOnComplete: 1000,
             removeOnFail: 5000,
+          },
+        }),
+        BullModule.registerQueue({
+          name: REPORT_QUEUE,
+          defaultJobOptions: {
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 60_000 },
+            removeOnComplete: 30,
+            removeOnFail: 100,
           },
         }),
         BullModule.registerQueue({

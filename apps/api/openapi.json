@@ -4070,6 +4070,153 @@
         ]
       }
     },
+    "/api/v1/public/sponsor-reports/{token}": {
+      "get": {
+        "operationId": "PublicSponsorReportsController_report_v1",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "club": {
+                      "type": "string"
+                    },
+                    "sponsor": {
+                      "type": "string"
+                    },
+                    "tier": {
+                      "type": "string",
+                      "enum": [
+                        "BRONZE",
+                        "SILVER",
+                        "GOLD",
+                        "FIELD"
+                      ]
+                    },
+                    "field": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "tournament": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "venue": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name",
+                        "startsAt",
+                        "venue"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "impressions": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "clicks": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "placements": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "placement": {
+                            "type": "string",
+                            "enum": [
+                              "BANNER_EXCLUSIVE",
+                              "BANNER_ROTATION",
+                              "FIELD_LOGO",
+                              "FEED_CARD"
+                            ]
+                          },
+                          "impressions": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "clicks": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "placement",
+                          "impressions",
+                          "clicks"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "teams": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "matches": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "club",
+                    "sponsor",
+                    "tier",
+                    "field",
+                    "tournament",
+                    "impressions",
+                    "clicks",
+                    "placements",
+                    "teams",
+                    "matches"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lien inconnu"
+          }
+        },
+        "summary": "Bilan d’un partenariat (affichages, clics)",
+        "tags": [
+          "public"
+        ]
+      }
+    },
     "/api/v1/public/arrivals/{token}": {
       "get": {
         "operationId": "PublicArrivalsController_view_v1",

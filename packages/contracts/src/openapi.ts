@@ -479,6 +479,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/sponsor-reports/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bilan d’un partenariat (affichages, clics) */
+        get: operations["PublicSponsorReportsController_report_v1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/arrivals/{token}": {
         parameters: {
             query?: never;
@@ -3416,6 +3433,57 @@ export interface operations {
                     "application/json": {
                         club: string;
                         optedOut: boolean;
+                    };
+                };
+            };
+            /** @description Lien inconnu */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PublicSponsorReportsController_report_v1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        club: string;
+                        sponsor: string;
+                        /** @enum {string} */
+                        tier: "BRONZE" | "SILVER" | "GOLD" | "FIELD";
+                        field: string | null;
+                        tournament: {
+                            slug: string;
+                            name: string;
+                            /** Format: date-time */
+                            startsAt: string;
+                            venue: string;
+                        };
+                        impressions: number;
+                        clicks: number;
+                        placements: {
+                            /** @enum {string} */
+                            placement: "BANNER_EXCLUSIVE" | "BANNER_ROTATION" | "FIELD_LOGO" | "FEED_CARD";
+                            impressions: number;
+                            clicks: number;
+                        }[];
+                        teams: number;
+                        matches: number;
                     };
                 };
             };
