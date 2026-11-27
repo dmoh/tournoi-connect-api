@@ -68,7 +68,7 @@ describe('teamRecapMail', () => {
       '3 victoires, 1 défaite · 3 buts marqués, 7 encaissés',
     );
     expect(mail.text).toContain(
-      '- Demi-finale : 0-3 contre FC Cluses (victoire par forfait)',
+      '- Demi-finale — victoire par forfait 0-3 contre FC Cluses',
     );
     expect(mail.text).toContain('1 photo du tournoi');
     expect(mail.html).toContain('<h1');

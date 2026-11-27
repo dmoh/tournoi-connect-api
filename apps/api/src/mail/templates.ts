@@ -931,23 +931,24 @@ export function teamRecapMail(
       ].join(', ') +
       ` · ${counted(scored, 'but marqué', 'buts marqués')}, ${counted(conceded, 'encaissé', 'encaissés')}`
     : null;
+  // Le résultat d'abord : « Poule A — victoire 2-1 contre FC Cluses ».
   const lines = info.matches.map(
     (m) =>
-      `${m.stage} : ${m.scored}-${m.conceded} contre ${m.opponent} (${m.forfeit ? (m.result === 'W' ? 'victoire par forfait' : 'forfait') : RESULT_WORD[m.result]})`,
+      `${m.stage} — ${m.forfeit ? (m.result === 'W' ? 'victoire par forfait' : 'forfait') : RESULT_WORD[m.result]} ${m.scored}-${m.conceded} contre ${m.opponent}`,
   );
   const podium = info.podium
     ? [
         `1. ${info.podium.first}`,
         ...(info.podium.second ? [`2. ${info.podium.second}`] : []),
-        ...(info.podium.third.length
-          ? [`3. ${info.podium.third.join(', ')}`]
-          : []),
+        // Ex aequo : une ligne par équipe.
+        ...info.podium.third.map((team) => `3. ${team}`),
       ]
     : [];
+  // Le nom de l'équipe est déjà le titre : la place seule.
   const headline = info.place
     ? info.place === 1
-      ? `${info.team} remporte le tournoi !`
-      : `${info.team} termine ${PLACE_WORD[info.place]} !`
+      ? 'Vainqueur du tournoi !'
+      : `${PLACE_WORD[info.place]} place !`
     : null;
   const photos =
     info.photos > 0
@@ -975,7 +976,7 @@ export function teamRecapMail(
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#f4f7fa;font-family:Inter,Arial,sans-serif;color:#0a1a2b">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fa"><tr><td align="center" style="padding:24px 12px">
 <!--[if mso]><table role="presentation" width="420" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:24px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:420px;background:#ffffff;border-radius:16px"><tr><td style="padding:20px;overflow-wrap:anywhere;word-break:break-word">
 <p style="margin:0 0 8px;font-size:15px">Récapitulatif · ${escape(info.club)}</p>
 <h1 style="margin:0 0 16px;font-size:22px;line-height:1.25;font-weight:700;color:#062541">${escape(info.team)}</h1>
 <p style="margin:0 0 12px;font-size:15px">${escape(intro)}</p>
